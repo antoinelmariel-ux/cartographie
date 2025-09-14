@@ -457,7 +457,7 @@
                 </div>
                 <div class="content-area" id="configurationContainer"></div>
             </div>
-        </div>
+    </div>
     </div>
 
     <!-- Control Form Modal -->
@@ -547,6 +547,88 @@
                 <button class="btn btn-secondary" onclick="closeControlModal()">Annuler</button>
                 <button class="btn btn-success" onclick="saveControl()">Sauvegarder</button>
             </div>
+    </div>
+    </div>
+
+    <!-- Action Plan Form Modal -->
+    <div id="actionPlanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="actionPlanModalTitle">Nouveau Plan d'action</h3>
+                <button class="modal-close" onclick="closeActionPlanModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="actionPlanForm" onsubmit="saveActionPlan(); return false;">
+                    <div class="form-section">
+                        <div class="form-section-title">Informations Générales</div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="planTitle">Titre du plan *</label>
+                                <input type="text" id="planTitle" name="title" required>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="planRisks">Risque(s) associé(s)</label>
+                                <div class="risk-selection">
+                                    <div class="selected-risks" id="selectedRisksForPlan"></div>
+                                    <button type="button" class="btn btn-secondary" onclick="openRiskSelectorForPlan()">+ Sélectionner des risques</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Détails</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="planOwner">Propriétaire</label>
+                                <input type="text" id="planOwner" name="owner">
+                            </div>
+                            <div class="form-group">
+                                <label for="planDueDate">Échéance</label>
+                                <input type="date" id="planDueDate" name="dueDate">
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="planStatus">Statut</label>
+                                <select id="planStatus" name="status">
+                                    <option value="">Sélectionner...</option>
+                                    <option value="brouillon">Brouillon</option>
+                                    <option value="a-demarrer">À démarrer</option>
+                                    <option value="en-cours">En cours</option>
+                                    <option value="termine">Terminé</option>
+                                </select>
+                            </div>
+                            <div class="form-group full-width">
+                                <label for="planDescription">Description</label>
+                                <textarea id="planDescription" name="description" rows="4" placeholder="Description détaillée du plan"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeActionPlanModal()">Annuler</button>
+                <button class="btn btn-success" onclick="saveActionPlan()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Selector Modal for Action Plans -->
+    <div id="riskSelectorPlanModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sélectionner les risques associés</h2>
+                <span class="close" onclick="closeRiskSelectorForPlan()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="riskSearchInputPlan" placeholder="Filtrer par ID ou titre..." onkeyup="filterRisksForPlan(this.value)">
+                </div>
+                <div class="risk-list" id="riskListForPlan"></div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeRiskSelectorForPlan()">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="confirmRiskSelectionForPlan()">Confirmer</button>
+            </div>
         </div>
     </div>
 
@@ -569,7 +651,7 @@
                 <button type="button" class="btn btn-secondary" onclick="closeRiskSelector()">Annuler</button>
                 <button type="button" class="btn btn-primary" onclick="confirmRiskSelection()">Confirmer</button>
             </div>
-        </div>
+    </div>
     </div>
 
     <!-- Control Selector Modal for Risks -->
@@ -585,8 +667,30 @@
                 </div>
                 <div class="risk-list" id="controlList">
                     <!-- Control list populated by JavaScript -->
+    </div>
+    </div>
+
+    <!-- Action Plan Selector Modal for Risks -->
+    <div id="actionPlanSelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sélectionner les plans d'actions associés</h2>
+                <span class="close" onclick="closeActionPlanSelector()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="actionPlanSearchInput" placeholder="Filtrer par ID ou titre..." onkeyup="filterActionPlansForRisk(this.value)">
+                </div>
+                <div class="risk-list" id="actionPlanList">
+                    <!-- Action plan list populated by JavaScript -->
                 </div>
             </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeActionPlanSelector()">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="confirmActionPlanSelection()">Confirmer</button>
+            </div>
+        </div>
+    </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeControlSelector()">Annuler</button>
                 <button type="button" class="btn btn-primary" onclick="confirmControlSelection()">Confirmer</button>
@@ -740,7 +844,7 @@
                     <div class="form-section">
                         <div class="form-section-title">Plans d'actions associés</div>
                         <div class="controls-section">
-                            <button type="button" class="btn btn-secondary" onclick="addActionPlanToRisk()">
+                            <button type="button" class="btn btn-secondary" onclick="openActionPlanSelector()">
                                 + Ajouter un plan d'action
                             </button>
                             <div class="controls-grid" id="riskActionPlans" style="margin-top: 15px;">

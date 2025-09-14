@@ -903,6 +903,10 @@ class RiskManagementSystem {
             const linkedRisks = plan.risks ? this.risks.filter(r => plan.risks.includes(r.id)).map(r => r.description.substring(0, 50) + '...').join(', ') : 'Aucun risque';
             return `
                 <div class="control-item" data-plan-id="${plan.id}">
+                    <div class="control-actions">
+                        <button class="control-action-btn edit" data-plan-id="${plan.id}" title="Modifier">✏️</button>
+                        <button class="control-action-btn delete" onclick="deleteActionPlan(${plan.id})" title="Supprimer">🗑️</button>
+                    </div>
                     <div class="control-header">
                         <div>
                             <div class="control-name">${plan.title || 'Plan sans titre'}</div>
@@ -1185,6 +1189,11 @@ let selectedControlsForRisk = [];
 let controlFilterQueryForRisk = '';
 let currentEditingRiskId = null;
 let selectedActionPlansForRisk = [];
+let lastActionPlanData = null;
+let selectedRisksForPlan = [];
+let riskFilterQueryForPlan = '';
+let currentEditingActionPlanId = null;
+let actionPlanFilterQueryForRisk = '';
 
 function addNewRisk() {
     currentEditingRiskId = null;
@@ -1466,55 +1475,255 @@ function removeActionPlanFromSelection(planId) {
 }
 window.removeActionPlanFromSelection = removeActionPlanFromSelection;
 
-function addActionPlanToRisk() {
-    let options = rms.actionPlans.map(p => `${p.id}:${p.title}`).join('\n');
-    let choice = prompt("ID d'un plan existant à lier ou laisser vide pour créer un nouveau:\n" + options);
-    let plan;
-    if (choice) {
-        plan = rms.actionPlans.find(p => String(p.id) === String(choice));
-        if (!plan) { alert('Plan introuvable'); return; }
-    } else {
-        const title = prompt("Titre du plan d'action ?");
-        if (!title) return;
-        const description = prompt("Description ?") || '';
-        const status = prompt("Statut (brouillon|a-demarrer|en-cours|termine):", 'brouillon') || 'brouillon';
-        const owner = prompt("Propriétaire ?") || '';
-        const dueDate = prompt("Date de fin (YYYY-MM-DD) ?") || '';
-        plan = { id: Date.now(), title, description, status, owner, dueDate, risks: [] };
-        rms.actionPlans.push(plan);
-        rms.saveData();
-        rms.updateActionPlansList();
-    }
-    if (!selectedActionPlansForRisk.includes(plan.id)) selectedActionPlansForRisk.push(plan.id);
-    updateSelectedActionPlansDisplay();
+function openActionPlanSelector() {
+    actionPlanFilterQueryForRisk = '';
+    const searchInput = document.getElementById('actionPlanSearchInput');
+    if (searchInput) searchInput.value = '';
+    renderActionPlanSelectionList();
+    document.getElementById('actionPlanSelectorModal').classList.add('show');
 }
-window.addActionPlanToRisk = addActionPlanToRisk;
+window.openActionPlanSelector = openActionPlanSelector;
+
+function renderActionPlanSelectionList() {
+    const list = document.getElementById('actionPlanList');
+    if (!list) return;
+    const query = actionPlanFilterQueryForRisk.toLowerCase();
+    list.innerHTML = rms.actionPlans.filter(plan => {
+        const title = (plan.title || '').toLowerCase();
+        return String(plan.id).includes(query) || title.includes(query);
+    }).map(plan => {
+        const isSelected = selectedActionPlansForRisk.includes(plan.id);
+        const title = plan.title || 'Sans titre';
+        return `
+            <div class="risk-list-item">
+              <input type="checkbox" id="action-plan-${plan.id}" ${isSelected ? 'checked' : ''} onchange="toggleActionPlanSelection(${plan.id})">
+              <div class="risk-item-info">
+                <div class="risk-item-title">#${plan.id} - ${title}</div>
+              </div>
+            </div>`;
+    }).join('');
+}
+
+window.filterActionPlansForRisk = function(query) {
+    actionPlanFilterQueryForRisk = query;
+    renderActionPlanSelectionList();
+};
+
+function closeActionPlanSelector() {
+    document.getElementById('actionPlanSelectorModal').classList.remove('show');
+}
+window.closeActionPlanSelector = closeActionPlanSelector;
+
+function toggleActionPlanSelection(planId) {
+    const index = selectedActionPlansForRisk.indexOf(planId);
+    if (index > -1) {
+        selectedActionPlansForRisk.splice(index, 1);
+    } else {
+        selectedActionPlansForRisk.push(planId);
+    }
+}
+window.toggleActionPlanSelection = toggleActionPlanSelection;
+
+function confirmActionPlanSelection() {
+    updateSelectedActionPlansDisplay();
+    closeActionPlanSelector();
+}
+window.confirmActionPlanSelection = confirmActionPlanSelection;
 
 function addNewActionPlan() {
-    const title = prompt("Titre du plan d'action ?");
-    if (!title) return;
-    const description = prompt("Description ?") || '';
-    const status = prompt("Statut (brouillon|a-demarrer|en-cours|termine):", 'brouillon') || 'brouillon';
-    const owner = prompt("Propriétaire ?") || '';
-    const dueDate = prompt("Date de fin (YYYY-MM-DD) ?") || '';
-    const risksInput = prompt("IDs des risques associés (séparés par des virgules) ?") || '';
-    const risks = risksInput.split(',').map(r => parseInt(r.trim())).filter(Boolean);
-    const plan = { id: Date.now(), title, description, status, owner, dueDate, risks };
-    rms.actionPlans.push(plan);
-    risks.forEach(rid => {
-        const risk = rms.risks.find(r => r.id === rid);
-        if (risk) {
-            risk.actionPlans = risk.actionPlans || [];
-            if (!risk.actionPlans.includes(plan.id)) {
-                risk.actionPlans.push(plan.id);
-            }
+    currentEditingActionPlanId = null;
+    const form = document.getElementById('actionPlanForm');
+    if (form) {
+        form.reset();
+        selectedRisksForPlan = [];
+        if (lastActionPlanData) {
+            document.getElementById('planTitle').value = lastActionPlanData.title || '';
+            document.getElementById('planOwner').value = lastActionPlanData.owner || '';
+            document.getElementById('planDueDate').value = lastActionPlanData.dueDate || '';
+            document.getElementById('planStatus').value = lastActionPlanData.status || '';
+            document.getElementById('planDescription').value = lastActionPlanData.description || '';
+            selectedRisksForPlan = [...(lastActionPlanData.risks || [])];
+        }
+        updateSelectedRisksForPlanDisplay();
+    }
+    document.getElementById('actionPlanModalTitle').textContent = "Nouveau Plan d'action";
+    document.getElementById('actionPlanModal').classList.add('show');
+}
+window.addNewActionPlan = addNewActionPlan;
+
+function editActionPlan(planId) {
+    const plan = rms.actionPlans.find(p => p.id == planId);
+    if (!plan) return;
+    currentEditingActionPlanId = planId;
+    const form = document.getElementById('actionPlanForm');
+    if (form) {
+        document.getElementById('planTitle').value = plan.title || '';
+        document.getElementById('planOwner').value = plan.owner || '';
+        document.getElementById('planDueDate').value = plan.dueDate || '';
+        document.getElementById('planStatus').value = plan.status || '';
+        document.getElementById('planDescription').value = plan.description || '';
+        selectedRisksForPlan = plan.risks ? [...plan.risks] : [];
+        updateSelectedRisksForPlanDisplay();
+    }
+    document.getElementById('actionPlanModalTitle').textContent = "Modifier le Plan d'action";
+    document.getElementById('actionPlanModal').classList.add('show');
+}
+window.editActionPlan = editActionPlan;
+
+function deleteActionPlan(planId) {
+    const index = rms.actionPlans.findIndex(p => p.id == planId);
+    if (index === -1) return;
+    const title = rms.actionPlans[index].title;
+    rms.actionPlans.splice(index,1);
+    rms.risks.forEach(risk => {
+        if (risk.actionPlans) {
+            risk.actionPlans = risk.actionPlans.filter(id => id !== planId);
         }
     });
     rms.saveData();
     rms.updateActionPlansList();
     rms.updateRisksList();
+    showNotification('success', `Plan "${title}" supprimé`);
 }
-window.addNewActionPlan = addNewActionPlan;
+window.deleteActionPlan = deleteActionPlan;
+
+function closeActionPlanModal() {
+    document.getElementById('actionPlanModal').classList.remove('show');
+}
+window.closeActionPlanModal = closeActionPlanModal;
+
+function saveActionPlan() {
+    const form = document.getElementById('actionPlanForm');
+    if (!form) return;
+    const formData = new FormData(form);
+    const planData = {
+        title: formData.get('title').trim(),
+        owner: formData.get('owner').trim(),
+        dueDate: formData.get('dueDate'),
+        status: formData.get('status'),
+        description: formData.get('description').trim(),
+        risks: [...selectedRisksForPlan]
+    };
+    if (!planData.title) { alert('Titre requis'); return; }
+
+    if (currentEditingActionPlanId) {
+        const idx = rms.actionPlans.findIndex(p => p.id == currentEditingActionPlanId);
+        if (idx !== -1) {
+            rms.actionPlans[idx] = { ...rms.actionPlans[idx], ...planData };
+            rms.risks.forEach(risk => {
+                risk.actionPlans = risk.actionPlans || [];
+                if (planData.risks.includes(risk.id)) {
+                    if (!risk.actionPlans.includes(currentEditingActionPlanId)) {
+                        risk.actionPlans.push(currentEditingActionPlanId);
+                    }
+                } else {
+                    risk.actionPlans = risk.actionPlans.filter(id => id !== currentEditingActionPlanId);
+                }
+            });
+            showNotification('success', `Plan "${planData.title}" modifié`);
+        }
+    } else {
+        const newPlan = { id: Date.now(), ...planData };
+        rms.actionPlans.push(newPlan);
+        planData.risks.forEach(rid => {
+            const risk = rms.risks.find(r => r.id === rid);
+            if (risk) {
+                risk.actionPlans = risk.actionPlans || [];
+                if (!risk.actionPlans.includes(newPlan.id)) risk.actionPlans.push(newPlan.id);
+            }
+        });
+        showNotification('success', `Plan "${planData.title}" créé`);
+    }
+
+    lastActionPlanData = { ...planData };
+    rms.saveData();
+    rms.updateActionPlansList();
+    rms.updateRisksList();
+    closeActionPlanModal();
+}
+window.saveActionPlan = saveActionPlan;
+
+function openRiskSelectorForPlan() {
+    riskFilterQueryForPlan = '';
+    const searchInput = document.getElementById('riskSearchInputPlan');
+    if (searchInput) searchInput.value = '';
+    renderRiskSelectionListForPlan();
+    document.getElementById('riskSelectorPlanModal').classList.add('show');
+}
+window.openRiskSelectorForPlan = openRiskSelectorForPlan;
+
+function renderRiskSelectionListForPlan() {
+    const riskList = document.getElementById('riskListForPlan');
+    if (!riskList) return;
+    const query = riskFilterQueryForPlan.toLowerCase();
+    riskList.innerHTML = rms.risks.filter(risk => {
+        const title = (risk.titre || risk.description || '').toLowerCase();
+        return String(risk.id).includes(query) || title.includes(query);
+    }).map(risk => {
+        const isSelected = selectedRisksForPlan.includes(risk.id);
+        const title = risk.titre || risk.description || 'Sans titre';
+        return `
+            <div class="risk-list-item">
+              <input type="checkbox" id="plan-risk-${risk.id}" ${isSelected ? 'checked' : ''} onchange="toggleRiskSelectionForPlan(${risk.id})">
+              <div class="risk-item-info">
+                <div class="risk-item-title">#${risk.id} - ${title}</div>
+                <div class="risk-item-meta">Processus: ${risk.processus}${risk.sousProcessus ? ` > ${risk.sousProcessus}` : ''} | Type: ${risk.typeCorruption}</div>
+              </div>
+            </div>`;
+    }).join('');
+}
+
+window.filterRisksForPlan = function(query) {
+    riskFilterQueryForPlan = query;
+    renderRiskSelectionListForPlan();
+};
+
+function closeRiskSelectorForPlan() {
+    document.getElementById('riskSelectorPlanModal').classList.remove('show');
+}
+window.closeRiskSelectorForPlan = closeRiskSelectorForPlan;
+
+function toggleRiskSelectionForPlan(riskId) {
+    const index = selectedRisksForPlan.indexOf(riskId);
+    if (index > -1) {
+        selectedRisksForPlan.splice(index, 1);
+    } else {
+        selectedRisksForPlan.push(riskId);
+    }
+}
+window.toggleRiskSelectionForPlan = toggleRiskSelectionForPlan;
+
+function confirmRiskSelectionForPlan() {
+    updateSelectedRisksForPlanDisplay();
+    closeRiskSelectorForPlan();
+}
+window.confirmRiskSelectionForPlan = confirmRiskSelectionForPlan;
+
+function updateSelectedRisksForPlanDisplay() {
+    const container = document.getElementById('selectedRisksForPlan');
+    if (!container) return;
+    if (selectedRisksForPlan.length === 0) {
+        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun risque sélectionné</div>';
+        return;
+    }
+    container.innerHTML = selectedRisksForPlan.map(riskId => {
+        const risk = rms.risks.find(r => r.id === riskId);
+        if (!risk) return '';
+        const title = risk.titre || risk.description || 'Sans titre';
+        return `
+            <div class="selected-risk-item">
+              #${risk.id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
+              <span class="remove-risk" onclick="removeRiskFromPlanSelection(${riskId})">×</span>
+            </div>`;
+    }).join('');
+}
+window.updateSelectedRisksForPlanDisplay = updateSelectedRisksForPlanDisplay;
+
+function removeRiskFromPlanSelection(riskId) {
+    selectedRisksForPlan = selectedRisksForPlan.filter(id => id !== riskId);
+    updateSelectedRisksForPlanDisplay();
+}
+window.removeRiskFromPlanSelection = removeRiskFromPlanSelection;
 
 function showNotification(type, message) {
     const notification = document.createElement('div');
@@ -1597,14 +1806,18 @@ function bindEvents() {
         enforceNetLimits();
     }
 
-    // Handle control edit buttons
+    // Handle edit buttons for controls and plans
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.control-action-btn.edit');
         if (editBtn) {
-            const id = editBtn.dataset.controlId;
-            if (id && typeof editControl === 'function') {
+            const controlId = editBtn.dataset.controlId;
+            const planId = editBtn.dataset.planId;
+            if (controlId && typeof editControl === 'function') {
                 e.preventDefault();
-                editControl(parseInt(id, 10));
+                editControl(parseInt(controlId, 10));
+            } else if (planId && typeof editActionPlan === 'function') {
+                e.preventDefault();
+                editActionPlan(parseInt(planId, 10));
             }
         }
     });
