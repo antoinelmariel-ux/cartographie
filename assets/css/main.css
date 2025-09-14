@@ -762,6 +762,9 @@ tbody tr:hover {
 .modal.show {
     display: flex;
 }
+#controlSelectorModal {
+    z-index: 2100;
+}
 
 .modal-content {
     background: white;
