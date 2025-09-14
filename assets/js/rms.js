@@ -37,6 +37,7 @@ class RiskManagementSystem {
                 description: "Corruption d'investigateurs pour favoriser inclusion patients",
                 typeCorruption: "active",
                 typeTiers: "Médecins",
+                tiers: ["Professionnels de santé"],
                 probBrut: 3, impactBrut: 4,
                 probNet: 2, impactNet: 3,
                 probPost: 1, impactPost: 2,
@@ -52,6 +53,7 @@ class RiskManagementSystem {
                 description: "Favoritisme dans attribution marchés",
                 typeCorruption: "favoritisme",
                 typeTiers: "Fournisseurs",
+                tiers: ["Acheteurs"],
                 probBrut: 3, impactBrut: 4,  // Même position que risque 1
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 2,
@@ -67,6 +69,7 @@ class RiskManagementSystem {
                 description: "Avantages indus lors d'événements médicaux",
                 typeCorruption: "cadeaux",
                 typeTiers: "Médecins",
+                tiers: ["Professionnels de santé"],
                 probBrut: 4, impactBrut: 3,
                 probNet: 2, impactNet: 3,  // Même position que risque 1
                 probPost: 1, impactPost: 2,
@@ -82,6 +85,7 @@ class RiskManagementSystem {
                 description: "Corruption d'acheteurs hospitaliers",
                 typeCorruption: "active",
                 typeTiers: "Hôpitaux publics",
+                tiers: ["Acheteurs"],
                 probBrut: 3, impactBrut: 4,  // Même position que risques 1 et 2
                 probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
                 probPost: 1, impactPost: 1,
@@ -97,6 +101,7 @@ class RiskManagementSystem {
                 description: "Embauche famille/proches décideurs publics",
                 typeCorruption: "trafic",
                 typeTiers: "Administrations",
+                tiers: ["Politiques"],
                 probBrut: 2, impactBrut: 3,
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risque 4
@@ -112,6 +117,7 @@ class RiskManagementSystem {
                 description: "Falsification certificats pour accélérer mise sur marché",
                 typeCorruption: "passive",
                 typeTiers: "Organismes certificateurs",
+                tiers: ["Institutionnels"],
                 probBrut: 2, impactBrut: 4,
                 probNet: 1, impactNet: 3,
                 probPost: 1, impactPost: 2,
@@ -127,6 +133,7 @@ class RiskManagementSystem {
                 description: "Facilitation payments pour déblocage douane",
                 typeCorruption: "active",
                 typeTiers: "Douanes",
+                tiers: ["Institutionnels"],
                 probBrut: 3, impactBrut: 3,
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
@@ -142,6 +149,7 @@ class RiskManagementSystem {
                 description: "Clauses secrètes avantageant certains partenaires",
                 typeCorruption: "favoritisme",
                 typeTiers: "Partenaires commerciaux",
+                tiers: ["Collaborateurs"],
                 probBrut: 2, impactBrut: 3,
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
@@ -429,6 +437,7 @@ class RiskManagementSystem {
                 <td>${risk.description}</td>
                 <td>${risk.processus}</td>
                 <td>${risk.typeCorruption}</td>
+                <td>${(risk.tiers || []).join(', ')}</td>
                 <td>${risk.probBrut * risk.impactBrut}</td>
                 <td>${risk.probNet * risk.impactNet}</td>
                 <td>${risk.probPost * risk.impactPost}</td>
@@ -793,6 +802,7 @@ function saveRisk() {
         processus: document.getElementById('processus').value,
         description: document.getElementById('description').value,
         typeCorruption: document.getElementById('typeCorruption').value,
+        tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
         probBrut: parseInt(document.getElementById('probBrut').value),
         impactBrut: parseInt(document.getElementById('impactBrut').value),
         probNet: parseInt(document.getElementById('probNet').value),

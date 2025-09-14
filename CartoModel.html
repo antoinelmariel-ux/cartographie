@@ -324,6 +324,7 @@
                                     <th>Description</th>
                                     <th>Processus</th>
                                     <th>Type</th>
+                                    <th>Tiers</th>
                                     <th>Score Brut</th>
                                     <th>Score Net</th>
                                     <th>Score Final</th>
@@ -596,7 +597,20 @@
                                 </select>
                             </div>
                         </div>
-                        
+
+                        <div class="form-grid">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label">Tiers concernés</label>
+                                <select class="form-select" id="tiers" multiple size="5">
+                                    <option value="Professionnels de santé">Professionnels de santé</option>
+                                    <option value="Institutionnels">Institutionnels</option>
+                                    <option value="Acheteurs">Acheteurs</option>
+                                    <option value="Politiques">Politiques</option>
+                                    <option value="Collaborateurs">Collaborateurs</option>
+                                </select>
+                            </div>
+                        </div>
+
                         <div class="form-grid">
                             <div class="form-group" style="grid-column: 1 / -1;">
                                 <label class="form-label required">Description du Risque</label>
