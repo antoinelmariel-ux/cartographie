@@ -52,6 +52,9 @@
                 <button class="tab" onclick="switchTab('history')">
                     📜 Historique
                 </button>
+                <button class="tab" onclick="switchTab('config')">
+                    ⚙️ Configuration
+                </button>
             </div>
         </div>
 
@@ -202,31 +205,18 @@
                         <label class="filter-label">Processus</label>
                         <select class="filter-select" id="processFilter" onchange="applyFilters()">
                             <option value="">Tous les processus</option>
-                            <option value="rd">R&D et développement clinique</option>
-                            <option value="achats">Achats et approvisionnements</option>
-                            <option value="marketing">Marketing et communication</option>
-                            <option value="ventes">Ventes et relations clients</option>
-                            <option value="rh">Ressources humaines</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label">Type de Risque</label>
                         <select class="filter-select" id="riskTypeFilter" onchange="applyFilters()">
                             <option value="">Tous les types</option>
-                            <option value="corruption-active">Corruption active</option>
-                            <option value="corruption-passive">Corruption passive</option>
-                            <option value="trafic-influence">Trafic d'influence</option>
-                            <option value="favoritisme">Favoritisme</option>
                         </select>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label">Statut</label>
                         <select class="filter-select" id="statusFilter" onchange="applyFilters()">
                             <option value="">Tous les statuts</option>
-                            <option value="nouveau">Nouveau</option>
-                            <option value="en-cours">En cours de traitement</option>
-                            <option value="traite">Traité</option>
-                            <option value="archive">Archivé</option>
                         </select>
                     </div>
                     <div class="search-box filter-group">
@@ -433,6 +423,14 @@
                 </div>
             </div>
         </div>
+        <div id="config-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Configuration</div>
+                </div>
+                <div class="content-area" id="configurationContainer"></div>
+            </div>
+        </div>
     </div>
 
     <!-- Control Form Modal -->
@@ -469,8 +467,6 @@
                                 <label for="controlType">Type de contrôle *</label>
                                 <select id="controlType" name="type" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="preventif">Préventif</option>
-                                    <option value="detectif">Détectif</option>
                                 </select>
                             </div>
 
@@ -483,10 +479,6 @@
                                 <label for="controlFrequency">Fréquence *</label>
                                 <select id="controlFrequency" name="frequency" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="quotidienne">Quotidienne</option>
-                                    <option value="mensuelle">Mensuelle</option>
-                                    <option value="annuelle">Annuelle</option>
-                                    <option value="ad-hoc">Ad hoc</option>
                                 </select>
                             </div>
 
@@ -494,8 +486,6 @@
                                 <label for="controlMode">Mode d'exécution *</label>
                                 <select id="controlMode" name="mode" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="manuel">Manuel</option>
-                                    <option value="automatise">Automatisé</option>
                                 </select>
                             </div>
 
@@ -503,9 +493,6 @@
                                 <label for="controlEffectiveness">Efficacité estimée *</label>
                                 <select id="controlEffectiveness" name="effectiveness" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="forte">Forte</option>
-                                    <option value="moyenne">Moyenne</option>
-                                    <option value="faible">Faible</option>
                                 </select>
                             </div>
 
@@ -513,10 +500,6 @@
                                 <label for="controlStatus">Statut *</label>
                                 <select id="controlStatus" name="status" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="actif">Actif</option>
-                                    <option value="en-mise-en-place">En mise en place</option>
-                                    <option value="en-revision">En cours de révision</option>
-                                    <option value="obsolete">Obsolète</option>
                                 </select>
                             </div>
                         </div>
@@ -578,22 +561,12 @@
                                 <label class="form-label required">Processus</label>
                                 <select class="form-select" id="processus" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="R&D">R&D et développement clinique</option>
-                                    <option value="Achats">Achats et approvisionnements</option>
-                                    <option value="Marketing">Marketing et communication</option>
-                                    <option value="Ventes">Ventes et relations clients</option>
-                                    <option value="RH">Ressources humaines</option>
                                 </select>
                             </div>
                             <div class="form-group">
                                 <label class="form-label required">Type de Corruption</label>
                                 <select class="form-select" id="typeCorruption" required>
                                     <option value="">Sélectionner...</option>
-                                    <option value="active">Corruption active</option>
-                                    <option value="passive">Corruption passive</option>
-                                    <option value="trafic">Trafic d'influence</option>
-                                    <option value="favoritisme">Favoritisme</option>
-                                    <option value="cadeaux">Cadeaux/avantages indus</option>
                                 </select>
                             </div>
                         </div>
@@ -602,11 +575,6 @@
                             <div class="form-group" style="grid-column: 1 / -1;">
                                 <label class="form-label">Tiers concernés</label>
                                 <select class="form-select" id="tiers" multiple size="5">
-                                    <option value="Professionnels de santé">Professionnels de santé</option>
-                                    <option value="Institutionnels">Institutionnels</option>
-                                    <option value="Acheteurs">Acheteurs</option>
-                                    <option value="Politiques">Politiques</option>
-                                    <option value="Collaborateurs">Collaborateurs</option>
                                 </select>
                             </div>
                         </div>

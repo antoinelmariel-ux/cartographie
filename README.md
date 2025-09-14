@@ -10,6 +10,7 @@ Application de cartographie des risques corruption.
 - **Contrôles et mesures** : gestion des contrôles, association aux risques et suivi de l'efficacité.
 - **Rapports** : génération et export des données en PDF ou CSV.
 - **Historique** : suivi chronologique des actions effectuées.
+- **Configuration** : administration des options des listes déroulantes.
 
 ## Utilisation hors-ligne
 
@@ -22,3 +23,7 @@ Pour ouvrir l'application sans serveur local ni connexion Internet :
 2. Ouvrez directement le fichier `CartoModel.html` dans votre navigateur.
 
 Toutes les dépendances sont chargées localement, l'application peut donc fonctionner via `file://`.
+
+## Configuration
+
+L'onglet **Configuration** permet d'ajouter ou de supprimer les valeurs utilisées dans les listes déroulantes des formulaires (processus, types de risque, statuts, etc.). Les modifications sont conservées dans le navigateur grâce au stockage local.
