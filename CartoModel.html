@@ -313,6 +313,7 @@
                                     <th>ID</th>
                                     <th>Description</th>
                                     <th>Processus</th>
+                                    <th>Sous-processus</th>
                                     <th>Type</th>
                                     <th>Tiers</th>
                                     <th>Score Brut</th>
@@ -581,10 +582,19 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label required">Processus</label>
-                                <select class="form-select" id="processus" required>
+                                <select class="form-select" id="processus" required onchange="rms.updateSousProcessusOptions()">
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
+                            <div class="form-group">
+                                <label class="form-label">Sous-processus</label>
+                                <select class="form-select" id="sousProcessus">
+                                    <option value="">Sélectionner...</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label required">Type de Corruption</label>
                                 <select class="form-select" id="typeCorruption" required>
