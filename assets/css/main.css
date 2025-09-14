@@ -1398,7 +1398,24 @@ tbody tr:hover {
         display: none;
     }
     
-    .matrix-container {
-        page-break-inside: avoid;
-    }
+.matrix-container {
+    page-break-inside: avoid;
+}
+}
+
+.config-section {
+    margin-bottom: 20px;
+}
+
+.config-list {
+    list-style: none;
+    padding-left: 0;
+}
+
+.config-list li {
+    margin: 4px 0;
+}
+
+.config-add input {
+    margin-right: 5px;
 }

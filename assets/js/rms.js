@@ -4,6 +4,7 @@ class RiskManagementSystem {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
         this.controls = this.loadData('controls') || this.getDefaultControls();
         this.history = this.loadData('history') || [];
+        this.config = this.loadConfig() || this.getDefaultConfig();
         this.currentView = 'brut';
         this.currentTab = 'dashboard';
         this.filters = {
@@ -16,6 +17,7 @@ class RiskManagementSystem {
     }
 
     init() {
+        this.populateSelects();
         this.initializeMatrix();
         this.updateDashboard();
         this.updateRisksList();
@@ -216,6 +218,177 @@ class RiskManagementSystem {
                 dateCreation: "2024-01-01"
             }
         ];
+    }
+
+    getDefaultConfig() {
+        return {
+            processes: [
+                { value: 'R&D', label: 'R&D' },
+                { value: 'Achats', label: 'Achats' },
+                { value: 'Marketing', label: 'Marketing' },
+                { value: 'Ventes', label: 'Ventes' },
+                { value: 'RH', label: 'RH' }
+            ],
+            riskTypes: [
+                { value: 'active', label: 'Corruption active' },
+                { value: 'passive', label: 'Corruption passive' },
+                { value: 'trafic', label: "Trafic d'influence" },
+                { value: 'favoritisme', label: 'Favoritisme' },
+                { value: 'cadeaux', label: 'Cadeaux/avantages indus' }
+            ],
+            tiers: [
+                { value: 'Professionnels de santé', label: 'Professionnels de santé' },
+                { value: 'Institutionnels', label: 'Institutionnels' },
+                { value: 'Acheteurs', label: 'Acheteurs' },
+                { value: 'Politiques', label: 'Politiques' },
+                { value: 'Collaborateurs', label: 'Collaborateurs' }
+            ],
+            riskStatuses: [
+                { value: 'nouveau', label: 'Nouveau' },
+                { value: 'en-cours', label: 'En cours de traitement' },
+                { value: 'traite', label: 'Traité' },
+                { value: 'archive', label: 'Archivé' }
+            ],
+            controlTypes: [
+                { value: 'preventif', label: 'Préventif' },
+                { value: 'detectif', label: 'Détectif' }
+            ],
+            controlFrequencies: [
+                { value: 'quotidienne', label: 'Quotidienne' },
+                { value: 'mensuelle', label: 'Mensuelle' },
+                { value: 'annuelle', label: 'Annuelle' },
+                { value: 'ad-hoc', label: 'Ad hoc' }
+            ],
+            controlModes: [
+                { value: 'manuel', label: 'Manuel' },
+                { value: 'automatise', label: 'Automatisé' }
+            ],
+            controlEffectiveness: [
+                { value: 'forte', label: 'Forte' },
+                { value: 'moyenne', label: 'Moyenne' },
+                { value: 'faible', label: 'Faible' }
+            ],
+            controlStatuses: [
+                { value: 'actif', label: 'Actif' },
+                { value: 'en-mise-en-place', label: 'En mise en place' },
+                { value: 'en-revision', label: 'En cours de révision' },
+                { value: 'obsolete', label: 'Obsolète' }
+            ]
+        };
+    }
+
+    loadConfig() {
+        const data = localStorage.getItem('rms_config');
+        return data ? JSON.parse(data) : null;
+    }
+
+    saveConfig() {
+        localStorage.setItem('rms_config', JSON.stringify(this.config));
+    }
+
+    populateSelects() {
+        const fill = (id, options, placeholder) => {
+            const el = document.getElementById(id);
+            if (!el) return;
+            const current = el.value;
+            el.innerHTML = '';
+            if (placeholder !== undefined) {
+                const opt = document.createElement('option');
+                opt.value = '';
+                opt.textContent = placeholder;
+                el.appendChild(opt);
+            }
+            options.forEach(o => {
+                const opt = document.createElement('option');
+                opt.value = o.value;
+                opt.textContent = o.label;
+                el.appendChild(opt);
+            });
+            if (current && options.some(o => o.value === current)) {
+                el.value = current;
+            }
+        };
+
+        fill('processFilter', this.config.processes, 'Tous les processus');
+        fill('riskTypeFilter', this.config.riskTypes, 'Tous les types');
+        fill('statusFilter', this.config.riskStatuses, 'Tous les statuts');
+        fill('processus', this.config.processes, 'Sélectionner...');
+        fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
+        fill('tiers', this.config.tiers);
+        fill('controlType', this.config.controlTypes, 'Sélectionner...');
+        fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
+        fill('controlMode', this.config.controlModes, 'Sélectionner...');
+        fill('controlEffectiveness', this.config.controlEffectiveness, 'Sélectionner...');
+        fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
+    }
+
+    renderConfiguration() {
+        const container = document.getElementById('configurationContainer');
+        if (!container) return;
+
+        const sections = {
+            processes: 'Processus',
+            riskTypes: 'Types de corruption',
+            tiers: 'Tiers',
+            riskStatuses: 'Statuts des risques',
+            controlTypes: 'Types de contrôle',
+            controlFrequencies: 'Fréquences des contrôles',
+            controlModes: "Modes d'exécution",
+            controlEffectiveness: 'Efficacités',
+            controlStatuses: 'Statuts des contrôles'
+        };
+
+        container.innerHTML = '';
+        Object.entries(sections).forEach(([key, label]) => {
+            const section = document.createElement('div');
+            section.className = 'config-section';
+            section.innerHTML = `
+                <h3>${label}</h3>
+                <ul id="list-${key}" class="config-list"></ul>
+                <div class="config-add">
+                    <input type="text" id="input-${key}-value" placeholder="valeur">
+                    <input type="text" id="input-${key}-label" placeholder="libellé">
+                    <button onclick="rms.addConfigOption('${key}')">Ajouter</button>
+                </div>
+            `;
+            container.appendChild(section);
+        });
+
+        this.refreshConfigLists();
+    }
+
+    refreshConfigLists() {
+        const updateList = (key) => {
+            const list = document.getElementById(`list-${key}`);
+            if (!list) return;
+            list.innerHTML = this.config[key]
+                .map((opt, idx) => `<li>${opt.label} (${opt.value}) <button onclick="rms.removeConfigOption('${key}', ${idx})">×</button></li>`)
+                .join('');
+        };
+
+        Object.keys(this.config).forEach(updateList);
+    }
+
+    addConfigOption(key) {
+        const valueInput = document.getElementById(`input-${key}-value`);
+        const labelInput = document.getElementById(`input-${key}-label`);
+        if (!valueInput || !labelInput) return;
+        const value = valueInput.value.trim();
+        const label = labelInput.value.trim();
+        if (!value || !label) return;
+        this.config[key].push({ value, label });
+        this.saveConfig();
+        this.populateSelects();
+        this.refreshConfigLists();
+        valueInput.value = '';
+        labelInput.value = '';
+    }
+
+    removeConfigOption(key, index) {
+        this.config[key].splice(index, 1);
+        this.saveConfig();
+        this.populateSelects();
+        this.refreshConfigLists();
     }
 
     // Data persistence
@@ -686,6 +859,8 @@ function switchTab(tabName) {
             rms.updateControlsList();
         } else if (tabName === 'history') {
             rms.updateHistory();
+        } else if (tabName === 'config') {
+            rms.renderConfiguration();
         }
     }
 }
