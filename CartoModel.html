@@ -437,94 +437,104 @@
     <div id="controlModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="controlModalTitle">Nouveau Contrôle</h2>
-                <span class="close" onclick="closeControlModal()">&times;</span>
+                <h3 class="modal-title" id="controlModalTitle">Nouveau Contrôle</h3>
+                <button class="modal-close" onclick="closeControlModal()">&times;</button>
             </div>
-            <form id="controlForm" onsubmit="saveControl(event)">
-                <div class="form-grid">
-                    <div class="form-group full-width">
-                        <label for="controlName">Nom du contrôle *</label>
-                        <input type="text" id="controlName" name="name" required>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="controlObjectives">Objectif / Risque(s) couvert(s)</label>
-                        <div class="risk-selection">
-                            <div class="selected-risks" id="selectedRisks">
-                                <!-- Selected risks will appear here -->
+            <div class="modal-body">
+                <form id="controlForm" onsubmit="saveControl(); return false;">
+                    <div class="form-section">
+                        <div class="form-section-title">Informations Générales</div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="controlName">Nom du contrôle *</label>
+                                <input type="text" id="controlName" name="name" required>
                             </div>
-                            <button type="button" class="btn btn-secondary" onclick="openRiskSelector()">
-                                + Sélectionner des risques
-                            </button>
+
+                            <div class="form-group full-width">
+                                <label for="controlObjectives">Risque(s) couvert(s)</label>
+                                <div class="risk-selection">
+                                    <div class="selected-risks" id="selectedRisks"></div>
+                                    <button type="button" class="btn btn-secondary" onclick="openRiskSelector()">+ Sélectionner des risques</button>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="controlType">Type de contrôle *</label>
-                        <select id="controlType" name="type" required>
-                            <option value="">Sélectionner...</option>
-                            <option value="preventif">Préventif</option>
-                            <option value="detectif">Détectif</option>
-                        </select>
+                    <div class="form-section">
+                        <div class="form-section-title">Paramètres du Contrôle</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label for="controlType">Type de contrôle *</label>
+                                <select id="controlType" name="type" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="preventif">Préventif</option>
+                                    <option value="detectif">Détectif</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="controlOwner">Propriétaire *</label>
+                                <input type="text" id="controlOwner" name="owner" required placeholder="Nom ou fonction responsable">
+                            </div>
+
+                            <div class="form-group">
+                                <label for="controlFrequency">Fréquence *</label>
+                                <select id="controlFrequency" name="frequency" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="quotidienne">Quotidienne</option>
+                                    <option value="mensuelle">Mensuelle</option>
+                                    <option value="annuelle">Annuelle</option>
+                                    <option value="ad-hoc">Ad hoc</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="controlMode">Mode d'exécution *</label>
+                                <select id="controlMode" name="mode" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="manuel">Manuel</option>
+                                    <option value="automatise">Automatisé</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="controlEffectiveness">Efficacité estimée *</label>
+                                <select id="controlEffectiveness" name="effectiveness" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="forte">Forte</option>
+                                    <option value="moyenne">Moyenne</option>
+                                    <option value="faible">Faible</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label for="controlStatus">Statut *</label>
+                                <select id="controlStatus" name="status" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="actif">Actif</option>
+                                    <option value="en-mise-en-place">En mise en place</option>
+                                    <option value="en-revision">En cours de révision</option>
+                                    <option value="obsolete">Obsolète</option>
+                                </select>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="form-group">
-                        <label for="controlOwner">Propriétaire *</label>
-                        <input type="text" id="controlOwner" name="owner" required placeholder="Nom ou fonction responsable">
+                    <div class="form-section">
+                        <div class="form-section-title">Détails</div>
+                        <div class="form-grid">
+                            <div class="form-group full-width">
+                                <label for="controlDescription">Description / Procédure</label>
+                                <textarea id="controlDescription" name="description" rows="4" placeholder="Description détaillée du contrôle et de sa procédure d'exécution"></textarea>
+                            </div>
+                        </div>
                     </div>
-
-                    <div class="form-group">
-                        <label for="controlFrequency">Fréquence *</label>
-                        <select id="controlFrequency" name="frequency" required>
-                            <option value="">Sélectionner...</option>
-                            <option value="quotidienne">Quotidienne</option>
-                            <option value="mensuelle">Mensuelle</option>
-                            <option value="annuelle">Annuelle</option>
-                            <option value="ad-hoc">Ad hoc</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="controlMode">Mode d'exécution *</label>
-                        <select id="controlMode" name="mode" required>
-                            <option value="">Sélectionner...</option>
-                            <option value="manuel">Manuel</option>
-                            <option value="automatise">Automatisé</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="controlEffectiveness">Efficacité estimée *</label>
-                        <select id="controlEffectiveness" name="effectiveness" required>
-                            <option value="">Sélectionner...</option>
-                            <option value="forte">Forte</option>
-                            <option value="moyenne">Moyenne</option>
-                            <option value="faible">Faible</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label for="controlStatus">Statut *</label>
-                        <select id="controlStatus" name="status" required>
-                            <option value="">Sélectionner...</option>
-                            <option value="actif">Actif</option>
-                            <option value="en-mise-en-place">En mise en place</option>
-                            <option value="en-revision">En cours de révision</option>
-                            <option value="obsolete">Obsolète</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group full-width">
-                        <label for="controlDescription">Description / Procédure</label>
-                        <textarea id="controlDescription" name="description" rows="4" placeholder="Description détaillée du contrôle et de sa procédure d'exécution"></textarea>
-                    </div>
-                </div>
-
-                <div class="form-actions">
-                    <button type="button" class="btn btn-secondary" onclick="closeControlModal()">Annuler</button>
-                    <button type="submit" class="btn btn-primary">Enregistrer</button>
-                </div>
-            </form>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeControlModal()">Annuler</button>
+                <button class="btn btn-success" onclick="saveControl()">Sauvegarder</button>
+            </div>
         </div>
     </div>
 
@@ -535,8 +545,13 @@
                 <h2>Sélectionner les risques couverts</h2>
                 <span class="close" onclick="closeRiskSelector()">&times;</span>
             </div>
-            <div class="risk-list" id="riskList">
-                <!-- Risk list will be populated by JavaScript -->
+            <div class="modal-body">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="riskSearchInput" placeholder="Filtrer par ID ou titre..." onkeyup="filterRisksForControl(this.value)">
+                </div>
+                <div class="risk-list" id="riskList">
+                    <!-- Risk list will be populated by JavaScript -->
+                </div>
             </div>
             <div class="form-actions">
                 <button type="button" class="btn btn-secondary" onclick="closeRiskSelector()">Annuler</button>
