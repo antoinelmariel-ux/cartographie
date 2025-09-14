@@ -20,6 +20,12 @@ class RiskManagementSystem {
             status: '',
             search: ''
         };
+        this.risks.forEach(r => {
+            if (!r.actionPlans || r.actionPlans.length === 0) {
+                r.probPost = r.probNet;
+                r.impactPost = r.impactNet;
+            }
+        });
         this.init();
     }
 
@@ -1263,8 +1269,14 @@ function calculateScore(type) {
     const prob = parseInt(document.getElementById(probId).value) || 1;
     const impact = parseInt(document.getElementById(impactId).value) || 1;
     const score = prob * impact;
-    
+
     document.getElementById(scoreId).textContent = `Score: ${score}`;
+
+    if (type === 'net' && selectedActionPlansForRisk.length === 0) {
+        document.getElementById('probPost').value = document.getElementById('probNet').value;
+        document.getElementById('impactPost').value = document.getElementById('impactNet').value;
+        document.getElementById('scorePost').textContent = `Score: ${score}`;
+    }
 }
 window.calculateScore = calculateScore;
 
@@ -1287,6 +1299,11 @@ function saveRisk() {
         controls: [...selectedControlsForRisk],
         actionPlans: [...selectedActionPlansForRisk]
     };
+
+    if (selectedActionPlansForRisk.length === 0) {
+        formData.probPost = formData.probNet;
+        formData.impactPost = formData.impactNet;
+    }
 
     // Validate form
     if (!formData.processus || !formData.description || !formData.typeCorruption) {
@@ -1451,9 +1468,16 @@ window.removeControlFromSelection = removeControlFromSelection;
 
 function updateSelectedActionPlansDisplay() {
     const container = document.getElementById('riskActionPlans');
+    const postSection = document.getElementById('postMitigationSection');
     if (!container) return;
     if (selectedActionPlansForRisk.length === 0) {
         container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun plan d\'action sélectionné</div>';
+        if (postSection) postSection.style.display = 'none';
+        const probNet = document.getElementById('probNet');
+        const impactNet = document.getElementById('impactNet');
+        document.getElementById('probPost').value = probNet ? probNet.value : 1;
+        document.getElementById('impactPost').value = impactNet ? impactNet.value : 1;
+        calculateScore('post');
         return;
     }
     container.innerHTML = selectedActionPlansForRisk.map(id => {
@@ -1466,6 +1490,7 @@ function updateSelectedActionPlansDisplay() {
               <span class="remove-control" onclick="removeActionPlanFromSelection(${id})">×</span>
             </div>`;
     }).join('');
+    if (postSection) postSection.style.display = 'block';
 }
 window.updateSelectedActionPlansDisplay = updateSelectedActionPlansDisplay;
 
