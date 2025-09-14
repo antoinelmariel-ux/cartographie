@@ -802,30 +802,6 @@
                                 <div class="risk-score-display" id="scoreNet">Score: 1</div>
                             </div>
 
-                            <div class="evaluation-card post-mitigation">
-                                <div class="evaluation-card-header" style="color: #27ae60;">Post-Mitigation</div>
-                                <div class="evaluation-inputs">
-                                    <div class="form-group">
-                                        <label class="form-label">Probabilité</label>
-                                        <select class="form-select" id="probPost" onchange="calculateScore('post')">
-                                            <option value="1">1 - Très rare</option>
-                                            <option value="2">2 - Peu probable</option>
-                                            <option value="3">3 - Probable</option>
-                                            <option value="4">4 - Très probable</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Impact</label>
-                                        <select class="form-select" id="impactPost" onchange="calculateScore('post')">
-                                            <option value="1">1 - Mineur</option>
-                                            <option value="2">2 - Modéré</option>
-                                            <option value="3">3 - Majeur</option>
-                                            <option value="4">4 - Critique</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div class="risk-score-display" id="scorePost">Score: 1</div>
-                            </div>
                         </div>
                     </div>
 
@@ -850,6 +826,34 @@
                             <div class="controls-grid" id="riskActionPlans" style="margin-top: 15px;">
                                 <!-- Selected action plans will appear here -->
                             </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section" id="postMitigationSection" style="display: none;">
+                        <div class="form-section-title">Score post-mitigation</div>
+                        <div class="evaluation-card post-mitigation">
+                            <div class="evaluation-card-header" style="color: #27ae60;">Post-Mitigation</div>
+                            <div class="evaluation-inputs">
+                                <div class="form-group">
+                                    <label class="form-label">Probabilité</label>
+                                    <select class="form-select" id="probPost" onchange="calculateScore('post')">
+                                        <option value="1">1 - Très rare</option>
+                                        <option value="2">2 - Peu probable</option>
+                                        <option value="3">3 - Probable</option>
+                                        <option value="4">4 - Très probable</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Impact</label>
+                                    <select class="form-select" id="impactPost" onchange="calculateScore('post')">
+                                        <option value="1">1 - Mineur</option>
+                                        <option value="2">2 - Modéré</option>
+                                        <option value="3">3 - Majeur</option>
+                                        <option value="4">4 - Critique</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="risk-score-display" id="scorePost">Score: 1</div>
                         </div>
                     </div>
                 </form>
