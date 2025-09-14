@@ -760,10 +760,37 @@ class RiskManagementSystem {
     editRisk(riskId) {
         const risk = this.risks.find(r => r.id === riskId);
         if (!risk) return;
-        
-        // Populate form and open modal
-        // Implementation depends on your form structure
-        console.log('Edit risk:', risk);
+
+        currentEditingRiskId = riskId;
+
+        const form = document.getElementById('riskForm');
+        if (form) {
+            form.reset();
+            document.getElementById('processus').value = risk.processus || '';
+            document.getElementById('typeCorruption').value = risk.typeCorruption || '';
+
+            const tiersSelect = document.getElementById('tiers');
+            Array.from(tiersSelect.options).forEach(opt => {
+                opt.selected = (risk.tiers || []).includes(opt.value);
+            });
+
+            document.getElementById('description').value = risk.description || '';
+            document.getElementById('probBrut').value = risk.probBrut;
+            document.getElementById('impactBrut').value = risk.impactBrut;
+            document.getElementById('probNet').value = risk.probNet;
+            document.getElementById('impactNet').value = risk.impactNet;
+            document.getElementById('probPost').value = risk.probPost;
+            document.getElementById('impactPost').value = risk.impactPost;
+
+            calculateScore('brut');
+            calculateScore('net');
+            calculateScore('post');
+        }
+
+        selectedControlsForRisk = [...(risk.controls || [])];
+        updateSelectedControlsDisplay();
+
+        document.getElementById('riskModal').classList.add('show');
     }
 
     deleteRisk(riskId) {
@@ -936,8 +963,12 @@ function searchRisks(searchTerm) {
 window.searchRisks = searchRisks;
 
 let lastRiskData = null;
+let selectedControlsForRisk = [];
+let controlFilterQueryForRisk = '';
+let currentEditingRiskId = null;
 
 function addNewRisk() {
+    currentEditingRiskId = null;
     const form = document.getElementById('riskForm');
     if (form) {
         form.reset();
@@ -958,12 +989,16 @@ function addNewRisk() {
             document.getElementById('impactNet').value = lastRiskData.impactNet || 1;
             document.getElementById('probPost').value = lastRiskData.probPost || 1;
             document.getElementById('impactPost').value = lastRiskData.impactPost || 1;
+            selectedControlsForRisk = [...(lastRiskData.controls || [])];
+        } else {
+            selectedControlsForRisk = [];
         }
 
         // Recalculate scores for displayed values
         calculateScore('brut');
         calculateScore('net');
         calculateScore('post');
+        updateSelectedControlsDisplay();
     }
     document.getElementById('riskModal').classList.add('show');
 }
@@ -1001,7 +1036,7 @@ window.calculateScore = calculateScore;
 
 function saveRisk() {
     if (!rms) return;
-    
+
     const formData = {
         processus: document.getElementById('processus').value,
         description: document.getElementById('description').value,
@@ -1014,21 +1049,142 @@ function saveRisk() {
         probPost: parseInt(document.getElementById('probPost').value),
         impactPost: parseInt(document.getElementById('impactPost').value),
         responsable: 'Marie Dupont',
-        controls: []
+        controls: [...selectedControlsForRisk]
     };
-    
+
     // Validate form
     if (!formData.processus || !formData.description || !formData.typeCorruption) {
         showNotification('error', 'Veuillez remplir tous les champs obligatoires');
         return;
     }
 
-    rms.addRisk(formData);
-    lastRiskData = { ...formData, tiers: [...formData.tiers] };
-    closeModal('riskModal');
-    showNotification('success', 'Risque ajouté avec succès!');
+    if (currentEditingRiskId) {
+        const riskIndex = rms.risks.findIndex(r => r.id === currentEditingRiskId);
+        if (riskIndex !== -1) {
+            rms.risks[riskIndex] = { ...rms.risks[riskIndex], ...formData };
+
+            // Update control links
+            rms.controls.forEach(control => {
+                control.risks = control.risks || [];
+                if (selectedControlsForRisk.includes(control.id)) {
+                    if (!control.risks.includes(currentEditingRiskId)) {
+                        control.risks.push(currentEditingRiskId);
+                    }
+                } else {
+                    control.risks = control.risks.filter(id => id !== currentEditingRiskId);
+                }
+            });
+
+            rms.saveData();
+            rms.init();
+            closeModal('riskModal');
+            showNotification('success', 'Risque mis à jour avec succès!');
+            currentEditingRiskId = null;
+        }
+    } else {
+        const newRisk = rms.addRisk(formData);
+
+        selectedControlsForRisk.forEach(controlId => {
+            const ctrl = rms.controls.find(c => c.id === controlId);
+            if (ctrl) {
+                ctrl.risks = ctrl.risks || [];
+                if (!ctrl.risks.includes(newRisk.id)) {
+                    ctrl.risks.push(newRisk.id);
+                }
+            }
+        });
+
+        rms.saveData();
+        rms.updateControlsList();
+        closeModal('riskModal');
+        showNotification('success', 'Risque ajouté avec succès!');
+    }
+
+    lastRiskData = { ...formData, tiers: [...formData.tiers], controls: [...formData.controls] };
 }
 window.saveRisk = saveRisk;
+
+function openControlSelector() {
+    controlFilterQueryForRisk = '';
+    const searchInput = document.getElementById('controlSearchInput');
+    if (searchInput) searchInput.value = '';
+    renderControlSelectionList();
+    document.getElementById('controlSelectorModal').classList.add('show');
+}
+window.openControlSelector = openControlSelector;
+
+function renderControlSelectionList() {
+    const list = document.getElementById('controlList');
+    if (!list || !rms) return;
+    const query = controlFilterQueryForRisk.toLowerCase();
+    list.innerHTML = rms.controls.filter(ctrl => {
+        const name = (ctrl.name || '').toLowerCase();
+        return String(ctrl.id).includes(query) || name.includes(query);
+    }).map(ctrl => {
+        const isSelected = selectedControlsForRisk.includes(ctrl.id);
+        return `
+            <div class="risk-list-item">
+              <input type="checkbox" id="control-${ctrl.id}" ${isSelected ? 'checked' : ''} onchange="toggleControlSelection(${ctrl.id})">
+              <div class="risk-item-info">
+                <div class="risk-item-title">#${ctrl.id} - ${ctrl.name}</div>
+                <div class="risk-item-meta">Type: ${ctrl.type || ''} | Propriétaire: ${ctrl.owner || ''}</div>
+              </div>
+            </div>`;
+    }).join('');
+}
+
+function filterControlsForRisk(query) {
+    controlFilterQueryForRisk = query;
+    renderControlSelectionList();
+}
+window.filterControlsForRisk = filterControlsForRisk;
+
+function closeControlSelector() {
+    document.getElementById('controlSelectorModal').classList.remove('show');
+}
+window.closeControlSelector = closeControlSelector;
+
+function toggleControlSelection(controlId) {
+    const index = selectedControlsForRisk.indexOf(controlId);
+    if (index > -1) {
+        selectedControlsForRisk.splice(index, 1);
+    } else {
+        selectedControlsForRisk.push(controlId);
+    }
+}
+window.toggleControlSelection = toggleControlSelection;
+
+function confirmControlSelection() {
+    updateSelectedControlsDisplay();
+    closeControlSelector();
+}
+window.confirmControlSelection = confirmControlSelection;
+
+function updateSelectedControlsDisplay() {
+    const container = document.getElementById('riskControls');
+    if (!container) return;
+    if (selectedControlsForRisk.length === 0) {
+        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle sélectionné</div>';
+        return;
+    }
+    container.innerHTML = selectedControlsForRisk.map(id => {
+        const ctrl = rms.controls.find(c => c.id === id);
+        if (!ctrl) return '';
+        const name = ctrl.name || 'Sans nom';
+        return `
+            <div class="selected-control-item">
+              #${id} - ${name.substring(0, 50)}${name.length > 50 ? '...' : ''}
+              <span class="remove-control" onclick="removeControlFromSelection(${id})">×</span>
+            </div>`;
+    }).join('');
+}
+window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
+
+function removeControlFromSelection(controlId) {
+    selectedControlsForRisk = selectedControlsForRisk.filter(id => id !== controlId);
+    updateSelectedControlsDisplay();
+}
+window.removeControlFromSelection = removeControlFromSelection;
 
 function showNotification(type, message) {
     const notification = document.createElement('div');
