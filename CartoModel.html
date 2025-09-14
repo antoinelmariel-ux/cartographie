@@ -46,6 +46,9 @@
                 <button class="tab" onclick="switchTab('controls')">
                     🔒 Contrôles & Mesures
                 </button>
+                <button class="tab" onclick="switchTab('plans')">
+                    📝 Plans d'actions
+                </button>
                 <button class="tab" onclick="switchTab('reports')">
                     📑 Rapports
                 </button>
@@ -349,6 +352,29 @@
                     <div class="controls-section">
                         <div class="form-section-title">Contrôles Actifs</div>
                         <div class="controls-grid" id="controlsList">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Action Plans Tab -->
+        <div id="plans-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Plans d'actions</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-primary" onclick="addNewActionPlan()">
+                            + Nouveau Plan
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="controls-section">
+                        <div class="form-section-title">Plans d'actions</div>
+                        <div class="controls-grid" id="actionPlansList">
                             <!-- Populated by JavaScript -->
                         </div>
                     </div>
@@ -707,6 +733,18 @@
                             </button>
                             <div class="controls-grid" id="riskControls" style="margin-top: 15px;">
                                 <!-- Selected controls will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Plans d'actions associés</div>
+                        <div class="controls-section">
+                            <button type="button" class="btn btn-secondary" onclick="addActionPlanToRisk()">
+                                + Ajouter un plan d'action
+                            </button>
+                            <div class="controls-grid" id="riskActionPlans" style="margin-top: 15px;">
+                                <!-- Selected action plans will appear here -->
                             </div>
                         </div>
                     </div>
