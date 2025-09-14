@@ -2,6 +2,15 @@
 
 Application de cartographie des risques corruption.
 
+## Fonctionnalités
+
+- **Tableau de bord** : indicateurs clés, graphiques d'évolution et alertes récentes.
+- **Matrice des risques** : visualisation interactive des niveaux brut, net et post-mitigations.
+- **Liste des risques** : création, édition, suppression et filtrage des risques.
+- **Contrôles et mesures** : gestion des contrôles, association aux risques et suivi de l'efficacité.
+- **Rapports** : génération et export des données en PDF ou CSV.
+- **Historique** : suivi chronologique des actions effectuées.
+
 ## Utilisation hors-ligne
 
 Pour ouvrir l'application sans serveur local ni connexion Internet :
