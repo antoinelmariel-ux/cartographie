@@ -227,8 +227,71 @@ class RiskManagementSystem {
                 { value: 'Achats', label: 'Achats' },
                 { value: 'Marketing', label: 'Marketing' },
                 { value: 'Ventes', label: 'Ventes' },
-                { value: 'RH', label: 'RH' }
+                { value: 'RH', label: 'RH' },
+                { value: 'Production', label: 'Production' },
+                { value: 'Finance', label: 'Finance' },
+                { value: 'Juridique', label: 'Juridique' }
             ],
+            subProcesses: {
+                'R&D': [
+                    { value: 'Recherche fondamentale', label: 'Recherche fondamentale' },
+                    { value: 'Développement préclinique', label: 'Développement préclinique' },
+                    { value: 'Études cliniques', label: 'Études cliniques' },
+                    { value: 'Affaires réglementaires', label: 'Affaires réglementaires' },
+                    { value: 'Pharmacovigilance', label: 'Pharmacovigilance' }
+                ],
+                'Achats': [
+                    { value: 'Sourcing fournisseurs', label: 'Sourcing fournisseurs' },
+                    { value: "Appels d'offres", label: "Appels d'offres" },
+                    { value: 'Négociation/contrats', label: 'Négociation/contrats' },
+                    { value: 'Gestion des commandes', label: 'Gestion des commandes' },
+                    { value: 'Réception et contrôles', label: 'Réception et contrôles' }
+                ],
+                'Marketing': [
+                    { value: 'Études de marché', label: 'Études de marché' },
+                    { value: 'Promotion médicale', label: 'Promotion médicale' },
+                    { value: 'Communication digitale', label: 'Communication digitale' },
+                    { value: "Organisation d’événements", label: "Organisation d’événements" },
+                    { value: 'Gestion de la marque', label: 'Gestion de la marque' }
+                ],
+                'Ventes': [
+                    { value: 'Prospection commerciale', label: 'Prospection commerciale' },
+                    { value: "Soumissions d’offres", label: "Soumissions d’offres" },
+                    { value: 'Négociation/contrats', label: 'Négociation/contrats' },
+                    { value: 'Distribution', label: 'Distribution' },
+                    { value: 'Suivi client', label: 'Suivi client' }
+                ],
+                'RH': [
+                    { value: 'Recrutement', label: 'Recrutement' },
+                    { value: 'Gestion des carrières', label: 'Gestion des carrières' },
+                    { value: 'Formation', label: 'Formation' },
+                    { value: 'Paie et avantages sociaux', label: 'Paie et avantages sociaux' },
+                    { value: 'Évaluation des performances', label: 'Évaluation des performances' }
+                ],
+                'Production': [
+                    { value: 'Planification', label: 'Planification' },
+                    { value: 'Approvisionnement en matières premières', label: 'Approvisionnement en matières premières' },
+                    { value: 'Fabrication', label: 'Fabrication' },
+                    { value: 'Contrôle qualité', label: 'Contrôle qualité' },
+                    { value: 'Libération des lots', label: 'Libération des lots' },
+                    { value: 'Maintenance des équipements', label: 'Maintenance des équipements' }
+                ],
+                'Finance': [
+                    { value: 'Comptabilité fournisseurs', label: 'Comptabilité fournisseurs' },
+                    { value: 'Comptabilité clients', label: 'Comptabilité clients' },
+                    { value: 'Trésorerie', label: 'Trésorerie' },
+                    { value: 'Paiements', label: 'Paiements' },
+                    { value: 'Contrôle de gestion', label: 'Contrôle de gestion' },
+                    { value: 'Fiscalité', label: 'Fiscalité' }
+                ],
+                'Juridique': [
+                    { value: 'Rédaction/gestion des contrats', label: 'Rédaction/gestion des contrats' },
+                    { value: 'Veille réglementaire', label: 'Veille réglementaire' },
+                    { value: 'Gestion des litiges', label: 'Gestion des litiges' },
+                    { value: 'Propriété intellectuelle', label: 'Propriété intellectuelle' },
+                    { value: 'Conformité & éthique', label: 'Conformité & éthique' }
+                ]
+            },
             riskTypes: [
                 { value: 'active', label: 'Corruption active' },
                 { value: 'passive', label: 'Corruption passive' },
@@ -313,6 +376,7 @@ class RiskManagementSystem {
         fill('riskTypeFilter', this.config.riskTypes, 'Tous les types');
         fill('statusFilter', this.config.riskStatuses, 'Tous les statuts');
         fill('processus', this.config.processes, 'Sélectionner...');
+        this.updateSousProcessusOptions();
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
         fill('tiers', this.config.tiers);
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
@@ -354,7 +418,16 @@ class RiskManagementSystem {
             container.appendChild(section);
         });
 
+        const subSection = document.createElement('div');
+        subSection.className = 'config-section';
+        subSection.innerHTML = `
+            <h3>Sous-processus</h3>
+            <div id="subProcessConfig"></div>
+        `;
+        container.appendChild(subSection);
+
         this.refreshConfigLists();
+        this.renderSubProcessConfig();
     }
 
     refreshConfigLists() {
@@ -366,7 +439,7 @@ class RiskManagementSystem {
                 .join('');
         };
 
-        Object.keys(this.config).forEach(updateList);
+        Object.keys(this.config).filter(k => k !== 'subProcesses').forEach(updateList);
     }
 
     addConfigOption(key) {
@@ -377,18 +450,116 @@ class RiskManagementSystem {
         const label = labelInput.value.trim();
         if (!value || !label) return;
         this.config[key].push({ value, label });
-        this.saveConfig();
-        this.populateSelects();
-        this.refreshConfigLists();
+        if (key === 'processes') {
+            this.config.subProcesses[value] = [];
+            this.saveConfig();
+            this.populateSelects();
+            this.renderConfiguration();
+        } else {
+            this.saveConfig();
+            this.populateSelects();
+            this.refreshConfigLists();
+        }
         valueInput.value = '';
         labelInput.value = '';
     }
 
     removeConfigOption(key, index) {
-        this.config[key].splice(index, 1);
+        if (key === 'processes') {
+            const removed = this.config.processes.splice(index, 1)[0];
+            delete this.config.subProcesses[removed.value];
+            this.saveConfig();
+            this.populateSelects();
+            this.renderConfiguration();
+        } else {
+            this.config[key].splice(index, 1);
+            this.saveConfig();
+            this.populateSelects();
+            this.refreshConfigLists();
+        }
+    }
+
+    renderSubProcessConfig() {
+        const container = document.getElementById('subProcessConfig');
+        if (!container) return;
+        container.innerHTML = '';
+        this.config.processes.forEach(proc => {
+            const block = document.createElement('div');
+            block.className = 'subprocess-section';
+            const listId = `list-sub-${proc.value}`;
+            block.innerHTML = `
+                <h4>${proc.label}</h4>
+                <ul id="${listId}" class="config-list"></ul>
+                <div class="config-add">
+                    <input type="text" id="input-sub-${proc.value}-value" placeholder="valeur">
+                    <input type="text" id="input-sub-${proc.value}-label" placeholder="libellé">
+                    <button onclick=\"rms.addSubProcess('${proc.value}')\">Ajouter</button>
+                </div>
+            `;
+            container.appendChild(block);
+        });
+        this.refreshSubProcessLists();
+    }
+
+    refreshSubProcessLists() {
+        this.config.processes.forEach(proc => {
+            const list = document.getElementById(`list-sub-${proc.value}`);
+            if (!list) return;
+            const subs = this.config.subProcesses[proc.value] || [];
+            list.innerHTML = subs
+                .map((sp, idx) => `<li>${sp.label} (${sp.value}) <button onclick="rms.removeSubProcess('${proc.value}', ${idx})">×</button></li>`)
+                .join('');
+        });
+    }
+
+    addSubProcess(process) {
+        const valueInput = document.getElementById(`input-sub-${process}-value`);
+        const labelInput = document.getElementById(`input-sub-${process}-label`);
+        if (!valueInput || !labelInput) return;
+        const value = valueInput.value.trim();
+        const label = labelInput.value.trim();
+        if (!value || !label) return;
+        this.config.subProcesses[process] = this.config.subProcesses[process] || [];
+        this.config.subProcesses[process].push({ value, label });
         this.saveConfig();
-        this.populateSelects();
-        this.refreshConfigLists();
+        this.updateSousProcessusOptions();
+        this.refreshSubProcessLists();
+        valueInput.value = '';
+        labelInput.value = '';
+    }
+
+    removeSubProcess(process, index) {
+        if (!this.config.subProcesses[process]) return;
+        this.config.subProcesses[process].splice(index, 1);
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.refreshSubProcessLists();
+    }
+
+    updateSousProcessusOptions() {
+        const processSelect = document.getElementById('processus');
+        const sousSelect = document.getElementById('sousProcessus');
+        if (!processSelect || !sousSelect) return;
+        const current = sousSelect.value;
+        const proc = processSelect.value;
+        sousSelect.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Sélectionner...';
+        sousSelect.appendChild(placeholder);
+        if (proc && this.config.subProcesses[proc]) {
+            this.config.subProcesses[proc].forEach(sp => {
+                const opt = document.createElement('option');
+                opt.value = sp.value;
+                opt.textContent = sp.label;
+                sousSelect.appendChild(opt);
+            });
+        }
+        if (Array.from(sousSelect.options).some(o => o.value === current)) {
+            sousSelect.value = current;
+        } else {
+            sousSelect.value = '';
+        }
     }
 
     // Data persistence
@@ -548,6 +719,7 @@ class RiskManagementSystem {
             else if (score > 8) scoreClass = 'high';
             else if (score > 4) scoreClass = 'medium';
             
+            const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
             return `
                 <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${risk.id})">
                     <div class="risk-item-header">
@@ -555,7 +727,7 @@ class RiskManagementSystem {
                         <span class="risk-item-score ${scoreClass}">${score}</span>
                     </div>
                     <div class="risk-item-meta">
-                        ${risk.processus} • ${risk.responsable}
+                        ${risk.processus}${sp} • ${risk.responsable}
                     </div>
                 </div>
             `;
@@ -609,6 +781,7 @@ class RiskManagementSystem {
                 <td>#${risk.id}</td>
                 <td>${risk.description}</td>
                 <td>${risk.processus}</td>
+                <td>${risk.sousProcessus || ''}</td>
                 <td>${risk.typeCorruption}</td>
                 <td>${(risk.tiers || []).join(', ')}</td>
                 <td>${risk.probBrut * risk.impactBrut}</td>
@@ -767,6 +940,8 @@ class RiskManagementSystem {
         if (form) {
             form.reset();
             document.getElementById('processus').value = risk.processus || '';
+            this.updateSousProcessusOptions();
+            document.getElementById('sousProcessus').value = risk.sousProcessus || '';
             document.getElementById('typeCorruption').value = risk.typeCorruption || '';
 
             const tiersSelect = document.getElementById('tiers');
@@ -975,6 +1150,8 @@ function addNewRisk() {
 
         if (lastRiskData) {
             document.getElementById('processus').value = lastRiskData.processus || '';
+            rms.updateSousProcessusOptions();
+            document.getElementById('sousProcessus').value = lastRiskData.sousProcessus || '';
             document.getElementById('typeCorruption').value = lastRiskData.typeCorruption || '';
 
             const tiersSelect = document.getElementById('tiers');
@@ -991,6 +1168,7 @@ function addNewRisk() {
             document.getElementById('impactPost').value = lastRiskData.impactPost || 1;
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
         } else {
+            rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
         }
 
@@ -1039,6 +1217,7 @@ function saveRisk() {
 
     const formData = {
         processus: document.getElementById('processus').value,
+        sousProcessus: document.getElementById('sousProcessus').value,
         description: document.getElementById('description').value,
         typeCorruption: document.getElementById('typeCorruption').value,
         tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
@@ -1698,7 +1877,7 @@ function applyPatch() {
               <div class="risk-item-info">
                 <div class="risk-item-title">#${risk.id} - ${title}</div>
                 <div class="risk-item-meta">
-                  Processus: ${risk.processus} | Type: ${risk.typeCorruption}
+                  Processus: ${risk.processus}${risk.sousProcessus ? ` > ${risk.sousProcessus}` : ''} | Type: ${risk.typeCorruption}
                 </div>
               </div>
             </div>
