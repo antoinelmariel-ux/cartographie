@@ -1237,6 +1237,11 @@ function saveRisk() {
         return;
     }
 
+    if (formData.probNet > formData.probBrut || formData.impactNet > formData.impactBrut) {
+        showNotification('error', 'La probabilité et l\'impact nets doivent être inférieurs ou égaux aux valeurs brutes');
+        return;
+    }
+
     if (currentEditingRiskId) {
         const riskIndex = rms.risks.findIndex(r => r.id === currentEditingRiskId);
         if (riskIndex !== -1) {
@@ -1421,6 +1426,30 @@ function bindEvents() {
             }
         });
     });
+
+    // Ensure net probability and impact do not exceed gross values
+    const probBrut = document.getElementById('probBrut');
+    const probNet = document.getElementById('probNet');
+    const impactBrut = document.getElementById('impactBrut');
+    const impactNet = document.getElementById('impactNet');
+
+    const enforceNetLimits = () => {
+        if (parseInt(probNet.value) > parseInt(probBrut.value)) {
+            probNet.value = probBrut.value;
+        }
+        if (parseInt(impactNet.value) > parseInt(impactBrut.value)) {
+            impactNet.value = impactBrut.value;
+        }
+        calculateScore('net');
+    };
+
+    if (probBrut && probNet && impactBrut && impactNet) {
+        probBrut.addEventListener('change', enforceNetLimits);
+        probNet.addEventListener('change', enforceNetLimits);
+        impactBrut.addEventListener('change', enforceNetLimits);
+        impactNet.addEventListener('change', enforceNetLimits);
+        enforceNetLimits();
+    }
 
     // Handle control edit buttons
     document.addEventListener('click', (e) => {
