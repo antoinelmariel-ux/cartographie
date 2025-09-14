@@ -666,27 +666,28 @@ class RiskManagementSystem {
             const index = cellCounts[key] || 0;
             cellCounts[key] = index + 1;
 
-            const pointSize = 24; // diameter of .risk-point in px
-            const margin = 4;     // extra space between points
-            const offset = pointSize + margin;
+            // Create point element and temporarily add it to the DOM to get its size
+            const point = document.createElement('div');
+            point.className = `risk-point ${this.currentView}`;
+            point.dataset.riskId = risk.id;
+            point.title = risk.description;
+            point.onclick = () => this.selectRisk(risk.id);
+            grid.appendChild(point);
+
+            // Determine actual diameter and offset
+            const diameter = point.offsetWidth;
+            const margin = 4;
+            const offset = diameter + margin;
 
             // Spread points around the center in eight directions
             const angle = index * Math.PI / 4;
             const dx = Math.cos(angle) * offset;
             const dy = Math.sin(angle) * offset;
 
-            const point = document.createElement('div');
-            point.className = `risk-point ${this.currentView}`;
-            point.dataset.riskId = risk.id;
-
+            // Position the point
             point.style.left = `calc(${leftPercent}% + ${dx}px)`;
             point.style.bottom = `calc(${bottomPercent}% + ${dy}px)`;
             point.style.transform = 'translate(-50%, 50%)';
-
-            point.title = risk.description;
-            point.onclick = () => this.selectRisk(risk.id);
-
-            grid.appendChild(point);
         });
     }
 
