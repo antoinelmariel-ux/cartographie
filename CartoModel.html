@@ -545,6 +545,28 @@
         </div>
     </div>
 
+    <!-- Control Selector Modal for Risks -->
+    <div id="controlSelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sélectionner les contrôles associés</h2>
+                <span class="close" onclick="closeControlSelector()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <div class="search-box">
+                    <input type="text" class="search-input" id="controlSearchInput" placeholder="Filtrer par ID ou nom..." onkeyup="filterControlsForRisk(this.value)">
+                </div>
+                <div class="risk-list" id="controlList">
+                    <!-- Control list populated by JavaScript -->
+                </div>
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeControlSelector()">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="confirmControlSelection()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Risk Form Modal -->
     <div id="riskModal" class="modal">
         <div class="modal-content">
@@ -670,11 +692,11 @@
                     <div class="form-section">
                         <div class="form-section-title">Contrôles Associés</div>
                         <div class="controls-section">
-                            <button type="button" class="btn btn-secondary" onclick="addControlToRisk()">
+                            <button type="button" class="btn btn-secondary" onclick="openControlSelector()">
                                 + Ajouter un contrôle
                             </button>
                             <div class="controls-grid" id="riskControls" style="margin-top: 15px;">
-                                <!-- Controls will be added here -->
+                                <!-- Selected controls will appear here -->
                             </div>
                         </div>
                     </div>
