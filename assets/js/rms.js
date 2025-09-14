@@ -640,10 +640,13 @@ class RiskManagementSystem {
         if (!grid) return;
         
         const filteredRisks = this.getFilteredRisks();
-        
+
+        // Track how many risks are placed in each cell to offset duplicates
+        const cellCounts = {};
+
         filteredRisks.forEach(risk => {
             let prob, impact;
-            
+
             if (this.currentView === 'brut') {
                 prob = risk.probBrut;
                 impact = risk.impactBrut;
@@ -654,21 +657,35 @@ class RiskManagementSystem {
                 prob = risk.probPost;
                 impact = risk.impactPost;
             }
-            
+
+            const leftPercent = ((impact - 0.5) / 4) * 100;
+            const bottomPercent = ((prob - 0.5) / 4) * 100;
+
+            // Calculate offset so that points do not overlap
+            const key = `${prob}-${impact}`;
+            const index = cellCounts[key] || 0;
+            cellCounts[key] = index + 1;
+
+            const pointSize = 24; // diameter of .risk-point in px
+            const margin = 4;     // extra space between points
+            const offset = pointSize + margin;
+
+            // Spread points around the center in eight directions
+            const angle = index * Math.PI / 4;
+            const dx = Math.cos(angle) * offset;
+            const dy = Math.sin(angle) * offset;
+
             const point = document.createElement('div');
             point.className = `risk-point ${this.currentView}`;
             point.dataset.riskId = risk.id;
-            
-            const leftPercent = ((impact - 0.5) / 4) * 100;
-            const bottomPercent = ((prob - 0.5) / 4) * 100;
-            
-            point.style.left = `${leftPercent}%`;
-            point.style.bottom = `${bottomPercent}%`;
+
+            point.style.left = `calc(${leftPercent}% + ${dx}px)`;
+            point.style.bottom = `calc(${bottomPercent}% + ${dy}px)`;
             point.style.transform = 'translate(-50%, 50%)';
-            
+
             point.title = risk.description;
             point.onclick = () => this.selectRisk(risk.id);
-            
+
             grid.appendChild(point);
         });
     }
