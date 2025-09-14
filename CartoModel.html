@@ -1,0 +1,3476 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.0</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #3498db;
+            --secondary-color: #34495e;
+            --success-color: #27ae60;
+            --warning-color: #f39c12;
+            --danger-color: #e74c3c;
+            --light-bg: #f8f9fa;
+            --border-radius: 12px;
+            --shadow: 0 10px 30px rgba(0,0,0,0.1);
+            --shadow-hover: 0 15px 40px rgba(0,0,0,0.15);
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* Header amélioré */
+        .header {
+            background: white;
+            padding: 25px 35px;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .header-left h1 {
+            color: #2c3e50;
+            font-size: 2.2em;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .header-left p {
+            color: #7f8c8d;
+            font-size: 1em;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-info {
+            text-align: right;
+            padding-right: 15px;
+            border-right: 2px solid #ecf0f1;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .user-role {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .last-save {
+            font-size: 0.85em;
+            color: #95a5a6;
+            margin-top: 3px;
+        }
+
+        /* Tabs pour navigation */
+        .nav-tabs {
+            background: white;
+            padding: 0;
+            border-radius: var(--border-radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 20px;
+            overflow: hidden;
+        }
+
+        .tabs-container {
+            display: flex;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 18px;
+            background: none;
+            border: none;
+            color: #7f8c8d;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: #f8f9fa;
+        }
+
+        .tab.active {
+            color: var(--primary-color);
+            background: white;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: var(--primary-color);
+        }
+
+        .tab-badge {
+            background: var(--danger-color);
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.75em;
+            margin-left: 5px;
+        }
+
+        /* Contenu des tabs */
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Main content */
+        .main-content {
+            background: white;
+            border-radius: 15px;
+            box-shadow: var(--shadow);
+            overflow: hidden;
+        }
+
+        .toolbar {
+            background: var(--secondary-color);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .toolbar-title {
+            color: white;
+            font-size: 1.2em;
+            font-weight: 500;
+        }
+
+        .toolbar-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-icon {
+            width: 16px;
+            height: 16px;
+        }
+
+        .btn-primary {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        }
+
+        .btn-success {
+            background: var(--success-color);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+            transform: translateY(-2px);
+        }
+
+        .btn-outline {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+        }
+
+        .btn-outline:hover {
+            background: white;
+            color: var(--secondary-color);
+        }
+
+        /* Filtres améliorés */
+        .filters-bar {
+            padding: 20px 30px;
+            background: var(--light-bg);
+            border-bottom: 1px solid #e1e8ed;
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .filter-label {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .filter-select {
+            padding: 8px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            background: white;
+            min-width: 180px;
+            font-size: 0.95em;
+            cursor: pointer;
+            transition: border-color 0.3s ease;
+        }
+
+        .filter-select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border: 2px solid #e1e8ed;
+            border-radius: 25px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        /* Content area */
+        .content-area {
+            padding: 30px;
+        }
+
+        /* Vue Matrix améliorée */
+        .view-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 25px;
+        }
+
+        .view-btn {
+            padding: 12px 24px;
+            border: 2px solid var(--primary-color);
+            background: white;
+            color: var(--primary-color);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .view-btn.active {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        .view-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.2);
+        }
+
+        .matrix-container {
+            background: var(--light-bg);
+            border-radius: var(--border-radius);
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .matrix-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .matrix-title {
+            font-size: 1.4em;
+            color: #2c3e50;
+            font-weight: 500;
+        }
+
+        .matrix-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .matrix-wrapper {
+            display: flex;
+            gap: 30px;
+            align-items: flex-start;
+        }
+
+        .matrix {
+            position: relative;
+            width: 600px;
+            height: 600px;
+            border: 2px solid var(--secondary-color);
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .matrix-grid {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+        }
+
+        .matrix-cell {
+            border: 1px solid #d5dbdb;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        .matrix-cell:hover {
+            z-index: 1;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.1);
+        }
+
+        .matrix-cell.level-1 { background: linear-gradient(135deg, rgba(46, 204, 113, 0.2), rgba(46, 204, 113, 0.4)); }
+        .matrix-cell.level-2 { background: linear-gradient(135deg, rgba(241, 196, 15, 0.2), rgba(241, 196, 15, 0.4)); }
+        .matrix-cell.level-3 { background: linear-gradient(135deg, rgba(230, 126, 34, 0.2), rgba(230, 126, 34, 0.4)); }
+        .matrix-cell.level-4 { background: linear-gradient(135deg, rgba(231, 76, 60, 0.3), rgba(231, 76, 60, 0.5)); }
+
+        .risk-point {
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: 3px solid white;
+            z-index: 10;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .risk-point:hover {
+            transform: scale(1.4);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+            z-index: 20;
+        }
+
+        .risk-point.brut { 
+            background: linear-gradient(135deg, #e74c3c, #c0392b); 
+        }
+        .risk-point.net { 
+            background: linear-gradient(135deg, #f39c12, #d68910); 
+        }
+        .risk-point.post-mitigation { 
+            background: linear-gradient(135deg, #27ae60, #229954); 
+        }
+
+        .axis-label {
+            position: absolute;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 1.1em;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .axis-label.x-axis {
+            bottom: -45px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .axis-label.y-axis {
+            left: -80px;
+            top: 50%;
+            transform: rotate(-90deg) translateX(50%);
+            transform-origin: center;
+        }
+
+        /* Risk Details Panel */
+        .risk-details-panel {
+            flex: 1;
+            background: white;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .risk-details-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .risk-item {
+            padding: 12px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            background: var(--light-bg);
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .risk-item:hover {
+            background: white;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            transform: translateX(5px);
+        }
+
+        .risk-item.selected {
+            border-left-color: var(--primary-color);
+            background: white;
+            box-shadow: 0 2px 12px rgba(52, 152, 219, 0.2);
+        }
+
+        .risk-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 5px;
+        }
+
+        .risk-item-title {
+            font-weight: 500;
+            color: #2c3e50;
+            font-size: 0.95em;
+        }
+
+        .risk-item-score {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 600;
+            color: white;
+        }
+
+        .risk-item-score.low { background: var(--success-color); }
+        .risk-item-score.medium { background: var(--warning-color); }
+        .risk-item-score.high { background: #e67e22; }
+        .risk-item-score.critical { background: var(--danger-color); }
+
+        .risk-item-meta {
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+
+        /* Legend améliorée */
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 25px;
+            margin-top: 30px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            flex-wrap: wrap;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 30px;
+            height: 20px;
+            border-radius: 4px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        /* Dashboard Tab */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: var(--shadow-hover);
+        }
+
+        .stat-card.primary { border-left-color: var(--primary-color); }
+        .stat-card.success { border-left-color: var(--success-color); }
+        .stat-card.warning { border-left-color: var(--warning-color); }
+        .stat-card.danger { border-left-color: var(--danger-color); }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .stat-title {
+            color: #7f8c8d;
+            font-size: 0.9em;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-icon {
+            width: 24px;
+            height: 24px;
+            opacity: 0.3;
+        }
+
+        .stat-value {
+            font-size: 2.2em;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .stat-value.primary { color: var(--primary-color); }
+        .stat-value.success { color: var(--success-color); }
+        .stat-value.warning { color: var(--warning-color); }
+        .stat-value.danger { color: var(--danger-color); }
+
+        .stat-change {
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+
+        .stat-change.positive { color: var(--success-color); }
+        .stat-change.negative { color: var(--danger-color); }
+
+        /* Charts container */
+        .charts-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .chart-container {
+            background: white;
+            padding: 20px;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+
+        .chart-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+        }
+
+        /* Table améliorée */
+        .table-container {
+            background: white;
+            border-radius: var(--border-radius);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--light-bg);
+            padding: 15px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .table-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .table-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: var(--light-bg);
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #7f8c8d;
+            font-size: 0.85em;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #e1e8ed;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #ecf0f1;
+            font-size: 0.95em;
+        }
+
+        tbody tr {
+            transition: all 0.3s ease;
+        }
+
+        tbody tr:hover {
+            background: var(--light-bg);
+        }
+
+        .table-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 0.85em;
+            font-weight: 500;
+            display: inline-block;
+        }
+
+        .badge-success {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+        }
+
+        .badge-warning {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+        }
+
+        .table-actions-cell {
+            display: flex;
+            gap: 5px;
+        }
+
+        .action-btn {
+            padding: 6px 10px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: all 0.3s ease;
+        }
+
+        .action-btn:hover {
+            color: var(--primary-color);
+            transform: scale(1.1);
+        }
+
+        /* Modal amélioré */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 15px;
+            max-width: 900px;
+            width: 95%;
+            max-height: 90vh;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from { transform: translateY(50px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+
+        .modal-header {
+            background: var(--secondary-color);
+            color: white;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 1.4em;
+            font-weight: 500;
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            opacity: 0.8;
+            transition: opacity 0.3s ease;
+        }
+
+        .modal-close:hover {
+            opacity: 1;
+        }
+
+        .modal-body {
+            padding: 30px;
+            overflow-y: auto;
+            flex-grow: 1;
+        }
+
+        .modal-footer {
+            background: var(--light-bg);
+            padding: 20px 30px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            border-top: 1px solid #e1e8ed;
+        }
+
+        /* Styles spécifiques pour le formulaire de contrôles */
+        .risk-selection {
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px;
+            background: #f8f9fa;
+        }
+
+        .selected-risks {
+            margin-bottom: 10px;
+            min-height: 40px;
+        }
+
+        .selected-risk-item {
+            display: inline-block;
+            background: var(--primary-color);
+            color: white;
+            padding: 5px 12px;
+            border-radius: 20px;
+            margin: 5px 5px 5px 0;
+            font-size: 0.85em;
+            position: relative;
+        }
+
+        .selected-risk-item .remove-risk {
+            margin-left: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .selected-risk-item .remove-risk:hover {
+            color: #ff6b6b;
+        }
+
+        .risk-list {
+            max-height: 400px;
+            overflow-y: auto;
+            border: 1px solid #e1e8ed;
+            border-radius: 8px;
+            padding: 15px;
+        }
+
+        .risk-list-item {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .risk-list-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .risk-list-item:last-child {
+            border-bottom: none;
+        }
+
+        .risk-list-item input[type="checkbox"] {
+            margin-right: 12px;
+            transform: scale(1.2);
+        }
+
+        .risk-item-info {
+            flex: 1;
+        }
+
+        .risk-item-title {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 2px;
+        }
+
+        .risk-item-meta {
+            font-size: 0.85em;
+            color: #7f8c8d;
+        }
+
+        /* Amélioration des contrôles existants */
+        .control-item {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: 10px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+
+        .control-item:hover {
+            border-color: var(--primary-color);
+            box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+        }
+
+        .control-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 12px;
+        }
+
+        .control-name {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .control-type-badge {
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 0.75em;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .control-type-badge.preventif {
+            background: #e8f5e8;
+            color: #27ae60;
+        }
+
+        .control-type-badge.detectif {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .control-meta {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 10px;
+            margin-top: 12px;
+        }
+
+        .control-meta-item {
+            font-size: 0.85em;
+        }
+
+        .control-meta-label {
+            color: #7f8c8d;
+            font-weight: 500;
+        }
+
+        .control-meta-value {
+            color: #2c3e50;
+            margin-top: 2px;
+        }
+
+        .control-status-badge {
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            font-weight: 500;
+        }
+
+        .control-status-badge.actif {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .control-status-badge.en-mise-en-place {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+
+        .control-status-badge.en-revision {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .control-status-badge.obsolete {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .control-actions {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            display: flex;
+            gap: 5px;
+        }
+
+        .control-action-btn {
+            padding: 6px 10px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8em;
+            transition: all 0.2s ease;
+        }
+
+        .control-action-btn.edit {
+            background: #3498db;
+            color: white;
+        }
+
+        .control-action-btn.delete {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .control-action-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        /* Form amélioré */
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .form-section-title {
+            font-size: 1.1em;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .form-label {
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 0.95em;
+        }
+
+        .form-label.required::after {
+            content: ' *';
+            color: var(--danger-color);
+        }
+
+        .form-input, .form-select, .form-textarea {
+            padding: 10px 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        .form-input:focus, .form-select:focus, .form-textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: inherit;
+        }
+
+        .form-input.error, .form-select.error, .form-textarea.error {
+            border-color: var(--danger-color);
+        }
+
+        .form-error {
+            color: var(--danger-color);
+            font-size: 0.85em;
+            margin-top: 5px;
+        }
+
+        /* Risk evaluation cards */
+        .evaluation-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .evaluation-card {
+            background: white;
+            border: 2px solid #e1e8ed;
+            border-radius: var(--border-radius);
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .evaluation-card.brut {
+            border-color: #e74c3c;
+            background: linear-gradient(135deg, rgba(231, 76, 60, 0.05), rgba(231, 76, 60, 0.1));
+        }
+
+        .evaluation-card.net {
+            border-color: #f39c12;
+            background: linear-gradient(135deg, rgba(243, 156, 18, 0.05), rgba(243, 156, 18, 0.1));
+        }
+
+        .evaluation-card.post-mitigation {
+            border-color: #27ae60;
+            background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(39, 174, 96, 0.1));
+        }
+
+        .evaluation-card-header {
+            font-weight: 600;
+            text-align: center;
+            margin-bottom: 15px;
+            font-size: 1.1em;
+        }
+
+        .evaluation-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .risk-score-display {
+            background: var(--secondary-color);
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.3em;
+        }
+
+        /* Controls section */
+        .controls-section {
+            background: var(--light-bg);
+            padding: 20px;
+            border-radius: var(--border-radius);
+            margin: 20px 0;
+        }
+
+        .controls-grid {
+            display: grid;
+            gap: 15px;
+        }
+
+        .control-item {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid var(--primary-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            transition: all 0.3s ease;
+        }
+
+        .control-item:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .control-info {
+            flex: 1;
+        }
+
+        .control-name {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .control-description {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        .control-effectiveness {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .effectiveness-badge {
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 0.85em;
+            font-weight: 600;
+        }
+
+        .effectiveness-high {
+            background: rgba(39, 174, 96, 0.1);
+            color: var(--success-color);
+        }
+
+        .effectiveness-medium {
+            background: rgba(243, 156, 18, 0.1);
+            color: var(--warning-color);
+        }
+
+        .effectiveness-low {
+            background: rgba(231, 76, 60, 0.1);
+            color: var(--danger-color);
+        }
+
+        /* Timeline */
+        .timeline {
+            position: relative;
+            padding: 20px 0;
+        }
+
+        .timeline::before {
+            content: '';
+            position: absolute;
+            left: 30px;
+            top: 0;
+            bottom: 0;
+            width: 2px;
+            background: #e1e8ed;
+        }
+
+        .timeline-item {
+            position: relative;
+            padding-left: 60px;
+            margin-bottom: 20px;
+        }
+
+        .timeline-marker {
+            position: absolute;
+            left: 22px;
+            top: 5px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid var(--primary-color);
+        }
+
+        .timeline-content {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .timeline-date {
+            font-size: 0.85em;
+            color: #7f8c8d;
+            margin-bottom: 5px;
+        }
+
+        .timeline-title {
+            font-weight: 500;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+
+        .timeline-description {
+            font-size: 0.9em;
+            color: #7f8c8d;
+        }
+
+        /* Notifications */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 3000;
+            animation: slideInRight 0.3s ease;
+        }
+
+        @keyframes slideInRight {
+            from { transform: translateX(100%); }
+            to { transform: translateX(0); }
+        }
+
+        .notification.success {
+            background: var(--success-color);
+        }
+
+        .notification.error {
+            background: var(--danger-color);
+        }
+
+        .notification.info {
+            background: var(--primary-color);
+        }
+
+        /* Loading state */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        /* Responsive */
+        @media (max-width: 1200px) {
+            .matrix-wrapper {
+                flex-direction: column;
+            }
+            
+            .risk-details-panel {
+                max-height: none;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+            
+            .header {
+                flex-direction: column;
+                text-align: center;
+                gap: 15px;
+            }
+            
+            .header-right {
+                width: 100%;
+                justify-content: center;
+            }
+            
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            
+            .toolbar-actions {
+                justify-content: center;
+            }
+            
+            .matrix {
+                width: 100%;
+                height: 400px;
+            }
+            
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .charts-row {
+                grid-template-columns: 1fr;
+            }
+            
+            .evaluation-cards {
+                grid-template-columns: 1fr;
+            }
+            
+            .tabs-container {
+                overflow-x: auto;
+            }
+            
+            .tab {
+                white-space: nowrap;
+            }
+        }
+
+        /* Print styles */
+        @media print {
+            body {
+                background: white;
+            }
+            
+            .btn, .toolbar, .filters-bar {
+                display: none;
+            }
+            
+            .matrix-container {
+                page-break-inside: avoid;
+            }
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Header amélioré -->
+        <div class="header">
+            <div class="header-left">
+                <h1>🛡️ Cartographie des Risques Corruption</h1>
+                <p>Conformité Loi Sapin 2 - Système de Management Anti-Corruption</p>
+            </div>
+            <div class="header-right">
+                <div class="user-info">
+                    <div class="user-name">Marie Dupont</div>
+                    <div class="user-role">Responsable Conformité</div>
+                    <div class="last-save">Dernière sauvegarde: <span id="lastSaveTime">-</span></div>
+                </div>
+                <button class="btn btn-primary" onclick="showNotification('info', 'Synchronisation en cours...')">
+                    <span class="btn-icon">🔄</span> Sync
+                </button>
+            </div>
+        </div>
+
+        <!-- Navigation Tabs -->
+        <div class="nav-tabs">
+            <div class="tabs-container">
+                <button class="tab active" onclick="switchTab('dashboard')">
+                    📊 Tableau de Bord
+                    <span class="tab-badge">3</span>
+                </button>
+                <button class="tab" onclick="switchTab('matrix')">
+                    📈 Matrice des Risques
+                </button>
+                <button class="tab" onclick="switchTab('risks')">
+                    📋 Liste des Risques
+                </button>
+                <button class="tab" onclick="switchTab('controls')">
+                    🔒 Contrôles & Mesures
+                </button>
+                <button class="tab" onclick="switchTab('reports')">
+                    📑 Rapports
+                </button>
+                <button class="tab" onclick="switchTab('history')">
+                    📜 Historique
+                </button>
+            </div>
+        </div>
+
+        <!-- Dashboard Tab Content -->
+        <div id="dashboard-tab" class="tab-content active">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Vue d'ensemble - Q1 2024</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-outline" onclick="refreshDashboard()">
+                            Actualiser
+                        </button>
+                        <button class="btn btn-primary" onclick="exportDashboard()">
+                            Exporter PDF
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="content-area">
+                    <!-- KPI Cards -->
+                    <div class="dashboard-grid">
+                        <div class="stat-card danger">
+                            <div class="stat-header">
+                                <span class="stat-title">Risques Critiques</span>
+                                <span class="stat-icon">⚠️</span>
+                            </div>
+                            <div class="stat-value danger">2</div>
+                            <div class="stat-change negative">↑ +1 vs mois dernier</div>
+                        </div>
+                        
+                        <div class="stat-card warning">
+                            <div class="stat-header">
+                                <span class="stat-title">Risques Élevés</span>
+                                <span class="stat-icon">⚡</span>
+                            </div>
+                            <div class="stat-value warning">5</div>
+                            <div class="stat-change">→ Stable</div>
+                        </div>
+                        
+                        <div class="stat-card success">
+                            <div class="stat-header">
+                                <span class="stat-title">Contrôles Actifs</span>
+                                <span class="stat-icon">✓</span>
+                            </div>
+                            <div class="stat-value success">24</div>
+                            <div class="stat-change positive">↑ +3 nouveaux</div>
+                        </div>
+                        
+                        <div class="stat-card primary">
+                            <div class="stat-header">
+                                <span class="stat-title">Score Global</span>
+                                <span class="stat-icon">📊</span>
+                            </div>
+                            <div class="stat-value primary">72%</div>
+                            <div class="stat-change positive">↑ +5% d'amélioration</div>
+                        </div>
+                    </div>
+
+                    <!-- Charts -->
+                    <div class="charts-row">
+                        <div class="chart-container">
+                            <div class="chart-title">Évolution des Risques (6 derniers mois)</div>
+                            <canvas id="evolutionChart" height="200"></canvas>
+                        </div>
+                        <div class="chart-container">
+                            <div class="chart-title">Répartition par Processus</div>
+                            <canvas id="processChart" height="200"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Recent Alerts -->
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">🚨 Alertes Récentes</div>
+                            <div class="table-actions">
+                                <button class="btn btn-secondary">Voir tout</button>
+                            </div>
+                        </div>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Risque</th>
+                                    <th>Processus</th>
+                                    <th>Niveau</th>
+                                    <th>Responsable</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>08/01/2024</td>
+                                    <td>Corruption d'investigateurs cliniques</td>
+                                    <td>R&D</td>
+                                    <td><span class="table-badge badge-danger">Critique</span></td>
+                                    <td>Dr. Martin</td>
+                                    <td class="table-actions-cell">
+                                        <button class="action-btn">👁️</button>
+                                        <button class="action-btn">✏️</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>07/01/2024</td>
+                                    <td>Avantages indus - Congrès médical</td>
+                                    <td>Marketing</td>
+                                    <td><span class="table-badge badge-warning">Élevé</span></td>
+                                    <td>Mme. Leroy</td>
+                                    <td class="table-actions-cell">
+                                        <button class="action-btn">👁️</button>
+                                        <button class="action-btn">✏️</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td>06/01/2024</td>
+                                    <td>Favoritisme fournisseurs</td>
+                                    <td>Achats</td>
+                                    <td><span class="table-badge badge-success">Modéré</span></td>
+                                    <td>M. Durand</td>
+                                    <td class="table-actions-cell">
+                                        <button class="action-btn">👁️</button>
+                                        <button class="action-btn">✏️</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Matrix Tab Content -->
+        <div id="matrix-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Matrice des Risques</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-secondary" onclick="resetMatrixView()">
+                            Réinitialiser Vue
+                        </button>
+                        <button class="btn btn-primary" onclick="addNewRisk()">
+                            + Nouveau Risque
+                        </button>
+                    </div>
+                </div>
+
+                <div class="filters-bar">
+                    <div class="filter-group">
+                        <label class="filter-label">Processus</label>
+                        <select class="filter-select" id="processFilter" onchange="applyFilters()">
+                            <option value="">Tous les processus</option>
+                            <option value="rd">R&D et développement clinique</option>
+                            <option value="achats">Achats et approvisionnements</option>
+                            <option value="marketing">Marketing et communication</option>
+                            <option value="ventes">Ventes et relations clients</option>
+                            <option value="rh">Ressources humaines</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Type de Risque</label>
+                        <select class="filter-select" id="riskTypeFilter" onchange="applyFilters()">
+                            <option value="">Tous les types</option>
+                            <option value="corruption-active">Corruption active</option>
+                            <option value="corruption-passive">Corruption passive</option>
+                            <option value="trafic-influence">Trafic d'influence</option>
+                            <option value="favoritisme">Favoritisme</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label class="filter-label">Statut</label>
+                        <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                            <option value="">Tous les statuts</option>
+                            <option value="nouveau">Nouveau</option>
+                            <option value="en-cours">En cours de traitement</option>
+                            <option value="traite">Traité</option>
+                            <option value="archive">Archivé</option>
+                        </select>
+                    </div>
+                    <div class="search-box filter-group">
+                        <label class="filter-label">Recherche</label>
+                        <input type="text" class="search-input" placeholder="🔍 Rechercher un risque..." onkeyup="searchRisks(this.value)">
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="view-selector">
+                        <button class="view-btn active" onclick="changeMatrixView('brut')">
+                            Risque Brut
+                        </button>
+                        <button class="view-btn" onclick="changeMatrixView('net')">
+                            Risque Net
+                        </button>
+                        <button class="view-btn" onclick="changeMatrixView('post-mitigation')">
+                            Post-Mitigation
+                        </button>
+                    </div>
+
+                    <div class="matrix-container">
+                        <div class="matrix-header">
+                            <h3 class="matrix-title" id="matrixTitle">Matrice des Risques - Vue Brut</h3>
+                            <div class="matrix-actions">
+                                <button class="btn btn-secondary" onclick="exportMatrix()">
+                                    📸 Capture
+                                </button>
+                                <button class="btn btn-secondary" onclick="toggleFullScreen()">
+                                    🔍 Plein écran
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div class="matrix-wrapper">
+                            <div class="matrix">
+                                <div class="matrix-grid" id="matrixGrid"></div>
+                                <div class="axis-label x-axis">Impact →</div>
+                                <div class="axis-label y-axis">Probabilité →</div>
+                            </div>
+                            
+                            <div class="risk-details-panel">
+                                <div class="risk-details-title">Risques dans cette vue</div>
+                                <div id="riskDetailsList"></div>
+                            </div>
+                        </div>
+
+                        <div class="legend">
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.6));"></div>
+                                <span>Acceptable (1-4)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.6));"></div>
+                                <span>Modéré (5-8)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(230, 126, 34, 0.6));"></div>
+                                <span>Élevé (9-12)</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.7));"></div>
+                                <span>Critique (13-16)</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Risks List Tab -->
+        <div id="risks-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Registre des Risques</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-secondary" onclick="importRisks()">
+                            📥 Importer
+                        </button>
+                        <button class="btn btn-secondary" onclick="exportRisks()">
+                            📤 Exporter
+                        </button>
+                        <button class="btn btn-success" onclick="addNewRisk()">
+                            + Nouveau Risque
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="table-container">
+                        <table id="risksTable">
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Description</th>
+                                    <th>Processus</th>
+                                    <th>Type</th>
+                                    <th>Score Brut</th>
+                                    <th>Score Net</th>
+                                    <th>Score Final</th>
+                                    <th>Statut</th>
+                                    <th>Responsable</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="risksTableBody">
+                                <!-- Populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls Tab -->
+        <div id="controls-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Contrôles et Mesures de Mitigation</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-primary" onclick="addNewControl()">
+                            + Nouveau Contrôle
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="controls-section">
+                        <div class="form-section-title">Contrôles Actifs</div>
+                        <div class="controls-grid" id="controlsList">
+                            <!-- Populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Reports Tab -->
+        <div id="reports-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Rapports et Analyses</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-primary" onclick="generateReport()">
+                            📊 Générer Rapport
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="form-section">
+                        <div class="form-section-title">Rapports Disponibles</div>
+                        <div class="dashboard-grid">
+                            <div class="stat-card primary" onclick="generateReport('sapin2')">
+                                <div class="stat-header">
+                                    <span class="stat-title">Rapport Sapin 2</span>
+                                    <span class="stat-icon">📄</span>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9em; color: #7f8c8d;">
+                                    Rapport de conformité complet
+                                </div>
+                            </div>
+                            <div class="stat-card success" onclick="generateReport('executive')">
+                                <div class="stat-header">
+                                    <span class="stat-title">Synthèse Direction</span>
+                                    <span class="stat-icon">👔</span>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9em; color: #7f8c8d;">
+                                    Vue executive des risques
+                                </div>
+                            </div>
+                            <div class="stat-card warning" onclick="generateReport('audit')">
+                                <div class="stat-header">
+                                    <span class="stat-title">Rapport d'Audit</span>
+                                    <span class="stat-icon">🔍</span>
+                                </div>
+                                <div style="margin-top: 10px; font-size: 0.9em; color: #7f8c8d;">
+                                    Détail pour audit interne
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Tab -->
+        <div id="history-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Historique des Modifications</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-secondary" onclick="exportHistory()">
+                            📤 Exporter
+                        </button>
+                    </div>
+                </div>
+
+                <div class="content-area">
+                    <div class="timeline" id="historyTimeline">
+                        <!-- Populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Control Form Modal -->
+    <div id="controlModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="controlModalTitle">Nouveau Contrôle</h2>
+                <span class="close" onclick="closeControlModal()">&times;</span>
+            </div>
+            <form id="controlForm" onsubmit="saveControl(event)">
+                <div class="form-grid">
+                    <div class="form-group full-width">
+                        <label for="controlName">Nom du contrôle *</label>
+                        <input type="text" id="controlName" name="name" required>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="controlObjectives">Objectif / Risque(s) couvert(s)</label>
+                        <div class="risk-selection">
+                            <div class="selected-risks" id="selectedRisks">
+                                <!-- Selected risks will appear here -->
+                            </div>
+                            <button type="button" class="btn btn-secondary" onclick="openRiskSelector()">
+                                + Sélectionner des risques
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlType">Type de contrôle *</label>
+                        <select id="controlType" name="type" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="preventif">Préventif</option>
+                            <option value="detectif">Détectif</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlOwner">Propriétaire *</label>
+                        <input type="text" id="controlOwner" name="owner" required placeholder="Nom ou fonction responsable">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlFrequency">Fréquence *</label>
+                        <select id="controlFrequency" name="frequency" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="quotidienne">Quotidienne</option>
+                            <option value="mensuelle">Mensuelle</option>
+                            <option value="annuelle">Annuelle</option>
+                            <option value="ad-hoc">Ad hoc</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlMode">Mode d'exécution *</label>
+                        <select id="controlMode" name="mode" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="manuel">Manuel</option>
+                            <option value="automatise">Automatisé</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlEffectiveness">Efficacité estimée *</label>
+                        <select id="controlEffectiveness" name="effectiveness" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="forte">Forte</option>
+                            <option value="moyenne">Moyenne</option>
+                            <option value="faible">Faible</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="controlStatus">Statut *</label>
+                        <select id="controlStatus" name="status" required>
+                            <option value="">Sélectionner...</option>
+                            <option value="actif">Actif</option>
+                            <option value="en-mise-en-place">En mise en place</option>
+                            <option value="en-revision">En cours de révision</option>
+                            <option value="obsolete">Obsolète</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group full-width">
+                        <label for="controlDescription">Description / Procédure</label>
+                        <textarea id="controlDescription" name="description" rows="4" placeholder="Description détaillée du contrôle et de sa procédure d'exécution"></textarea>
+                    </div>
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn btn-secondary" onclick="closeControlModal()">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Risk Selector Modal for Controls -->
+    <div id="riskSelectorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Sélectionner les risques couverts</h2>
+                <span class="close" onclick="closeRiskSelector()">&times;</span>
+            </div>
+            <div class="risk-list" id="riskList">
+                <!-- Risk list will be populated by JavaScript -->
+            </div>
+            <div class="form-actions">
+                <button type="button" class="btn btn-secondary" onclick="closeRiskSelector()">Annuler</button>
+                <button type="button" class="btn btn-primary" onclick="confirmRiskSelection()">Confirmer</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Risk Form Modal -->
+    <div id="riskModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Nouveau Risque de Corruption</h3>
+                <button class="modal-close" onclick="closeModal('riskModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="riskForm">
+                    <div class="form-section">
+                        <div class="form-section-title">Informations Générales</div>
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label required">Processus</label>
+                                <select class="form-select" id="processus" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="R&D">R&D et développement clinique</option>
+                                    <option value="Achats">Achats et approvisionnements</option>
+                                    <option value="Marketing">Marketing et communication</option>
+                                    <option value="Ventes">Ventes et relations clients</option>
+                                    <option value="RH">Ressources humaines</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required">Type de Corruption</label>
+                                <select class="form-select" id="typeCorruption" required>
+                                    <option value="">Sélectionner...</option>
+                                    <option value="active">Corruption active</option>
+                                    <option value="passive">Corruption passive</option>
+                                    <option value="trafic">Trafic d'influence</option>
+                                    <option value="favoritisme">Favoritisme</option>
+                                    <option value="cadeaux">Cadeaux/avantages indus</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-grid">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label required">Description du Risque</label>
+                                <textarea class="form-textarea" id="description" required placeholder="Décrivez précisément le risque de corruption identifié..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Évaluation du Risque</div>
+                        <div class="evaluation-cards">
+                            <div class="evaluation-card brut">
+                                <div class="evaluation-card-header" style="color: #e74c3c;">Risque Brut</div>
+                                <div class="evaluation-inputs">
+                                    <div class="form-group">
+                                        <label class="form-label">Probabilité</label>
+                                        <select class="form-select" id="probBrut" onchange="calculateScore('brut')">
+                                            <option value="1">1 - Très rare</option>
+                                            <option value="2">2 - Peu probable</option>
+                                            <option value="3">3 - Probable</option>
+                                            <option value="4">4 - Très probable</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Impact</label>
+                                        <select class="form-select" id="impactBrut" onchange="calculateScore('brut')">
+                                            <option value="1">1 - Mineur</option>
+                                            <option value="2">2 - Modéré</option>
+                                            <option value="3">3 - Majeur</option>
+                                            <option value="4">4 - Critique</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="risk-score-display" id="scoreBrut">Score: 1</div>
+                            </div>
+
+                            <div class="evaluation-card net">
+                                <div class="evaluation-card-header" style="color: #f39c12;">Risque Net</div>
+                                <div class="evaluation-inputs">
+                                    <div class="form-group">
+                                        <label class="form-label">Probabilité</label>
+                                        <select class="form-select" id="probNet" onchange="calculateScore('net')">
+                                            <option value="1">1 - Très rare</option>
+                                            <option value="2">2 - Peu probable</option>
+                                            <option value="3">3 - Probable</option>
+                                            <option value="4">4 - Très probable</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Impact</label>
+                                        <select class="form-select" id="impactNet" onchange="calculateScore('net')">
+                                            <option value="1">1 - Mineur</option>
+                                            <option value="2">2 - Modéré</option>
+                                            <option value="3">3 - Majeur</option>
+                                            <option value="4">4 - Critique</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="risk-score-display" id="scoreNet">Score: 1</div>
+                            </div>
+
+                            <div class="evaluation-card post-mitigation">
+                                <div class="evaluation-card-header" style="color: #27ae60;">Post-Mitigation</div>
+                                <div class="evaluation-inputs">
+                                    <div class="form-group">
+                                        <label class="form-label">Probabilité</label>
+                                        <select class="form-select" id="probPost" onchange="calculateScore('post')">
+                                            <option value="1">1 - Très rare</option>
+                                            <option value="2">2 - Peu probable</option>
+                                            <option value="3">3 - Probable</option>
+                                            <option value="4">4 - Très probable</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label class="form-label">Impact</label>
+                                        <select class="form-select" id="impactPost" onchange="calculateScore('post')">
+                                            <option value="1">1 - Mineur</option>
+                                            <option value="2">2 - Modéré</option>
+                                            <option value="3">3 - Majeur</option>
+                                            <option value="4">4 - Critique</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="risk-score-display" id="scorePost">Score: 1</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section">
+                        <div class="form-section-title">Contrôles Associés</div>
+                        <div class="controls-section">
+                            <button type="button" class="btn btn-secondary" onclick="addControlToRisk()">
+                                + Ajouter un contrôle
+                            </button>
+                            <div class="controls-grid" id="riskControls" style="margin-top: 15px;">
+                                <!-- Controls will be added here -->
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('riskModal')">Annuler</button>
+                <button class="btn btn-success" onclick="saveRisk()">Sauvegarder</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Enhanced Risk Management System
+        class RiskManagementSystem {
+            constructor() {
+                this.risks = this.loadData('risks') || this.getDefaultRisks();
+                this.controls = this.loadData('controls') || this.getDefaultControls();
+                this.history = this.loadData('history') || [];
+                this.currentView = 'brut';
+                this.currentTab = 'dashboard';
+                this.filters = {
+                    process: '',
+                    type: '',
+                    status: '',
+                    search: ''
+                };
+                this.init();
+            }
+
+            init() {
+                this.initializeMatrix();
+                this.updateDashboard();
+                this.updateRisksList();
+                this.updateControlsList();
+                this.updateHistory();
+                this.saveData();
+                this.updateLastSaveTime();
+                
+                // Auto-save every 30 seconds
+                setInterval(() => this.autoSave(), 30000);
+            }
+
+            getDefaultRisks() {
+                return [
+                    {
+                        id: 1,
+                        processus: "R&D",
+                        sousProcessus: "Études cliniques",
+                        description: "Corruption d'investigateurs pour favoriser inclusion patients",
+                        typeCorruption: "active",
+                        typeTiers: "Médecins",
+                        probBrut: 3, impactBrut: 4,
+                        probNet: 2, impactNet: 3,
+                        probPost: 1, impactPost: 2,
+                        statut: "en-cours",
+                        responsable: "Dr. Martin",
+                        dateCreation: "2024-01-15",
+                        controls: [1, 2]
+                    },
+                    {
+                        id: 2,
+                        processus: "Achats",
+                        sousProcessus: "Appels d'offres",
+                        description: "Favoritisme dans attribution marchés",
+                        typeCorruption: "favoritisme",
+                        typeTiers: "Fournisseurs",
+                        probBrut: 3, impactBrut: 4,  // Même position que risque 1
+                        probNet: 2, impactNet: 2,
+                        probPost: 1, impactPost: 2,
+                        statut: "traite",
+                        responsable: "M. Durand",
+                        dateCreation: "2024-01-20",
+                        controls: [3]
+                    },
+                    {
+                        id: 3,
+                        processus: "Marketing",
+                        sousProcessus: "Événements",
+                        description: "Avantages indus lors d'événements médicaux",
+                        typeCorruption: "cadeaux",
+                        typeTiers: "Médecins",
+                        probBrut: 4, impactBrut: 3,
+                        probNet: 2, impactNet: 3,  // Même position que risque 1
+                        probPost: 1, impactPost: 2,
+                        statut: "nouveau",
+                        responsable: "Mme. Leroy",
+                        dateCreation: "2024-02-01",
+                        controls: [1, 4]
+                    },
+                    {
+                        id: 4,
+                        processus: "Ventes",
+                        sousProcessus: "Négociation",
+                        description: "Corruption d'acheteurs hospitaliers",
+                        typeCorruption: "active",
+                        typeTiers: "Hôpitaux publics",
+                        probBrut: 3, impactBrut: 4,  // Même position que risques 1 et 2
+                        probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
+                        probPost: 1, impactPost: 1,
+                        statut: "en-cours",
+                        responsable: "M. Bernard",
+                        dateCreation: "2024-01-10",
+                        controls: [2, 3]
+                    },
+                    {
+                        id: 5,
+                        processus: "RH",
+                        sousProcessus: "Recrutement",
+                        description: "Embauche famille/proches décideurs publics",
+                        typeCorruption: "trafic",
+                        typeTiers: "Administrations",
+                        probBrut: 2, impactBrut: 3,
+                        probNet: 1, impactNet: 2,
+                        probPost: 1, impactPost: 1,  // Même position que risque 4
+                        statut: "validé",
+                        responsable: "Mme. Petit",
+                        dateCreation: "2024-01-25",
+                        controls: [1]
+                    },
+                    {
+                        id: 6,
+                        processus: "Production",
+                        sousProcessus: "Contrôle qualité",
+                        description: "Falsification certificats pour accélérer mise sur marché",
+                        typeCorruption: "passive",
+                        typeTiers: "Organismes certificateurs",
+                        probBrut: 2, impactBrut: 4,
+                        probNet: 1, impactNet: 3,
+                        probPost: 1, impactPost: 2,
+                        statut: "nouveau",
+                        responsable: "M. Moreau",
+                        dateCreation: "2024-02-05",
+                        controls: [2, 3, 4]
+                    },
+                    {
+                        id: 7,
+                        processus: "Finance",
+                        sousProcessus: "Paiements",
+                        description: "Facilitation payments pour déblocage douane",
+                        typeCorruption: "active",
+                        typeTiers: "Douanes",
+                        probBrut: 3, impactBrut: 3,
+                        probNet: 2, impactNet: 2,
+                        probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
+                        statut: "en-cours",
+                        responsable: "Mme. Dubois",
+                        dateCreation: "2024-02-10",
+                        controls: [1, 2]
+                    },
+                    {
+                        id: 8,
+                        processus: "Juridique",
+                        sousProcessus: "Contrats",
+                        description: "Clauses secrètes avantageant certains partenaires",
+                        typeCorruption: "favoritisme",
+                        typeTiers: "Partenaires commerciaux",
+                        probBrut: 2, impactBrut: 3,
+                        probNet: 1, impactNet: 2,
+                        probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
+                        statut: "traite",
+                        responsable: "Me. Lambert",
+                        dateCreation: "2024-01-30",
+                        controls: [3, 4]
+                    }
+                ];
+            }
+
+            getDefaultControls() {
+                return [
+                    {
+                        id: 1,
+                        name: "Procédure de validation des dépenses",
+                        description: "Double validation pour toute dépense > 1000€",
+                        effectiveness: "forte",
+                        type: "preventif",
+                        owner: "Directeur Financier",
+                        frequency: "quotidienne",
+                        mode: "manuel",
+                        status: "actif",
+                        risks: [1, 2],
+                        dateCreation: "2024-01-01"
+                    },
+                    {
+                        id: 2,
+                        name: "Due diligence tiers",
+                        description: "Vérification approfondie de tous les nouveaux partenaires",
+                        effectiveness: "forte",
+                        type: "preventif",
+                        owner: "Service Juridique",
+                        frequency: "ad-hoc",
+                        mode: "manuel",
+                        status: "actif",
+                        risks: [3, 4],
+                        dateCreation: "2024-01-01"
+                    },
+                    {
+                        id: 3,
+                        name: "Audit interne trimestriel",
+                        description: "Revue complète des processus à risque",
+                        effectiveness: "moyenne",
+                        type: "detectif",
+                        owner: "Audit Interne",
+                        frequency: "mensuelle",
+                        mode: "manuel",
+                        status: "actif",
+                        risks: [5, 6],
+                        dateCreation: "2024-01-01"
+                    },
+                    {
+                        id: 4,
+                        name: "Formation anti-corruption",
+                        description: "Formation obligatoire annuelle pour tous les employés",
+                        effectiveness: "moyenne",
+                        type: "preventif",
+                        owner: "Ressources Humaines",
+                        frequency: "annuelle",
+                        mode: "manuel",
+                        status: "actif",
+                        risks: [7, 8],
+                        dateCreation: "2024-01-01"
+                    }
+                ];
+            }
+
+            // Data persistence
+            saveData() {
+                localStorage.setItem('rms_risks', JSON.stringify(this.risks));
+                localStorage.setItem('rms_controls', JSON.stringify(this.controls));
+                localStorage.setItem('rms_history', JSON.stringify(this.history));
+            }
+
+            loadData(key) {
+                const data = localStorage.getItem(`rms_${key}`);
+                return data ? JSON.parse(data) : null;
+            }
+
+            autoSave() {
+                this.saveData();
+                this.updateLastSaveTime();
+                showNotification('info', 'Sauvegarde automatique effectuée');
+            }
+
+            updateLastSaveTime() {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+                document.getElementById('lastSaveTime').textContent = timeStr;
+            }
+
+            // Matrix functions
+            initializeMatrix() {
+                const grid = document.getElementById('matrixGrid');
+                if (!grid) return;
+                
+                grid.innerHTML = '';
+                
+                for (let row = 4; row >= 1; row--) {
+                    for (let col = 1; col <= 4; col++) {
+                        const cell = document.createElement('div');
+                        cell.className = 'matrix-cell';
+                        cell.dataset.probability = row;
+                        cell.dataset.impact = col;
+                        
+                        const riskLevel = row * col;
+                        if (riskLevel <= 4) cell.classList.add('level-1');
+                        else if (riskLevel <= 8) cell.classList.add('level-2');
+                        else if (riskLevel <= 12) cell.classList.add('level-3');
+                        else cell.classList.add('level-4');
+                        
+                        grid.appendChild(cell);
+                    }
+                }
+                
+                this.renderRiskPoints();
+                this.updateRiskDetailsList();
+            }
+
+            renderRiskPoints() {
+                // Remove existing points
+                document.querySelectorAll('.risk-point').forEach(p => p.remove());
+                
+                const grid = document.getElementById('matrixGrid');
+                if (!grid) return;
+                
+                const filteredRisks = this.getFilteredRisks();
+                
+                filteredRisks.forEach(risk => {
+                    let prob, impact;
+                    
+                    if (this.currentView === 'brut') {
+                        prob = risk.probBrut;
+                        impact = risk.impactBrut;
+                    } else if (this.currentView === 'net') {
+                        prob = risk.probNet;
+                        impact = risk.impactNet;
+                    } else {
+                        prob = risk.probPost;
+                        impact = risk.impactPost;
+                    }
+                    
+                    const point = document.createElement('div');
+                    point.className = `risk-point ${this.currentView}`;
+                    point.dataset.riskId = risk.id;
+                    
+                    const leftPercent = ((impact - 0.5) / 4) * 100;
+                    const bottomPercent = ((prob - 0.5) / 4) * 100;
+                    
+                    point.style.left = `${leftPercent}%`;
+                    point.style.bottom = `${bottomPercent}%`;
+                    point.style.transform = 'translate(-50%, 50%)';
+                    
+                    point.title = risk.description;
+                    point.onclick = () => this.selectRisk(risk.id);
+                    
+                    grid.appendChild(point);
+                });
+            }
+
+            getFilteredRisks() {
+                return this.risks.filter(risk => {
+                    if (this.filters.process && !risk.processus.toLowerCase().includes(this.filters.process.toLowerCase())) {
+                        return false;
+                    }
+                    if (this.filters.type && risk.typeCorruption !== this.filters.type) {
+                        return false;
+                    }
+                    if (this.filters.status && risk.statut !== this.filters.status) {
+                        return false;
+                    }
+                    if (this.filters.search && !risk.description.toLowerCase().includes(this.filters.search.toLowerCase())) {
+                        return false;
+                    }
+                    return true;
+                });
+            }
+
+            selectRisk(riskId) {
+                const risk = this.risks.find(r => r.id === riskId);
+                if (!risk) return;
+                
+                // Update selected state in details panel
+                document.querySelectorAll('.risk-item').forEach(item => {
+                    item.classList.remove('selected');
+                    if (item.dataset.riskId == riskId) {
+                        item.classList.add('selected');
+                    }
+                });
+                
+                // Show risk details
+                this.showRiskDetails(risk);
+            }
+
+            showRiskDetails(risk) {
+                // Could open a modal or update a details panel
+                console.log('Risk details:', risk);
+            }
+
+            updateRiskDetailsList() {
+                const container = document.getElementById('riskDetailsList');
+                if (!container) return;
+                
+                const filteredRisks = this.getFilteredRisks();
+                
+                container.innerHTML = filteredRisks.map(risk => {
+                    let prob, impact;
+                    if (this.currentView === 'brut') {
+                        prob = risk.probBrut;
+                        impact = risk.impactBrut;
+                    } else if (this.currentView === 'net') {
+                        prob = risk.probNet;
+                        impact = risk.impactNet;
+                    } else {
+                        prob = risk.probPost;
+                        impact = risk.impactPost;
+                    }
+                    
+                    const score = prob * impact;
+                    let scoreClass = 'low';
+                    if (score > 12) scoreClass = 'critical';
+                    else if (score > 8) scoreClass = 'high';
+                    else if (score > 4) scoreClass = 'medium';
+                    
+                    return `
+                        <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${risk.id})">
+                            <div class="risk-item-header">
+                                <span class="risk-item-title">${risk.description}</span>
+                                <span class="risk-item-score ${scoreClass}">${score}</span>
+                            </div>
+                            <div class="risk-item-meta">
+                                ${risk.processus} • ${risk.responsable}
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // Dashboard functions
+            updateDashboard() {
+                // Update stats
+                const stats = this.calculateStats();
+                
+                // Update KPI cards (if elements exist)
+                // Update charts
+                this.updateCharts();
+            }
+
+            calculateStats() {
+                const stats = {
+                    critical: 0,
+                    high: 0,
+                    medium: 0,
+                    low: 0,
+                    total: this.risks.length
+                };
+                
+                this.risks.forEach(risk => {
+                    const score = risk.probNet * risk.impactNet;
+                    if (score > 12) stats.critical++;
+                    else if (score > 8) stats.high++;
+                    else if (score > 4) stats.medium++;
+                    else stats.low++;
+                });
+                
+                return stats;
+            }
+
+            updateCharts() {
+                // Placeholder for chart updates
+                // Would use Chart.js or similar library
+            }
+
+            // Risk list functions
+            updateRisksList() {
+                const tbody = document.getElementById('risksTableBody');
+                if (!tbody) return;
+                
+                const filteredRisks = this.getFilteredRisks();
+                
+                tbody.innerHTML = filteredRisks.map(risk => `
+                    <tr>
+                        <td>#${risk.id}</td>
+                        <td>${risk.description}</td>
+                        <td>${risk.processus}</td>
+                        <td>${risk.typeCorruption}</td>
+                        <td>${risk.probBrut * risk.impactBrut}</td>
+                        <td>${risk.probNet * risk.impactNet}</td>
+                        <td>${risk.probPost * risk.impactPost}</td>
+                        <td><span class="table-badge badge-${risk.statut === 'traite' ? 'success' : risk.statut === 'en-cours' ? 'warning' : 'danger'}">${risk.statut}</span></td>
+                        <td>${risk.responsable}</td>
+                        <td class="table-actions-cell">
+                            <button class="action-btn" onclick="rms.editRisk(${risk.id})">✏️</button>
+                            <button class="action-btn" onclick="rms.deleteRisk(${risk.id})">🗑️</button>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            // Controls functions
+            updateControlsList() {
+                const container = document.getElementById('controlsList');
+                if (!container) return;
+                
+                container.innerHTML = this.controls.map(control => {
+                    // Récupérer les risques couverts
+                    const coveredRisks = control.risks ? this.risks.filter(risk => 
+                        control.risks.includes(risk.id)
+                    ).map(risk => risk.description.substring(0, 50) + '...').join(', ') : 'Aucun risque associé';
+                    
+                    // Mapper les valeurs d'efficacité
+                    const effectivenessMap = {
+                        'forte': 'Forte',
+                        'moyenne': 'Moyenne', 
+                        'faible': 'Faible',
+                        'high': 'Forte',
+                        'medium': 'Moyenne',
+                        'low': 'Faible'
+                    };
+                    
+                    // Mapper les statuts
+                    const statusMap = {
+                        'actif': 'Actif',
+                        'en-mise-en-place': 'En mise en place',
+                        'en-revision': 'En cours de révision',
+                        'obsolete': 'Obsolète'
+                    };
+                    
+                    return `
+                        <div class="control-item">
+                            <div class="control-actions">
+                                <button class="control-action-btn edit" onclick="editControl(${control.id})" title="Modifier">
+                                    ✏️
+                                </button>
+                                <button class="control-action-btn delete" onclick="deleteControl(${control.id})" title="Supprimer">
+                                    🗑️
+                                </button>
+                            </div>
+                            
+                            <div class="control-header">
+                                <div>
+                                    <div class="control-name">${control.name || 'Contrôle sans nom'}</div>
+                                    <div class="control-type-badge ${control.type || 'preventif'}">
+                                        ${control.type === 'preventif' ? 'Préventif' : 'Détectif'}
+                                    </div>
+                                </div>
+                                ${control.status ? `<span class="control-status-badge ${control.status}">${statusMap[control.status] || control.status}</span>` : ''}
+                            </div>
+                            
+                            ${control.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${control.description}</div>` : ''}
+                            
+                            <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
+                                <strong>Risques couverts:</strong> ${coveredRisks}
+                            </div>
+                            
+                            <div class="control-meta">
+                                ${control.owner ? `
+                                    <div class="control-meta-item">
+                                        <div class="control-meta-label">Propriétaire</div>
+                                        <div class="control-meta-value">${control.owner}</div>
+                                    </div>
+                                ` : ''}
+                                ${control.frequency ? `
+                                    <div class="control-meta-item">
+                                        <div class="control-meta-label">Fréquence</div>
+                                        <div class="control-meta-value">${control.frequency}</div>
+                                    </div>
+                                ` : ''}
+                                ${control.mode ? `
+                                    <div class="control-meta-item">
+                                        <div class="control-meta-label">Mode</div>
+                                        <div class="control-meta-value">${control.mode}</div>
+                                    </div>
+                                ` : ''}
+                                <div class="control-meta-item">
+                                    <div class="control-meta-label">Efficacité</div>
+                                    <div class="control-meta-value">${effectivenessMap[control.effectiveness] || 'Non définie'}</div>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            }
+
+            // History functions
+            updateHistory() {
+                const container = document.getElementById('historyTimeline');
+                if (!container) return;
+                
+                const recentHistory = this.history.slice(-10).reverse();
+                
+                container.innerHTML = recentHistory.map(item => `
+                    <div class="timeline-item">
+                        <div class="timeline-marker"></div>
+                        <div class="timeline-content">
+                            <div class="timeline-date">${new Date(item.date).toLocaleString('fr-FR')}</div>
+                            <div class="timeline-title">${item.action}</div>
+                            <div class="timeline-description">${item.description}</div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            addHistoryItem(action, description) {
+                this.history.push({
+                    id: Date.now(),
+                    date: new Date().toISOString(),
+                    action,
+                    description,
+                    user: 'Marie Dupont'
+                });
+                this.saveData();
+                this.updateHistory();
+            }
+
+            // CRUD operations
+            addRisk(riskData) {
+                const newRisk = {
+                    id: Date.now(),
+                    ...riskData,
+                    dateCreation: new Date().toISOString(),
+                    statut: 'nouveau'
+                };
+                
+                this.risks.push(newRisk);
+                this.addHistoryItem('Création risque', `Nouveau risque: ${newRisk.description}`);
+                this.saveData();
+                this.init();
+                
+                return newRisk;
+            }
+
+            editRisk(riskId) {
+                const risk = this.risks.find(r => r.id === riskId);
+                if (!risk) return;
+                
+                // Populate form and open modal
+                // Implementation depends on your form structure
+                console.log('Edit risk:', risk);
+            }
+
+            deleteRisk(riskId) {
+                if (!confirm('Êtes-vous sûr de vouloir supprimer ce risque?')) return;
+                
+                const index = this.risks.findIndex(r => r.id === riskId);
+                if (index > -1) {
+                    const risk = this.risks[index];
+                    this.risks.splice(index, 1);
+                    this.addHistoryItem('Suppression risque', `Risque supprimé: ${risk.description}`);
+                    this.saveData();
+                    this.init();
+                }
+            }
+
+            // Export functions
+            exportData(format = 'json') {
+                const data = {
+                    risks: this.risks,
+                    controls: this.controls,
+                    exportDate: new Date().toISOString(),
+                    exportedBy: 'Marie Dupont'
+                };
+                
+                if (format === 'json') {
+                    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `risk_mapping_${new Date().toISOString().split('T')[0]}.json`;
+                    a.click();
+                } else if (format === 'csv') {
+                    // CSV export implementation
+                    const csv = this.convertToCSV(this.risks);
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `risks_${new Date().toISOString().split('T')[0]}.csv`;
+                    a.click();
+                }
+                
+                showNotification('success', 'Export réussi!');
+            }
+
+            convertToCSV(data) {
+                const headers = Object.keys(data[0]).join(',');
+                const rows = data.map(row => Object.values(row).join(','));
+                return [headers, ...rows].join('\n');
+            }
+        }
+
+        // Initialize the system
+        let rms;
+        document.addEventListener('DOMContentLoaded', () => {
+            rms = new RiskManagementSystem();
+        });
+
+        // Global functions for HTML event handlers
+        function switchTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Show selected tab
+            const selectedTab = document.getElementById(`${tabName}-tab`);
+            if (selectedTab) {
+                selectedTab.classList.add('active');
+            }
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            if (rms) {
+                rms.currentTab = tabName;
+                
+                // Update relevant content based on tab
+                if (tabName === 'matrix') {
+                    rms.initializeMatrix();
+                } else if (tabName === 'dashboard') {
+                    rms.updateDashboard();
+                } else if (tabName === 'risks') {
+                    rms.updateRisksList();
+                } else if (tabName === 'controls') {
+                    rms.updateControlsList();
+                } else if (tabName === 'history') {
+                    rms.updateHistory();
+                }
+            }
+        }
+
+        function changeMatrixView(view) {
+            if (!rms) return;
+            
+            rms.currentView = view;
+            
+            // Update buttons
+            document.querySelectorAll('.view-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+            
+            // Update title
+            const titles = {
+                'brut': 'Matrice des Risques - Vue Brut',
+                'net': 'Matrice des Risques - Vue Net',
+                'post-mitigation': 'Matrice des Risques - Post-Mitigation'
+            };
+            
+            const titleElement = document.getElementById('matrixTitle');
+            if (titleElement) {
+                titleElement.textContent = titles[view];
+            }
+            
+            // Re-render matrix
+            rms.renderRiskPoints();
+            rms.updateRiskDetailsList();
+        }
+
+        function applyFilters() {
+            if (!rms) return;
+            
+            rms.filters.process = document.getElementById('processFilter')?.value || '';
+            rms.filters.type = document.getElementById('riskTypeFilter')?.value || '';
+            rms.filters.status = document.getElementById('statusFilter')?.value || '';
+            
+            rms.renderRiskPoints();
+            rms.updateRiskDetailsList();
+            rms.updateRisksList();
+        }
+
+        function searchRisks(searchTerm) {
+            if (!rms) return;
+            
+            rms.filters.search = searchTerm;
+            rms.renderRiskPoints();
+            rms.updateRiskDetailsList();
+            rms.updateRisksList();
+        }
+
+        function addNewRisk() {
+            document.getElementById('riskModal').classList.add('show');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('show');
+        }
+
+        function calculateScore(type) {
+            let probId, impactId, scoreId;
+            
+            if (type === 'brut') {
+                probId = 'probBrut';
+                impactId = 'impactBrut';
+                scoreId = 'scoreBrut';
+            } else if (type === 'net') {
+                probId = 'probNet';
+                impactId = 'impactNet';
+                scoreId = 'scoreNet';
+            } else {
+                probId = 'probPost';
+                impactId = 'impactPost';
+                scoreId = 'scorePost';
+            }
+            
+            const prob = parseInt(document.getElementById(probId).value) || 1;
+            const impact = parseInt(document.getElementById(impactId).value) || 1;
+            const score = prob * impact;
+            
+            document.getElementById(scoreId).textContent = `Score: ${score}`;
+        }
+
+        function saveRisk() {
+            if (!rms) return;
+            
+            const formData = {
+                processus: document.getElementById('processus').value,
+                description: document.getElementById('description').value,
+                typeCorruption: document.getElementById('typeCorruption').value,
+                probBrut: parseInt(document.getElementById('probBrut').value),
+                impactBrut: parseInt(document.getElementById('impactBrut').value),
+                probNet: parseInt(document.getElementById('probNet').value),
+                impactNet: parseInt(document.getElementById('impactNet').value),
+                probPost: parseInt(document.getElementById('probPost').value),
+                impactPost: parseInt(document.getElementById('impactPost').value),
+                responsable: 'Marie Dupont',
+                controls: []
+            };
+            
+            // Validate form
+            if (!formData.processus || !formData.description || !formData.typeCorruption) {
+                showNotification('error', 'Veuillez remplir tous les champs obligatoires');
+                return;
+            }
+            
+            rms.addRisk(formData);
+            closeModal('riskModal');
+            showNotification('success', 'Risque ajouté avec succès!');
+        }
+
+        function showNotification(type, message) {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        function exportDashboard() {
+            if (rms) rms.exportData('json');
+        }
+
+        function exportRisks() {
+            if (rms) rms.exportData('csv');
+        }
+
+        function generateReport(type) {
+            showNotification('info', `Génération du rapport ${type} en cours...`);
+            setTimeout(() => {
+                showNotification('success', 'Rapport généré avec succès!');
+            }, 2000);
+        }
+
+        function refreshDashboard() {
+            if (rms) {
+                rms.updateDashboard();
+                showNotification('success', 'Tableau de bord actualisé');
+            }
+        }
+
+        // Close modals on escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') {
+                document.querySelectorAll('.modal.show').forEach(modal => {
+                    modal.classList.remove('show');
+                });
+            }
+        });
+
+        // Close modals on outside click
+        document.querySelectorAll('.modal').forEach(modal => {
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('show');
+                }
+            });
+        });
+    </script>
+
+<!-- === RMS PATCH: helpers & missing features === -->
+<script id="rms-patch-v1">
+(function(){
+  const RMS = window.rms || window.RMS || window.RiskSystem || {};
+  // Guard: bind common getters
+  const state = {
+    get risks(){ return RMS.risks || window.risks || []; },
+    set risks(v){ if (RMS.risks) RMS.risks = v; else window.risks = v; },
+    get controls(){ return RMS.controls || window.controls || []; },
+    set controls(v){ if (RMS.controls) RMS.controls = v; else window.controls = v; },
+    get history(){ return RMS.history || window.historyLog || []; },
+    set history(v){ if (RMS.history) RMS.history = v; else window.historyLog = v; },
+    save: (label="auto") => {
+      try {
+        if (RMS.saveData) { RMS.saveData(); }
+        else if (window.saveData) { window.saveData(); }
+        addHistoryItem(`Sauvegarde ${label}`);
+        updateLastSaveTime && updateLastSaveTime();
+      } catch(e){ console.warn("save error", e); }
+    },
+    renderAll: () => {
+      try {
+        if (RMS.renderAll) RMS.renderAll();
+        if (window.renderRisks) window.renderRisks();
+        if (window.renderMatrix) window.renderMatrix();
+        if (window.updateKPI) window.updateKPI();
+        if (window.updateCharts) window.updateCharts();
+      } catch(e){ console.warn("renderAll error", e); }
+    }
+  };
+
+  function addHistoryItem(action, meta){
+    try{
+      const item = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts: new Date().toISOString(), action, meta: meta||{} };
+      state.history = [...state.history, item];
+    }catch(e){ console.warn("history error", e); }
+  }
+
+  // CSV escaping
+  function csvEscape(val){
+    if (val === null || val === undefined) return "";
+    const s = String(val);
+    if (/[",\n]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function toCSV(rows){
+    if (!rows || !rows.length) return "";
+    const keys = Object.keys(rows[0]);
+    const head = keys.map(csvEscape).join(",");
+    const body = rows.map(r => keys.map(k => csvEscape(r[k])).join(",")).join("\n");
+    return head + "\n" + body;
+  }
+  function downloadBlob(filename, mime, data){
+    const blob = new Blob([data], {type: mime});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); }, 0);
+  }
+
+  // === Importer ===
+  window.importRisks = async function importRisks(){
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,.csv,.txt';
+    input.onchange = (ev)=>{
+      const file = ev.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ()=>{
+        try {
+          const text = String(reader.result || "");
+          if (file.name.toLowerCase().endswith(".json")) {
+            const obj = JSON.parse(text);
+            if (obj.risks) state.risks = mergeById(state.risks, obj.risks);
+            if (obj.controls) state.controls = mergeById(state.controls, obj.controls);
+            if (obj.history) state.history = [...state.history, ...obj.history];
+            addHistoryItem("Import JSON", {file: file.name, counts: {risks: obj.risks?.length||0, controls: obj.controls?.length||0}});
+          } else {
+            // naive CSV: expects headers
+            const rows = csvParse(text);
+            if (rows.length){
+              const mapped = rows.map(r => ({
+                id: r.id || (Date.now()+Math.random()).toString(36),
+                titre: r.titre || r.title || r.name || "Sans titre",
+                description: r.description || "",
+                typeCorruption: r.typeCorruption || r.type || "autre",
+                probabilite: Number(r.probabilite ?? r.probability ?? 2),
+                impact: Number(r.impact ?? 2),
+                status: r.status || r.statut || "nouveau",
+                controles: r.controles ? String(r.controles).split("|").filter(Boolean) : []
+              }));
+              state.risks = mergeById(state.risks, mapped);
+              addHistoryItem("Import CSV", {file: file.name, count: mapped.length});
+            }
+          }
+          state.save("après import");
+          state.renderAll();
+          toast && toast("Import réussi");
+        } catch(err){
+          console.error(err);
+          alert("Erreur à l'import : " + err.message);
+        }
+      };
+      reader.readAsText(file, 'utf-8');
+    };
+    input.click();
+  };
+
+  function mergeById(base, incoming){
+    const map = new Map(base.map(x=>[String(x.id), x]));
+    for (const it of incoming){
+      const k = String(it.id);
+      if (map.has(k)) map.set(k, {...map.get(k), ...it});
+      else map.set(k, it);
+    }
+    return Array.from(map.values());
+  }
+
+  function csvParse(text){
+    // simple CSV parser (handles quotes)
+    const lines = text.replace(/\r\n/g,"\n").split("\n").filter(Boolean);
+    if (!lines.length) return [];
+    const headers = splitCSVLine(lines[0]);
+    return lines.slice(1).map(line => {
+      const cols = splitCSVLine(line);
+      const obj = {};
+      headers.forEach((h,i)=> obj[h.trim()] = cols[i] ?? "");
+      return obj;
+    });
+  }
+  function splitCSVLine(line){
+    const out=[], len=line.length;
+    let cur="", inQ=false;
+    for(let i=0;i<len;i++){
+      const ch=line[i];
+      if (inQ){
+        if (ch === '"'){
+          if (line[i+1] === '"'){ cur+='"'; i++; }
+          else { inQ=false; }
+        } else cur+=ch;
+      } else {
+        if (ch === '"') inQ=true;
+        else if (ch === ','){ out.push(cur); cur=""; }
+        else cur+=ch;
+      }
+    }
+    out.push(cur);
+    return out;
+  }
+
+  // === Export History ===
+  window.exportHistory = function exportHistory(format="json"){
+    const items = state.history || [];
+    if (!items.length){ alert("Aucun élément d'historique"); return; }
+    if (format === "csv"){
+      const csv = toCSV(items);
+      const bom = "\ufeff"; // Excel
+      downloadBlob("historique.csv","text/csv;charset=utf-8", bom + csv);
+    } else {
+      downloadBlob("historique.json","application/json;charset=utf-8", JSON.stringify(items, null, 2));
+    }
+    addHistoryItem("Export historique", {format});
+  };
+
+  // === Export Matrix Capture ===
+  window.exportMatrix = async function exportMatrix(){
+    const container = document.querySelector('.matrix-container') || document.querySelector('#matrix') || document.body;
+    if (!window.html2canvas){
+      alert("html2canvas non chargé. Connectez-vous à Internet ou ajoutez la librairie en local.");
+      return;
+    }
+    const canvas = await html2canvas(container, {scale: 2});
+    canvas.toBlob((blob)=>{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = "matrice-risques.png";
+      document.body.appendChild(a); a.click();
+      setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },0);
+      addHistoryItem("Export matrice (PNG)");
+    });
+  };
+
+  // === Toggle Fullscreen ===
+  window.toggleFullScreen = function toggleFullScreen(){
+    const el = document.querySelector('.matrix-container') || document.documentElement;
+    const doc = document;
+    if (!doc.fullscreenElement){
+      (el.requestFullscreen && el.requestFullscreen()) ||
+      (el.webkitRequestFullscreen && el.webkitRequestFullscreen());
+    } else {
+      (doc.exitFullscreen && doc.exitFullscreen()) ||
+      (doc.webkitExitFullscreen && doc.webkitExitFullscreen());
+    }
+  };
+
+  // === Controls CRUD (minimal UI via prompt) ===
+  window.addNewControl = function addNewControl(){
+    const name = prompt("Nom du contrôle ?");
+    if (!name) return;
+    const id = "ctl_" + Date.now().toString(36);
+    const ctrl = { id, name, description: "", owner: "", effectiveness: "moyen" };
+    state.controls = [...state.controls, ctrl];
+    addHistoryItem("Nouveau contrôle", {id, name});
+    state.save("contrôle");
+    state.renderAll();
+  };
+
+  window.addControlToRisk = function addControlToRisk(riskId){
+    const rId = riskId || prompt("ID du risque à enrichir ?");
+    const risk = (state.risks||[]).find(r => String(r.id)===String(rId));
+    if (!risk){ alert("Risque introuvable"); return; }
+    const options = state.controls.map(c=>`${c.id}:${c.name}`).join("\n") || "(aucun contrôle)";
+    const chosen = prompt("Sélectionnez un contrôle (id) parmi :\n"+options);
+    const ctrl = state.controls.find(c=>String(c.id)===String(chosen));
+    if (!ctrl){ alert("Contrôle introuvable"); return; }
+    risk.controles = Array.from(new Set([...(risk.controles||[]), ctrl.id]));
+    addHistoryItem("Lien contrôle→risque", {riskId:risk.id, controlId: ctrl.id});
+    state.save("lien contrôle");
+    state.renderAll();
+  };
+
+  // === Edit Risk (basic) ===
+  window.editRisk = function editRisk(riskId){
+    const risk = (state.risks||[]).find(r => String(r.id)===String(riskId));
+    if (!risk){ alert("Risque introuvable"); return; }
+    const titre = prompt("Titre du risque :", risk.titre || risk.title || "");
+    if (titre===null) return;
+    const description = prompt("Description :", risk.description || "");
+    if (description===null) return;
+    const probabilite = Number(prompt("Probabilité (1-4):", risk.probabilite ?? 2) || 2);
+    const impact = Number(prompt("Impact (1-4):", risk.impact ?? 2) || 2);
+    const status = prompt("Statut (nouveau|en-cours|traite):", risk.status || "nouveau") || "nouveau";
+    Object.assign(risk, {titre, description, probabilite, impact, status});
+    addHistoryItem("Édition risque", {riskId});
+    state.save("risque modifié");
+    state.renderAll();
+  };
+
+  // === Update Charts (minimal) ===
+  window.updateCharts = function updateCharts(){
+    if (!window.Chart) return; // library not loaded
+    const byStatus = (state.risks||[]).reduce((acc, r)=>{
+      const k = r.status || "inconnu"; acc[k] = (acc[k]||0)+1; return acc;
+    }, {});
+    const canvas = document.querySelector("#chart-status") || document.querySelector("canvas.chart-status");
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (canvas._chart) { canvas._chart.destroy(); }
+    canvas._chart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(byStatus),
+        datasets: [{ data: Object.values(byStatus) }]
+      },
+      options: { responsive: true, plugins: { legend: { position: 'bottom' } } }
+    });
+  };
+
+  // === Export Dashboard PDF ===
+  window.exportDashboard = async function exportDashboard(){
+    const root = document.querySelector('#dashboard') || document.body;
+    if (!window.html2canvas || !window.jspdf){
+      alert("Librairies manquantes (html2canvas / jsPDF). Activez Internet ou installez-les en local.");
+      return;
+    }
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({orientation: 'portrait', unit: 'pt', format: 'a4'});
+    const A4_W = 595.28, A4_H = 841.89, M = 24;
+    const scale = 2;
+
+    const sections = root.querySelectorAll(':scope > *');
+    let first = true;
+    for (const sec of sections){
+      const canvas = await html2canvas(sec, {scale});
+      const imgW = A4_W - 2*M;
+      const ratio = imgW / canvas.width;
+      const imgH = canvas.height * ratio;
+      if (!first) pdf.addPage();
+      first = false;
+      pdf.addImage(canvas.toDataURL('image/png'), 'PNG', M, M, imgW, imgH);
+    }
+    pdf.save('dashboard-risques.pdf');
+    addHistoryItem("Export dashboard PDF");
+  };
+
+  // === Safer event handlers (avoid global event) ===
+  function rewireHandlers(){
+    document.querySelectorAll("[data-switch-tab]").forEach(btn=>{
+      btn.onclick = (e)=>{
+        const tab = btn.getAttribute("data-switch-tab");
+        if (window.switchTab) window.switchTab(e, tab);
+        else {
+          document.querySelectorAll(".tab").forEach(x=>x.classList.toggle("active", x.id===tab));
+          document.querySelectorAll("[data-switch-tab]").forEach(x=>x.classList.toggle("active", x===btn));
+        }
+      };
+    });
+    document.querySelectorAll("[data-matrix-view]").forEach(btn=>{
+      btn.onclick = (e)=>{
+        const view = btn.getAttribute("data-matrix-view");
+        if (window.changeMatrixView) window.changeMatrixView(e, view);
+        document.querySelectorAll("[data-matrix-view]").forEach(x=>x.classList.toggle("active", x===btn));
+      };
+    });
+  }
+
+  document.addEventListener("DOMContentLoaded", ()=>{
+    try { rewireHandlers(); } catch(e){}
+    try { updateCharts(); } catch(e){}
+  });
+
+  // === Functions for Control Management ===
+  
+  let currentEditingControlId = null;
+  let selectedRisksForControl = [];
+
+  // Open control modal for new control
+  window.addNewControl = function() {
+    currentEditingControlId = null;
+    selectedRisksForControl = [];
+    
+    // Reset form
+    document.getElementById('controlForm').reset();
+    document.getElementById('controlModalTitle').textContent = 'Nouveau Contrôle';
+    document.getElementById('selectedRisks').innerHTML = '';
+    
+    // Show modal
+    document.getElementById('controlModal').classList.add('show');
+  };
+
+  // Open control modal for editing
+  window.editControl = function(controlId) {
+    const control = state.controls.find(c => c.id == controlId);
+    if (!control) {
+      alert('Contrôle introuvable');
+      return;
+    }
+
+    currentEditingControlId = controlId;
+    selectedRisksForControl = control.risks || [];
+
+    // Fill form with control data
+    document.getElementById('controlName').value = control.name || '';
+    document.getElementById('controlType').value = control.type || '';
+    document.getElementById('controlOwner').value = control.owner || '';
+    document.getElementById('controlFrequency').value = control.frequency || '';
+    document.getElementById('controlMode').value = control.mode || '';
+    document.getElementById('controlEffectiveness').value = control.effectiveness || '';
+    document.getElementById('controlStatus').value = control.status || '';
+    document.getElementById('controlDescription').value = control.description || '';
+
+    // Update modal title and selected risks display
+    document.getElementById('controlModalTitle').textContent = 'Modifier le Contrôle';
+    updateSelectedRisksDisplay();
+
+    // Show modal
+    document.getElementById('controlModal').classList.add('show');
+  };
+
+  // Delete control
+  window.deleteControl = function(controlId) {
+    if (!confirm('Êtes-vous sûr de vouloir supprimer ce contrôle ?')) {
+      return;
+    }
+
+    const controlIndex = state.controls.findIndex(c => c.id == controlId);
+    if (controlIndex === -1) {
+      alert('Contrôle introuvable');
+      return;
+    }
+
+    const controlName = state.controls[controlIndex].name;
+    state.controls.splice(controlIndex, 1);
+
+    // Remove control from risks
+    state.risks.forEach(risk => {
+      if (risk.controls && risk.controls.includes(controlId)) {
+        risk.controls = risk.controls.filter(id => id !== controlId);
+      }
+    });
+
+    addHistoryItem("Suppression contrôle", {id: controlId, name: controlName});
+    state.save("suppression-contrôle");
+    state.renderAll();
+    
+    toast(`Contrôle "${controlName}" supprimé avec succès`);
+  };
+
+  // Close control modal
+  window.closeControlModal = function() {
+    document.getElementById('controlModal').classList.remove('show');
+  };
+
+  // Open risk selector modal
+  window.openRiskSelector = function() {
+    const riskList = document.getElementById('riskList');
+    
+    riskList.innerHTML = state.risks.map(risk => {
+      const isSelected = selectedRisksForControl.includes(risk.id);
+      return `
+        <div class="risk-list-item">
+          <input type="checkbox" id="risk-${risk.id}" ${isSelected ? 'checked' : ''} 
+                 onchange="toggleRiskSelection(${risk.id})">
+          <div class="risk-item-info">
+            <div class="risk-item-title">${risk.description}</div>
+            <div class="risk-item-meta">
+              Processus: ${risk.processus} | Type: ${risk.typeCorruption}
+            </div>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    document.getElementById('riskSelectorModal').classList.add('show');
+  };
+
+  // Close risk selector modal
+  window.closeRiskSelector = function() {
+    document.getElementById('riskSelectorModal').classList.remove('show');
+  };
+
+  // Toggle risk selection
+  window.toggleRiskSelection = function(riskId) {
+    const index = selectedRisksForControl.indexOf(riskId);
+    if (index > -1) {
+      selectedRisksForControl.splice(index, 1);
+    } else {
+      selectedRisksForControl.push(riskId);
+    }
+  };
+
+  // Confirm risk selection
+  window.confirmRiskSelection = function() {
+    updateSelectedRisksDisplay();
+    closeRiskSelector();
+  };
+
+  // Update selected risks display
+  function updateSelectedRisksDisplay() {
+    const container = document.getElementById('selectedRisks');
+    
+    if (selectedRisksForControl.length === 0) {
+      container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun risque sélectionné</div>';
+      return;
+    }
+
+    container.innerHTML = selectedRisksForControl.map(riskId => {
+      const risk = state.risks.find(r => r.id === riskId);
+      if (!risk) return '';
+      
+      return `
+        <div class="selected-risk-item">
+          ${risk.description.substring(0, 50)}${risk.description.length > 50 ? '...' : ''}
+          <span class="remove-risk" onclick="removeRiskFromSelection(${riskId})">×</span>
+        </div>
+      `;
+    }).join('');
+  }
+
+  // Remove risk from selection
+  window.removeRiskFromSelection = function(riskId) {
+    selectedRisksForControl = selectedRisksForControl.filter(id => id !== riskId);
+    updateSelectedRisksDisplay();
+  };
+
+  // Save control (form submission)
+  window.saveControl = function(event) {
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const controlData = {
+      name: formData.get('name'),
+      type: formData.get('type'),
+      owner: formData.get('owner'),
+      frequency: formData.get('frequency'),
+      mode: formData.get('mode'),
+      effectiveness: formData.get('effectiveness'),
+      status: formData.get('status'),
+      description: formData.get('description'),
+      risks: [...selectedRisksForControl]
+    };
+
+    // Validation
+    if (!controlData.name || !controlData.type || !controlData.owner || !controlData.frequency || 
+        !controlData.mode || !controlData.effectiveness || !controlData.status) {
+      alert('Veuillez remplir tous les champs obligatoires (marqués d\'un *)');
+      return;
+    }
+
+    if (currentEditingControlId) {
+      // Update existing control
+      const controlIndex = state.controls.findIndex(c => c.id == currentEditingControlId);
+      if (controlIndex !== -1) {
+        state.controls[controlIndex] = {
+          ...state.controls[controlIndex],
+          ...controlData
+        };
+        addHistoryItem("Modification contrôle", {id: currentEditingControlId, name: controlData.name});
+        toast(`Contrôle "${controlData.name}" modifié avec succès`);
+      }
+    } else {
+      // Create new control
+      const newControl = {
+        id: Date.now(),
+        ...controlData,
+        dateCreation: new Date().toISOString().split('T')[0]
+      };
+      
+      state.controls.push(newControl);
+      addHistoryItem("Nouveau contrôle", {id: newControl.id, name: controlData.name});
+      toast(`Contrôle "${controlData.name}" créé avec succès`);
+    }
+
+    // Save and refresh
+    state.save("contrôle");
+    state.renderAll();
+    closeControlModal();
+  };
+
+  // small toast helper if exists
+  function toast(msg){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    Object.assign(t.style, {position:'fixed',bottom:'16px',right:'16px',padding:'10px 14px',background:'#111',color:'#fff',borderRadius:'8px',boxShadow:'0 4px 12px rgba(0,0,0,.25)',zIndex:9999,opacity:'0',transition:'opacity .2s'});
+    document.body.appendChild(t);
+    requestAnimationFrame(()=>{ t.style.opacity='1'; });
+    setTimeout(()=>{ t.style.opacity='0'; setTimeout(()=>t.remove(),200); }, 1600);
+  }
+
+})();
+</script>
+
+</body>
+</html>
