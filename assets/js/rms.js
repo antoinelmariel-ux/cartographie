@@ -3,6 +3,7 @@ class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
         this.controls = this.loadData('controls') || this.getDefaultControls();
+        this.actionPlans = this.loadData('actionPlans') || [];
         this.history = this.loadData('history') || [];
         this.config = this.loadConfig() || this.getDefaultConfig();
         this.currentView = 'brut';
@@ -22,6 +23,7 @@ class RiskManagementSystem {
         this.updateDashboard();
         this.updateRisksList();
         this.updateControlsList();
+        this.updateActionPlansList();
         this.updateHistory();
         this.saveData();
         this.updateLastSaveTime();
@@ -566,6 +568,7 @@ class RiskManagementSystem {
     saveData() {
         localStorage.setItem('rms_risks', JSON.stringify(this.risks));
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
+        localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
         localStorage.setItem('rms_history', JSON.stringify(this.history));
     }
 
@@ -882,6 +885,33 @@ class RiskManagementSystem {
         }).join('');
     }
 
+    // Action Plans functions
+    updateActionPlansList() {
+        const container = document.getElementById('actionPlansList');
+        if (!container) return;
+
+        container.innerHTML = this.actionPlans.map(plan => {
+            const linkedRisks = plan.risks ? this.risks.filter(r => plan.risks.includes(r.id)).map(r => r.description.substring(0, 50) + '...').join(', ') : 'Aucun risque';
+            return `
+                <div class="control-item" data-plan-id="${plan.id}">
+                    <div class="control-header">
+                        <div>
+                            <div class="control-name">${plan.title || 'Plan sans titre'}</div>
+                            <div class="control-type-badge">${plan.status || ''}</div>
+                        </div>
+                    </div>
+                    ${plan.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${plan.description}</div>` : ''}
+                    <div class="control-meta">
+                        ${plan.owner ? `<div class="control-meta-item"><div class="control-meta-label">Propriétaire</div><div class="control-meta-value">${plan.owner}</div></div>` : ''}
+                        ${plan.dueDate ? `<div class="control-meta-item"><div class="control-meta-label">Échéance</div><div class="control-meta-value">${plan.dueDate}</div></div>` : ''}
+                    </div>
+                    <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
+                        <strong>Risques:</strong> ${linkedRisks}
+                    </div>
+                </div>`;
+        }).join('');
+    }
+
     // History functions
     updateHistory() {
         const container = document.getElementById('historyTimeline');
@@ -963,7 +993,9 @@ class RiskManagementSystem {
         }
 
         selectedControlsForRisk = [...(risk.controls || [])];
+        selectedActionPlansForRisk = [...(risk.actionPlans || [])];
         updateSelectedControlsDisplay();
+        updateSelectedActionPlansDisplay();
 
         document.getElementById('riskModal').classList.add('show');
     }
@@ -1059,6 +1091,8 @@ function switchTab(tabName) {
             rms.updateRisksList();
         } else if (tabName === 'controls') {
             rms.updateControlsList();
+        } else if (tabName === 'plans') {
+            rms.updateActionPlansList();
         } else if (tabName === 'history') {
             rms.updateHistory();
         } else if (tabName === 'config') {
@@ -1141,6 +1175,7 @@ let lastRiskData = null;
 let selectedControlsForRisk = [];
 let controlFilterQueryForRisk = '';
 let currentEditingRiskId = null;
+let selectedActionPlansForRisk = [];
 
 function addNewRisk() {
     currentEditingRiskId = null;
@@ -1167,9 +1202,11 @@ function addNewRisk() {
             document.getElementById('probPost').value = lastRiskData.probPost || 1;
             document.getElementById('impactPost').value = lastRiskData.impactPost || 1;
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
+            selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
         } else {
             rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
+            selectedActionPlansForRisk = [];
         }
 
         // Recalculate scores for displayed values
@@ -1177,6 +1214,7 @@ function addNewRisk() {
         calculateScore('net');
         calculateScore('post');
         updateSelectedControlsDisplay();
+        updateSelectedActionPlansDisplay();
     }
     document.getElementById('riskModal').classList.add('show');
 }
@@ -1228,7 +1266,8 @@ function saveRisk() {
         probPost: parseInt(document.getElementById('probPost').value),
         impactPost: parseInt(document.getElementById('impactPost').value),
         responsable: 'Marie Dupont',
-        controls: [...selectedControlsForRisk]
+        controls: [...selectedControlsForRisk],
+        actionPlans: [...selectedActionPlansForRisk]
     };
 
     // Validate form
@@ -1259,6 +1298,17 @@ function saveRisk() {
                 }
             });
 
+            rms.actionPlans.forEach(plan => {
+                plan.risks = plan.risks || [];
+                if (selectedActionPlansForRisk.includes(plan.id)) {
+                    if (!plan.risks.includes(currentEditingRiskId)) {
+                        plan.risks.push(currentEditingRiskId);
+                    }
+                } else {
+                    plan.risks = plan.risks.filter(id => id !== currentEditingRiskId);
+                }
+            });
+
             rms.saveData();
             rms.init();
             closeModal('riskModal');
@@ -1278,13 +1328,24 @@ function saveRisk() {
             }
         });
 
+        selectedActionPlansForRisk.forEach(planId => {
+            const plan = rms.actionPlans.find(p => p.id === planId);
+            if (plan) {
+                plan.risks = plan.risks || [];
+                if (!plan.risks.includes(newRisk.id)) {
+                    plan.risks.push(newRisk.id);
+                }
+            }
+        });
+
         rms.saveData();
         rms.updateControlsList();
+        rms.updateActionPlansList();
         closeModal('riskModal');
         showNotification('success', 'Risque ajouté avec succès!');
     }
 
-    lastRiskData = { ...formData, tiers: [...formData.tiers], controls: [...formData.controls] };
+    lastRiskData = { ...formData, tiers: [...formData.tiers], controls: [...formData.controls], actionPlans: [...formData.actionPlans] };
 }
 window.saveRisk = saveRisk;
 
@@ -1369,6 +1430,82 @@ function removeControlFromSelection(controlId) {
     updateSelectedControlsDisplay();
 }
 window.removeControlFromSelection = removeControlFromSelection;
+
+function updateSelectedActionPlansDisplay() {
+    const container = document.getElementById('riskActionPlans');
+    if (!container) return;
+    if (selectedActionPlansForRisk.length === 0) {
+        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun plan d\'action sélectionné</div>';
+        return;
+    }
+    container.innerHTML = selectedActionPlansForRisk.map(id => {
+        const plan = rms.actionPlans.find(p => p.id === id);
+        if (!plan) return '';
+        const title = plan.title || 'Sans titre';
+        return `
+            <div class="selected-control-item">
+              #${id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
+              <span class="remove-control" onclick="removeActionPlanFromSelection(${id})">×</span>
+            </div>`;
+    }).join('');
+}
+window.updateSelectedActionPlansDisplay = updateSelectedActionPlansDisplay;
+
+function removeActionPlanFromSelection(planId) {
+    selectedActionPlansForRisk = selectedActionPlansForRisk.filter(id => id !== planId);
+    updateSelectedActionPlansDisplay();
+}
+window.removeActionPlanFromSelection = removeActionPlanFromSelection;
+
+function addActionPlanToRisk() {
+    let options = rms.actionPlans.map(p => `${p.id}:${p.title}`).join('\n');
+    let choice = prompt("ID d'un plan existant à lier ou laisser vide pour créer un nouveau:\n" + options);
+    let plan;
+    if (choice) {
+        plan = rms.actionPlans.find(p => String(p.id) === String(choice));
+        if (!plan) { alert('Plan introuvable'); return; }
+    } else {
+        const title = prompt("Titre du plan d'action ?");
+        if (!title) return;
+        const description = prompt("Description ?") || '';
+        const status = prompt("Statut (brouillon|a-demarrer|en-cours|termine):", 'brouillon') || 'brouillon';
+        const owner = prompt("Propriétaire ?") || '';
+        const dueDate = prompt("Date de fin (YYYY-MM-DD) ?") || '';
+        plan = { id: Date.now(), title, description, status, owner, dueDate, risks: [] };
+        rms.actionPlans.push(plan);
+        rms.saveData();
+        rms.updateActionPlansList();
+    }
+    if (!selectedActionPlansForRisk.includes(plan.id)) selectedActionPlansForRisk.push(plan.id);
+    updateSelectedActionPlansDisplay();
+}
+window.addActionPlanToRisk = addActionPlanToRisk;
+
+function addNewActionPlan() {
+    const title = prompt("Titre du plan d'action ?");
+    if (!title) return;
+    const description = prompt("Description ?") || '';
+    const status = prompt("Statut (brouillon|a-demarrer|en-cours|termine):", 'brouillon') || 'brouillon';
+    const owner = prompt("Propriétaire ?") || '';
+    const dueDate = prompt("Date de fin (YYYY-MM-DD) ?") || '';
+    const risksInput = prompt("IDs des risques associés (séparés par des virgules) ?") || '';
+    const risks = risksInput.split(',').map(r => parseInt(r.trim())).filter(Boolean);
+    const plan = { id: Date.now(), title, description, status, owner, dueDate, risks };
+    rms.actionPlans.push(plan);
+    risks.forEach(rid => {
+        const risk = rms.risks.find(r => r.id === rid);
+        if (risk) {
+            risk.actionPlans = risk.actionPlans || [];
+            if (!risk.actionPlans.includes(plan.id)) {
+                risk.actionPlans.push(plan.id);
+            }
+        }
+    });
+    rms.saveData();
+    rms.updateActionPlansList();
+    rms.updateRisksList();
+}
+window.addNewActionPlan = addNewActionPlan;
 
 function showNotification(type, message) {
     const notification = document.createElement('div');
@@ -1473,6 +1610,8 @@ function applyPatch() {
         set risks(v){ if (RMS.risks) RMS.risks = v; else window.risks = v; },
         get controls(){ return RMS.controls || window.controls || []; },
         set controls(v){ if (RMS.controls) RMS.controls = v; else window.controls = v; },
+        get actionPlans(){ return RMS.actionPlans || window.actionPlans || []; },
+        set actionPlans(v){ if (RMS.actionPlans) RMS.actionPlans = v; else window.actionPlans = v; },
         get history(){ return RMS.history || window.historyLog || []; },
         set history(v){ if (RMS.history) RMS.history = v; else window.historyLog = v; },
         save: (label="auto") => {
