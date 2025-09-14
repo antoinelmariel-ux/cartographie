@@ -935,7 +935,36 @@ function searchRisks(searchTerm) {
 }
 window.searchRisks = searchRisks;
 
+let lastRiskData = null;
+
 function addNewRisk() {
+    const form = document.getElementById('riskForm');
+    if (form) {
+        form.reset();
+
+        if (lastRiskData) {
+            document.getElementById('processus').value = lastRiskData.processus || '';
+            document.getElementById('typeCorruption').value = lastRiskData.typeCorruption || '';
+
+            const tiersSelect = document.getElementById('tiers');
+            Array.from(tiersSelect.options).forEach(opt => {
+                opt.selected = lastRiskData.tiers?.includes(opt.value);
+            });
+
+            document.getElementById('description').value = lastRiskData.description || '';
+            document.getElementById('probBrut').value = lastRiskData.probBrut || 1;
+            document.getElementById('impactBrut').value = lastRiskData.impactBrut || 1;
+            document.getElementById('probNet').value = lastRiskData.probNet || 1;
+            document.getElementById('impactNet').value = lastRiskData.impactNet || 1;
+            document.getElementById('probPost').value = lastRiskData.probPost || 1;
+            document.getElementById('impactPost').value = lastRiskData.impactPost || 1;
+        }
+
+        // Recalculate scores for displayed values
+        calculateScore('brut');
+        calculateScore('net');
+        calculateScore('post');
+    }
     document.getElementById('riskModal').classList.add('show');
 }
 window.addNewRisk = addNewRisk;
@@ -993,8 +1022,9 @@ function saveRisk() {
         showNotification('error', 'Veuillez remplir tous les champs obligatoires');
         return;
     }
-    
+
     rms.addRisk(formData);
+    lastRiskData = { ...formData, tiers: [...formData.tiers] };
     closeModal('riskModal');
     showNotification('success', 'Risque ajouté avec succès!');
 }
@@ -1393,17 +1423,31 @@ function applyPatch() {
       let currentEditingControlId = null;
       let selectedRisksForControl = [];
       let riskFilterQueryForControl = '';
+      let lastControlData = null;
     
       // Open control modal for new control
       window.addNewControl = function() {
         currentEditingControlId = null;
+        const form = document.getElementById('controlForm');
+        if (form) form.reset();
+
         selectedRisksForControl = [];
-        
-        // Reset form
-        document.getElementById('controlForm').reset();
+
+        if (lastControlData) {
+          document.getElementById('controlName').value = lastControlData.name || '';
+          document.getElementById('controlType').value = lastControlData.type || '';
+          document.getElementById('controlOwner').value = lastControlData.owner || '';
+          document.getElementById('controlFrequency').value = lastControlData.frequency || '';
+          document.getElementById('controlMode').value = lastControlData.mode || '';
+          document.getElementById('controlEffectiveness').value = lastControlData.effectiveness || '';
+          document.getElementById('controlStatus').value = lastControlData.status || '';
+          document.getElementById('controlDescription').value = lastControlData.description || '';
+          selectedRisksForControl = [...(lastControlData.risks || [])];
+        }
+
         document.getElementById('controlModalTitle').textContent = 'Nouveau Contrôle';
-        document.getElementById('selectedRisks').innerHTML = '';
-        
+        updateSelectedRisksDisplay();
+
         // Show modal
         document.getElementById('controlModal').classList.add('show');
       };
@@ -1608,7 +1652,9 @@ function applyPatch() {
           addHistoryItem("Nouveau contrôle", {id: newControl.id, name: controlData.name});
           toast(`Contrôle "${controlData.name}" créé avec succès`);
         }
-    
+
+        lastControlData = { ...controlData, risks: [...controlData.risks] };
+
         // Save and refresh
         state.save("contrôle");
         state.renderAll();
