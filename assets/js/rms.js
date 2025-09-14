@@ -1,5 +1,5 @@
 // Enhanced Risk Management System
-export class RiskManagementSystem {
+class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
         this.controls = this.loadData('controls') || this.getDefaultControls();
@@ -636,7 +636,7 @@ export class RiskManagementSystem {
 
 // Reference to the current RMS instance
 let rms;
-export function setRms(instance) {
+function setRms(instance) {
     rms = instance;
     window.rms = instance;
 }
@@ -853,7 +853,7 @@ function refreshDashboard() {
 }
 window.refreshDashboard = refreshDashboard;
 
-export function bindEvents() {
+function bindEvents() {
     // Close modals on escape key
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
@@ -873,7 +873,7 @@ export function bindEvents() {
     });
 }
 
-export function applyPatch() {
+function applyPatch() {
     (function(){
       const RMS = window.rms || window.RMS || window.RiskSystem || {};
       // Guard: bind common getters
@@ -1431,3 +1431,9 @@ export function applyPatch() {
     })();
 
 }
+
+// Expose key functions and classes globally for non-module usage
+window.RiskManagementSystem = RiskManagementSystem;
+window.setRms = setRms;
+window.bindEvents = bindEvents;
+window.applyPatch = applyPatch;
