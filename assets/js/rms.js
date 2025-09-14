@@ -1195,6 +1195,7 @@ export function applyPatch() {
       
       let currentEditingControlId = null;
       let selectedRisksForControl = [];
+      let riskFilterQueryForControl = '';
     
       // Open control modal for new control
       window.addNewControl = function() {
@@ -1275,16 +1276,30 @@ export function applyPatch() {
     
       // Open risk selector modal
       window.openRiskSelector = function() {
+        riskFilterQueryForControl = '';
+        const searchInput = document.getElementById('riskSearchInput');
+        if (searchInput) searchInput.value = '';
+        renderRiskSelectionList();
+        document.getElementById('riskSelectorModal').classList.add('show');
+      };
+
+      function renderRiskSelectionList() {
         const riskList = document.getElementById('riskList');
-        
-        riskList.innerHTML = state.risks.map(risk => {
+        if (!riskList) return;
+        const query = riskFilterQueryForControl.toLowerCase();
+
+        riskList.innerHTML = state.risks.filter(risk => {
+          const title = (risk.titre || risk.description || '').toLowerCase();
+          return String(risk.id).includes(query) || title.includes(query);
+        }).map(risk => {
           const isSelected = selectedRisksForControl.includes(risk.id);
+          const title = risk.titre || risk.description || 'Sans titre';
           return `
             <div class="risk-list-item">
-              <input type="checkbox" id="risk-${risk.id}" ${isSelected ? 'checked' : ''} 
+              <input type="checkbox" id="risk-${risk.id}" ${isSelected ? 'checked' : ''}
                      onchange="toggleRiskSelection(${risk.id})">
               <div class="risk-item-info">
-                <div class="risk-item-title">${risk.description}</div>
+                <div class="risk-item-title">#${risk.id} - ${title}</div>
                 <div class="risk-item-meta">
                   Processus: ${risk.processus} | Type: ${risk.typeCorruption}
                 </div>
@@ -1292,8 +1307,11 @@ export function applyPatch() {
             </div>
           `;
         }).join('');
-    
-        document.getElementById('riskSelectorModal').classList.add('show');
+      }
+
+      window.filterRisksForControl = function(query) {
+        riskFilterQueryForControl = query;
+        renderRiskSelectionList();
       };
     
       // Close risk selector modal
@@ -1330,9 +1348,10 @@ export function applyPatch() {
           const risk = state.risks.find(r => r.id === riskId);
           if (!risk) return '';
           
+          const title = risk.titre || risk.description || 'Sans titre';
           return `
             <div class="selected-risk-item">
-              ${risk.description.substring(0, 50)}${risk.description.length > 50 ? '...' : ''}
+              #${risk.id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
               <span class="remove-risk" onclick="removeRiskFromSelection(${riskId})">×</span>
             </div>
           `;
@@ -1346,10 +1365,10 @@ export function applyPatch() {
       };
     
       // Save control (form submission)
-      window.saveControl = function(event) {
-        event.preventDefault();
-    
-        const formData = new FormData(event.target);
+      window.saveControl = function() {
+        const form = document.getElementById('controlForm');
+        if (!form) return;
+        const formData = new FormData(form);
         const controlData = {
           name: formData.get('name'),
           type: formData.get('type'),
