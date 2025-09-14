@@ -1,4 +1,10 @@
 // Enhanced Risk Management System
+
+// Sanitize a string for safe DOM id usage
+function sanitizeId(str) {
+    return str.replace(/[^a-z0-9_-]/gi, '_');
+}
+
 class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
@@ -488,13 +494,14 @@ class RiskManagementSystem {
         this.config.processes.forEach(proc => {
             const block = document.createElement('div');
             block.className = 'subprocess-section';
-            const listId = `list-sub-${proc.value}`;
+            const procId = sanitizeId(proc.value);
+            const listId = `list-sub-${procId}`;
             block.innerHTML = `
                 <h4>${proc.label}</h4>
                 <ul id="${listId}" class="config-list"></ul>
                 <div class="config-add">
-                    <input type="text" id="input-sub-${proc.value}-value" placeholder="valeur">
-                    <input type="text" id="input-sub-${proc.value}-label" placeholder="libellé">
+                    <input type="text" id="input-sub-${procId}-value" placeholder="valeur">
+                    <input type="text" id="input-sub-${procId}-label" placeholder="libellé">
                     <button onclick=\"rms.addSubProcess('${proc.value}')\">Ajouter</button>
                 </div>
             `;
@@ -505,7 +512,8 @@ class RiskManagementSystem {
 
     refreshSubProcessLists() {
         this.config.processes.forEach(proc => {
-            const list = document.getElementById(`list-sub-${proc.value}`);
+            const procId = sanitizeId(proc.value);
+            const list = document.getElementById(`list-sub-${procId}`);
             if (!list) return;
             const subs = this.config.subProcesses[proc.value] || [];
             list.innerHTML = subs
@@ -515,8 +523,9 @@ class RiskManagementSystem {
     }
 
     addSubProcess(process) {
-        const valueInput = document.getElementById(`input-sub-${process}-value`);
-        const labelInput = document.getElementById(`input-sub-${process}-label`);
+        const procId = sanitizeId(process);
+        const valueInput = document.getElementById(`input-sub-${procId}-value`);
+        const labelInput = document.getElementById(`input-sub-${procId}-label`);
         if (!valueInput || !labelInput) return;
         const value = valueInput.value.trim();
         const label = labelInput.value.trim();
