@@ -472,9 +472,9 @@ class RiskManagementSystem {
             };
             
             return `
-                <div class="control-item">
+                <div class="control-item" data-control-id="${control.id}">
                     <div class="control-actions">
-                        <button class="control-action-btn edit" onclick="editControl(${control.id})" title="Modifier">
+                        <button class="control-action-btn edit" data-control-id="${control.id}" title="Modifier">
                             ✏️
                         </button>
                         <button class="control-action-btn delete" onclick="deleteControl(${control.id})" title="Supprimer">
@@ -870,6 +870,18 @@ function bindEvents() {
                 modal.classList.remove('show');
             }
         });
+    });
+
+    // Handle control edit buttons
+    document.addEventListener('click', (e) => {
+        const editBtn = e.target.closest('.control-action-btn.edit');
+        if (editBtn) {
+            const id = editBtn.dataset.controlId;
+            if (id && typeof editControl === 'function') {
+                e.preventDefault();
+                editControl(parseInt(id, 10));
+            }
+        }
     });
 }
 
