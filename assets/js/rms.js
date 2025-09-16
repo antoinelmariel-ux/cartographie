@@ -72,7 +72,8 @@ const RISK_STATE_CONFIG = {
         impactInput: 'impactBrut',
         scoreElement: 'scoreBrut',
         coordElement: 'coordBrut',
-        pointClass: 'brut'
+        pointClass: 'brut',
+        symbol: 'B'
     },
     net: {
         label: 'Risque Net',
@@ -80,7 +81,8 @@ const RISK_STATE_CONFIG = {
         impactInput: 'impactNet',
         scoreElement: 'scoreNet',
         coordElement: 'coordNet',
-        pointClass: 'net'
+        pointClass: 'net',
+        symbol: 'N'
     },
     post: {
         label: 'Post-mitigation',
@@ -88,7 +90,8 @@ const RISK_STATE_CONFIG = {
         impactInput: 'impactPost',
         scoreElement: 'scorePost',
         coordElement: 'coordPost',
-        pointClass: 'post'
+        pointClass: 'post',
+        symbol: 'P'
     }
 };
 
@@ -2102,6 +2105,10 @@ function initRiskEditMatrix() {
         const point = document.createElement('div');
         point.className = `risk-point ${config.pointClass} edit-point`;
         point.dataset.state = state;
+        if (config.symbol) {
+            point.textContent = config.symbol;
+        }
+        point.setAttribute('aria-label', config.label);
         point.addEventListener('pointerdown', startPointDrag);
         point.addEventListener('pointermove', handlePointMove);
         point.addEventListener('pointerup', finishPointDrag);
