@@ -588,10 +588,23 @@ class RiskManagementSystem {
                 <div class="config-add">
                     <input type="text" id="input-sub-${procId}-value" placeholder="valeur">
                     <input type="text" id="input-sub-${procId}-label" placeholder="libellé">
-                    <button onclick=\"rms.addSubProcess('${proc.value}')\">Ajouter</button>
                 </div>
             `;
             container.appendChild(block);
+            const addContainer = block.querySelector('.config-add');
+            if (addContainer) {
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.textContent = 'Ajouter';
+                addButton.dataset.process = proc.value;
+                addButton.addEventListener('click', (event) => {
+                    const { process } = event.currentTarget.dataset;
+                    if (typeof process !== 'undefined') {
+                        this.addSubProcess(process);
+                    }
+                });
+                addContainer.appendChild(addButton);
+            }
         });
         this.refreshSubProcessLists();
     }
@@ -602,9 +615,30 @@ class RiskManagementSystem {
             const list = document.getElementById(`list-sub-${procId}`);
             if (!list) return;
             const subs = this.config.subProcesses[proc.value] || [];
-            list.innerHTML = subs
-                .map((sp, idx) => `<li>${sp.label} (${sp.value}) <button onclick="rms.removeSubProcess('${proc.value}', ${idx})">×</button></li>`)
-                .join('');
+            list.innerHTML = '';
+            subs.forEach((sp, idx) => {
+                const listItem = document.createElement('li');
+
+                const textSpan = document.createElement('span');
+                textSpan.textContent = `${sp.label} (${sp.value})`;
+                listItem.appendChild(textSpan);
+                listItem.appendChild(document.createTextNode(' '));
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.textContent = '×';
+                removeButton.dataset.process = proc.value;
+                removeButton.dataset.index = String(idx);
+                removeButton.addEventListener('click', (event) => {
+                    const { process, index } = event.currentTarget.dataset;
+                    if (typeof process !== 'undefined' && typeof index !== 'undefined') {
+                        this.removeSubProcess(process, parseInt(index, 10));
+                    }
+                });
+
+                listItem.appendChild(removeButton);
+                list.appendChild(listItem);
+            });
         });
     }
 
