@@ -8,9 +8,29 @@ Application de cartographie des risques corruption.
 - **Matrice des risques** : visualisation interactive des niveaux brut, net et post-mitigations.
 - **Liste des risques** : création, édition, suppression et filtrage des risques.
 - **Contrôles et mesures** : gestion des contrôles, association aux risques et suivi de l'efficacité.
-- **Rapports** : génération et export des données en PDF ou CSV.
+- **Plans d'actions** : suivi des plans associés aux risques et rappels sur les échéances.
+- **Import/Export** : export JSON/CSV, capture de la matrice, export PDF du tableau de bord et import depuis des fichiers externes.
 - **Historique** : suivi chronologique des actions effectuées.
 - **Configuration** : administration des options des listes déroulantes.
+
+### Domaines fonctionnels du script `assets/js/rms.js`
+
+Le fichier `assets/js/rms.js` concentre l'ensemble de la logique applicative. En vue d'un futur découpage, voici les blocs principaux à isoler :
+
+1. **Utilitaires et constantes** : fonctions d'aide (`sanitizeId`, égalité d'identifiants, incréments séquentiels) et définitions des libellés probabilité/impact ou des états de risque.
+2. **Données de référence** : jeux de données par défaut pour les risques et les contrôles ainsi que la configuration initiale (processus, sous-processus, listes de sélection).
+3. **Persistance locale** : chargement/sauvegarde via `localStorage`, sauvegarde automatique et horodatage de la dernière sauvegarde.
+4. **Configuration dynamique** : rendu des écrans d'administration des listes, gestion des sous-processus et synchronisation avec les formulaires.
+5. **Rendu de l'interface** : orchestration globale via `renderAll`, génération de la matrice, des détails risques, des listes (risques, contrôles, plans d'action) et de la frise historique.
+6. **Tableau de bord et analytics** : calcul des statistiques, alimentation des cartes KPI, mise à jour des graphiques et des alertes récentes.
+7. **Gestion du registre des risques** : formulaires de création/édition, calcul des scores, interaction avec la matrice d'édition, filtres et sélection d'éléments liés.
+8. **Contrôles et plans d'action** : rendu des cartes, modales d'édition, sélecteurs de risques/contrôles et synchronisation bidirectionnelle avec les risques.
+9. **Historisation et notifications** : timeline des événements, enregistrement des actions significatives et système d'alertes utilisateur.
+10. **Import/Export avancés** : conversion CSV, génération de blobs, exports (JSON, CSV, PNG, PDF) et import des risques depuis CSV/JSON.
+11. **Événements globaux** : gestion des onglets, du changement de vue de la matrice, du binding d'événements clavier/souris et correctifs appliqués au chargement (`bindEvents`, `applyPatch`).
+12. **Point d'entrée** : initialisation depuis `assets/js/main.js` avec instanciation de `RiskManagementSystem`, attachement global (`setRms`) et lancement des rendus.
+
+Ces regroupements peuvent servir de base à un découpage en modules (`utils.js`, `data.js`, `storage.js`, `matrix.js`, `risks.js`, `controls.js`, etc.) pour alléger le fichier principal sans perdre la vue d'ensemble.
 
 ## Utilisation hors-ligne
 
