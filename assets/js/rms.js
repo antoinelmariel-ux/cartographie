@@ -525,15 +525,153 @@ class RiskManagementSystem {
     }
 
     refreshConfigLists() {
+        const createListItem = (key, opt, idx) => {
+            const listItem = document.createElement('li');
+
+            const renderDisplay = () => {
+                listItem.innerHTML = '';
+
+                const textSpan = document.createElement('span');
+                textSpan.className = 'config-item-text';
+                textSpan.textContent = `${opt.label} (${opt.value})`;
+                listItem.appendChild(textSpan);
+
+                const actions = document.createElement('div');
+                actions.className = 'config-item-actions';
+
+                const editButton = document.createElement('button');
+                editButton.type = 'button';
+                editButton.className = 'btn btn-secondary';
+                editButton.textContent = 'Modifier';
+                editButton.addEventListener('click', () => {
+                    renderEditForm();
+                });
+
+                const removeButton = document.createElement('button');
+                removeButton.type = 'button';
+                removeButton.className = 'btn btn-outline';
+                removeButton.textContent = 'Supprimer';
+                removeButton.addEventListener('click', () => {
+                    this.removeConfigOption(key, idx);
+                });
+
+                actions.appendChild(editButton);
+                actions.appendChild(removeButton);
+                listItem.appendChild(actions);
+            };
+
+            const renderEditForm = () => {
+                listItem.innerHTML = '';
+
+                const form = document.createElement('div');
+                form.className = 'config-edit-form';
+
+                const valueInput = document.createElement('input');
+                valueInput.type = 'text';
+                valueInput.value = opt.value;
+                valueInput.placeholder = 'valeur';
+                valueInput.className = 'config-edit-input';
+
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.value = opt.label;
+                labelInput.placeholder = 'libellé';
+                labelInput.className = 'config-edit-input';
+
+                const actions = document.createElement('div');
+                actions.className = 'config-item-actions';
+
+                const saveButton = document.createElement('button');
+                saveButton.type = 'button';
+                saveButton.className = 'btn btn-success';
+                saveButton.textContent = 'Enregistrer';
+                saveButton.addEventListener('click', () => {
+                    const value = valueInput.value.trim();
+                    const label = labelInput.value.trim();
+                    if (!value || !label) return;
+                    this.updateConfigOption(key, idx, { value, label });
+                });
+
+                const cancelButton = document.createElement('button');
+                cancelButton.type = 'button';
+                cancelButton.className = 'btn btn-outline';
+                cancelButton.textContent = 'Annuler';
+                cancelButton.addEventListener('click', () => {
+                    renderDisplay();
+                });
+
+                actions.appendChild(saveButton);
+                actions.appendChild(cancelButton);
+
+                form.appendChild(valueInput);
+                form.appendChild(labelInput);
+                form.appendChild(actions);
+                listItem.appendChild(form);
+            };
+
+            renderDisplay();
+            return listItem;
+        };
+
         const updateList = (key) => {
             const list = document.getElementById(`list-${key}`);
             if (!list) return;
-            list.innerHTML = this.config[key]
-                .map((opt, idx) => `<li>${opt.label} (${opt.value}) <button onclick="rms.removeConfigOption('${key}', ${idx})">×</button></li>`)
-                .join('');
+            list.innerHTML = '';
+            this.config[key].forEach((opt, idx) => {
+                const item = createListItem(key, opt, idx);
+                list.appendChild(item);
+            });
         };
 
-        Object.keys(this.config).filter(k => k !== 'subProcesses').forEach(updateList);
+        Object.keys(this.config)
+            .filter(k => k !== 'subProcesses')
+            .forEach(updateList);
+    }
+
+    updateConfigOption(key, index, updated) {
+        if (!this.config[key] || !this.config[key][index]) return;
+        const { value, label } = updated;
+        if (!value || !label) return;
+
+        const previous = this.config[key][index];
+        this.config[key][index] = { value, label };
+
+        if (key === 'processes') {
+            if (previous.value !== value) {
+                const previousSubs = this.config.subProcesses[previous.value] || [];
+                const targetSubs = this.config.subProcesses[value] || [];
+                const mergedSubs = [...targetSubs];
+                previousSubs.forEach(sub => {
+                    if (!mergedSubs.some(existing => existing.value === sub.value)) {
+                        mergedSubs.push(sub);
+                    }
+                });
+                this.config.subProcesses[value] = mergedSubs;
+                delete this.config.subProcesses[previous.value];
+
+                if (this.filters.process === previous.value) {
+                    this.filters.process = value;
+                }
+
+                this.risks.forEach(risk => {
+                    if (risk.processus === previous.value) {
+                        risk.processus = value;
+                        const availableSubs = this.config.subProcesses[value] || [];
+                        if (!availableSubs.some(sub => sub.value === risk.sousProcessus)) {
+                            risk.sousProcessus = '';
+                        }
+                    }
+                });
+                this.saveData();
+            }
+            this.saveConfig();
+            this.populateSelects();
+            this.renderAll();
+        } else {
+            this.saveConfig();
+            this.populateSelects();
+            this.refreshConfigLists();
+        }
     }
 
     addConfigOption(key) {
@@ -619,27 +757,114 @@ class RiskManagementSystem {
             subs.forEach((sp, idx) => {
                 const listItem = document.createElement('li');
 
-                const textSpan = document.createElement('span');
-                textSpan.textContent = `${sp.label} (${sp.value})`;
-                listItem.appendChild(textSpan);
-                listItem.appendChild(document.createTextNode(' '));
+                const renderDisplay = () => {
+                    listItem.innerHTML = '';
 
-                const removeButton = document.createElement('button');
-                removeButton.type = 'button';
-                removeButton.textContent = '×';
-                removeButton.dataset.process = proc.value;
-                removeButton.dataset.index = String(idx);
-                removeButton.addEventListener('click', (event) => {
-                    const { process, index } = event.currentTarget.dataset;
-                    if (typeof process !== 'undefined' && typeof index !== 'undefined') {
-                        this.removeSubProcess(process, parseInt(index, 10));
-                    }
-                });
+                    const textSpan = document.createElement('span');
+                    textSpan.className = 'config-item-text';
+                    textSpan.textContent = `${sp.label} (${sp.value})`;
+                    listItem.appendChild(textSpan);
 
-                listItem.appendChild(removeButton);
+                    const actions = document.createElement('div');
+                    actions.className = 'config-item-actions';
+
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'btn btn-secondary';
+                    editButton.textContent = 'Modifier';
+                    editButton.addEventListener('click', () => {
+                        renderEditForm();
+                    });
+
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'btn btn-outline';
+                    removeButton.textContent = 'Supprimer';
+                    removeButton.addEventListener('click', () => {
+                        this.removeSubProcess(proc.value, idx);
+                    });
+
+                    actions.appendChild(editButton);
+                    actions.appendChild(removeButton);
+                    listItem.appendChild(actions);
+                };
+
+                const renderEditForm = () => {
+                    listItem.innerHTML = '';
+
+                    const form = document.createElement('div');
+                    form.className = 'config-edit-form';
+
+                    const valueInput = document.createElement('input');
+                    valueInput.type = 'text';
+                    valueInput.value = sp.value;
+                    valueInput.placeholder = 'valeur';
+                    valueInput.className = 'config-edit-input';
+
+                    const labelInput = document.createElement('input');
+                    labelInput.type = 'text';
+                    labelInput.value = sp.label;
+                    labelInput.placeholder = 'libellé';
+                    labelInput.className = 'config-edit-input';
+
+                    const actions = document.createElement('div');
+                    actions.className = 'config-item-actions';
+
+                    const saveButton = document.createElement('button');
+                    saveButton.type = 'button';
+                    saveButton.className = 'btn btn-success';
+                    saveButton.textContent = 'Enregistrer';
+                    saveButton.addEventListener('click', () => {
+                        const value = valueInput.value.trim();
+                        const label = labelInput.value.trim();
+                        if (!value || !label) return;
+                        this.updateSubProcess(proc.value, idx, { value, label });
+                    });
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.type = 'button';
+                    cancelButton.className = 'btn btn-outline';
+                    cancelButton.textContent = 'Annuler';
+                    cancelButton.addEventListener('click', () => {
+                        renderDisplay();
+                    });
+
+                    actions.appendChild(saveButton);
+                    actions.appendChild(cancelButton);
+
+                    form.appendChild(valueInput);
+                    form.appendChild(labelInput);
+                    form.appendChild(actions);
+                    listItem.appendChild(form);
+                };
+
+                renderDisplay();
                 list.appendChild(listItem);
             });
         });
+    }
+
+    updateSubProcess(process, index, updated) {
+        if (!this.config.subProcesses[process] || !this.config.subProcesses[process][index]) return;
+        const { value, label } = updated;
+        if (!value || !label) return;
+
+        const previous = this.config.subProcesses[process][index];
+        this.config.subProcesses[process][index] = { value, label };
+
+        if (previous.value !== value) {
+            this.risks.forEach(risk => {
+                if (risk.processus === process && risk.sousProcessus === previous.value) {
+                    risk.sousProcessus = value;
+                }
+            });
+            this.saveData();
+        }
+
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.refreshSubProcessLists();
+        this.updateRisksList();
     }
 
     addSubProcess(process) {
