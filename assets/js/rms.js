@@ -9,6 +9,24 @@ function idsEqual(a, b) {
     return String(a) === String(b);
 }
 
+function getNextSequentialId(items, startAt = 1) {
+    if (!Array.isArray(items) || items.length === 0) {
+        return startAt;
+    }
+
+    let maxId = startAt - 1;
+
+    items.forEach(item => {
+        if (!item || item.id === undefined || item.id === null) return;
+        const numericId = Number(item.id);
+        if (Number.isFinite(numericId) && numericId > maxId) {
+            maxId = Math.trunc(numericId);
+        }
+    });
+
+    return maxId + 1;
+}
+
 const RISK_PROBABILITY_INFO = {
     1: {
         label: 'Très rare',
@@ -1455,12 +1473,12 @@ class RiskManagementSystem {
     // CRUD operations
     addRisk(riskData) {
         const newRisk = {
-            id: Date.now(),
+            id: getNextSequentialId(this.risks),
             ...riskData,
             dateCreation: new Date().toISOString(),
             statut: 'nouveau'
         };
-        
+
         this.risks.push(newRisk);
         this.addHistoryItem('Création risque', `Nouveau risque: ${newRisk.description}`);
         this.saveData();
@@ -2472,7 +2490,7 @@ function saveActionPlan() {
             showNotification('success', `Plan "${planData.title}" modifié`);
         }
     } else {
-        const newPlan = { id: Date.now(), ...planData };
+        const newPlan = { id: getNextSequentialId(rms.actionPlans), ...planData };
         rms.actionPlans.push(newPlan);
         planData.risks.forEach(rid => {
             const risk = rms.risks.find(r => idsEqual(r.id, rid));
@@ -2875,7 +2893,7 @@ function applyPatch() {
       window.addNewControl = function addNewControl(){
         const name = prompt("Nom du contrôle ?");
         if (!name) return;
-        const id = "ctl_" + Date.now().toString(36);
+        const id = getNextSequentialId(state.controls);
         const ctrl = { id, name, description: "", owner: "", effectiveness: "moyen" };
         state.controls = [...state.controls, ctrl];
         addHistoryItem("Nouveau contrôle", {id, name});
@@ -3218,11 +3236,11 @@ function applyPatch() {
         } else {
           // Create new control
           const newControl = {
-            id: Date.now(),
+            id: getNextSequentialId(state.controls),
             ...controlData,
             dateCreation: new Date().toISOString().split('T')[0]
           };
-          
+
           state.controls.push(newControl);
           addHistoryItem("Nouveau contrôle", {id: newControl.id, name: controlData.name});
           toast(`Contrôle "${controlData.name}" créé avec succès`);
