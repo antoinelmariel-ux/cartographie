@@ -846,10 +846,67 @@ class RiskManagementSystem {
     updateDashboard() {
         // Update stats
         const stats = this.calculateStats();
-        
+
         // Update KPI cards (if elements exist)
         // Update charts
         this.updateCharts();
+        this.updateRecentAlerts();
+    }
+
+    updateRecentAlerts() {
+        const tbody = document.getElementById('recentAlertsBody');
+        if (!tbody) return;
+
+        const highRisks = this.risks
+            .filter(risk => {
+                const score = (risk.probNet || 0) * (risk.impactNet || 0);
+                const hasPlans = risk.actionPlans && risk.actionPlans.length > 0;
+                return score > 8 && !hasPlans;
+            })
+            .sort((a, b) => {
+                const getTime = (risk) => {
+                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                    const parsed = dateValue ? new Date(dateValue).getTime() : 0;
+                    return isNaN(parsed) ? 0 : parsed;
+                };
+                return getTime(b) - getTime(a);
+            });
+
+        if (highRisks.length === 0) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="6" class="table-empty">Aucune alerte récente</td>
+                </tr>
+            `;
+            return;
+        }
+
+        tbody.innerHTML = highRisks.map(risk => {
+            const score = (risk.probNet || 0) * (risk.impactNet || 0);
+            const isCritical = score > 12;
+            const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
+            const levelLabel = isCritical ? 'Critique' : 'Élevé';
+            const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+            const parsedDate = dateValue ? new Date(dateValue) : null;
+            const formattedDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toLocaleDateString('fr-FR') : '-';
+            const description = risk.description || 'Sans description';
+            const process = risk.processus || '-';
+            const owner = risk.responsable || '-';
+
+            return `
+                <tr>
+                    <td>${formattedDate}</td>
+                    <td>${description}</td>
+                    <td>${process}</td>
+                    <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
+                    <td>${owner}</td>
+                    <td class="table-actions-cell">
+                        <button class="action-btn" onclick="rms.selectRisk(${risk.id})">👁️</button>
+                        <button class="action-btn" onclick="rms.editRisk(${risk.id})">✏️</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     calculateStats() {
@@ -1986,6 +2043,7 @@ function deleteActionPlan(planId) {
     rms.saveData();
     rms.updateActionPlansList();
     rms.updateRisksList();
+    rms.updateDashboard();
     showNotification('success', `Plan "${title}" supprimé`);
 }
 window.deleteActionPlan = deleteActionPlan;
@@ -2042,6 +2100,7 @@ function saveActionPlan() {
     rms.saveData();
     rms.updateActionPlansList();
     rms.updateRisksList();
+    rms.updateDashboard();
     closeActionPlanModal();
 }
 window.saveActionPlan = saveActionPlan;
