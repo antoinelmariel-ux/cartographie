@@ -1672,6 +1672,42 @@ tbody tr:hover {
 
 .config-list li {
     margin: 4px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.config-item-text {
+    flex: 1 1 auto;
+}
+
+.config-item-actions {
+    display: inline-flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-left: auto;
+}
+
+.config-list .btn {
+    padding: 6px 12px;
+    font-size: 0.8em;
+}
+
+.config-edit-form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    width: 100%;
+}
+
+.config-edit-input {
+    padding: 6px 10px;
+    border-radius: 6px;
+    border: 1px solid #d0d7de;
+    font-size: 0.85em;
+    flex: 1 1 140px;
 }
 
 .config-add input {
