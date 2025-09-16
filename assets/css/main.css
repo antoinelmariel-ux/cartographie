@@ -1428,19 +1428,277 @@ tbody tr:hover {
 }
 }
 
-.config-section {
-    margin-bottom: 20px;
+.config-intro {
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.config-intro h2 {
+    font-size: 1.5em;
+    color: #2c3e50;
+}
+
+.config-intro p {
+    color: #7f8c8d;
+    max-width: 720px;
+    line-height: 1.4;
+}
+
+.config-grid {
+    display: grid;
+    gap: 20px;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.config-card {
+    background: #f8fafc;
+    border: 1px solid #e1e8f0;
+    border-radius: 14px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 8px 20px rgba(52, 152, 219, 0.12);
+}
+
+.config-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.config-card-text h3 {
+    font-size: 1.1em;
+    color: #2c3e50;
+    margin-bottom: 4px;
+}
+
+.config-card-text p {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    line-height: 1.4;
+}
+
+.config-pill {
+    background: #ecf3fb;
+    color: var(--primary-color);
+    font-size: 0.75em;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-weight: 600;
+    white-space: nowrap;
 }
 
 .config-list {
     list-style: none;
-    padding-left: 0;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
-.config-list li {
-    margin: 4px 0;
+.config-list-empty {
+    padding: 12px;
+    font-size: 0.9em;
+    color: #95a5a6;
+    background: #f5f7fa;
+    border: 1px dashed #dfe6ec;
+    border-radius: 12px;
+    text-align: center;
 }
 
-.config-add input {
-    margin-right: 5px;
+.config-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    background: white;
+    border: 1px solid #e1e8f0;
+    border-radius: 12px;
+    padding: 12px 14px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-item.editing {
+    border-color: var(--primary-color);
+    box-shadow: 0 4px 16px rgba(52, 152, 219, 0.12);
+}
+
+.config-item-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.config-item-label {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.config-item-value {
+    font-size: 0.85em;
+    color: #7f8c8d;
+    word-break: break-word;
+}
+
+.config-item-fields {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    flex: 1;
+}
+
+.config-item-fields input {
+    flex: 1 1 140px;
+    border: 1px solid #dfe6ec;
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 0.9em;
+}
+
+.config-item-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.config-icon-btn {
+    border: none;
+    background: transparent;
+    color: #34495e;
+    font-size: 0.85em;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.config-icon-btn:hover {
+    background: rgba(52, 152, 219, 0.1);
+    color: var(--primary-color);
+}
+
+.config-icon-btn--danger {
+    color: var(--danger-color);
+}
+
+.config-icon-btn--danger:hover {
+    background: rgba(231, 76, 60, 0.12);
+    color: var(--danger-color);
+}
+
+.config-icon-btn--success {
+    color: var(--success-color);
+}
+
+.config-icon-btn--success:hover {
+    background: rgba(39, 174, 96, 0.12);
+    color: var(--success-color);
+}
+
+.config-add {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+    background: #f0f4f8;
+    border-radius: 12px;
+    padding: 14px;
+}
+
+.config-add-field {
+    flex: 1 1 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.config-add-field label {
+    font-size: 0.75em;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #7f8c8d;
+}
+
+.config-add-field input {
+    border: 1px solid #d0d8e0;
+    border-radius: 8px;
+    padding: 9px 12px;
+    font-size: 0.9em;
+    background: white;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.config-add-field input:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+    outline: none;
+}
+
+.config-add-btn {
+    flex: 0 0 auto;
+}
+
+.config-empty-hint {
+    padding: 20px;
+    border: 1px dashed #dfe6ec;
+    border-radius: 14px;
+    font-size: 0.9em;
+    color: #7f8c8d;
+    background: #f8fafc;
+    text-align: center;
+}
+
+.config-card--full {
+    grid-column: 1 / -1;
+}
+
+.config-subprocess-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 16px;
+}
+
+.config-card--nested {
+    background: #ffffff;
+    border-style: dashed;
+    border-color: #dce4ec;
+}
+
+.config-card--nested .config-card-header {
+    margin-bottom: 4px;
+}
+
+@media (max-width: 768px) {
+    .config-add {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .config-add-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .config-item {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .config-item-actions {
+        width: 100%;
+        justify-content: flex-end;
+    }
 }

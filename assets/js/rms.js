@@ -5,6 +5,10 @@ function sanitizeId(str) {
     return str.replace(/[^a-z0-9_-]/gi, '_');
 }
 
+function escapeForAttribute(str) {
+    return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+}
+
 class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
@@ -20,6 +24,8 @@ class RiskManagementSystem {
             status: '',
             search: ''
         };
+        this.activeConfigEdit = null;
+        this.activeSubProcessEdit = null;
         this.risks.forEach(r => {
             if (!r.actionPlans || r.actionPlans.length === 0) {
                 r.probPost = r.probNet;
@@ -404,7 +410,109 @@ class RiskManagementSystem {
         const container = document.getElementById('configurationContainer');
         if (!container) return;
 
-        const sections = {
+        const sections = [
+            {
+                key: 'processes',
+                label: 'Processus',
+                description: 'Structurez les processus métiers utilisés dans l\'ensemble de la cartographie.'
+            },
+            {
+                key: 'riskTypes',
+                label: 'Types de corruption',
+                description: 'Définissez les typologies de risques disponibles lors de la création d\'une fiche risque.'
+            },
+            {
+                key: 'tiers',
+                label: 'Tiers',
+                description: 'Gérez les catégories de tiers suivies dans vos analyses de risques.'
+            },
+            {
+                key: 'riskStatuses',
+                label: 'Statuts des risques',
+                description: 'Personnalisez les statuts utilisés pour piloter l\'avancement des risques.'
+            },
+            {
+                key: 'controlTypes',
+                label: 'Types de contrôle',
+                description: 'Listez les types de contrôles disponibles pour les plans de maîtrise.'
+            },
+            {
+                key: 'controlFrequencies',
+                label: 'Fréquences des contrôles',
+                description: 'Indiquez les périodicités proposées lors de la création d\'un contrôle.'
+            },
+            {
+                key: 'controlModes',
+                label: "Modes d'exécution",
+                description: 'Précisez comment les contrôles peuvent être réalisés (manuel, automatisé...).'
+            },
+            {
+                key: 'controlEffectiveness',
+                label: 'Efficacités',
+                description: "Définissez les niveaux d'efficacité pour évaluer vos contrôles."
+            },
+            {
+                key: 'controlStatuses',
+                label: 'Statuts des contrôles',
+                description: 'Suivez la vie de vos contrôles grâce à des statuts adaptés.'
+            }
+        ];
+
+        container.innerHTML = `
+            <div class="config-intro">
+                <h2>Personnalisez vos référentiels</h2>
+                <p>Ajoutez, éditez ou supprimez les valeurs utilisées dans les formulaires afin d\'adapter l\'outil à votre organisation.</p>
+            </div>
+            <div class="config-grid">
+                ${sections.map(section => `
+                    <article class="config-card" data-config-key="${section.key}">
+                        <div class="config-card-header">
+                            <div class="config-card-text">
+                                <h3>${section.label}</h3>
+                                <p>${section.description}</p>
+                            </div>
+                            <span class="config-pill" data-config-count="${section.key}">${this.formatCountLabel((this.config[section.key] || []).length)}</span>
+                        </div>
+                        <ul id="list-${section.key}" class="config-list"></ul>
+                        <div class="config-add">
+                            <div class="config-add-field">
+                                <label for="input-${section.key}-label">Libellé affiché</label>
+                                <input type="text" id="input-${section.key}-label" placeholder="Ex : Process Achats" oninput="rms.autoFillValue('input-${section.key}-value', 'input-${section.key}-label')">
+                            </div>
+                            <div class="config-add-field">
+                                <label for="input-${section.key}-value">Code interne</label>
+                                <input type="text" id="input-${section.key}-value" placeholder="Ex : Achats" oninput="rms.markInputManual('input-${section.key}-value')">
+                            </div>
+                            <button class="btn btn-secondary config-add-btn" onclick="rms.addConfigOption('${section.key}')">+ Ajouter</button>
+                        </div>
+                    </article>
+                `).join('')}
+            </div>
+        `;
+
+        const subSection = document.createElement('article');
+        subSection.className = 'config-card config-card--full';
+        subSection.innerHTML = `
+            <div class="config-card-header">
+                <div class="config-card-text">
+                    <h3>Sous-processus</h3>
+                    <p>Déclarez les sous-processus propres à chaque processus. Ils alimentent automatiquement les formulaires risques.</p>
+                </div>
+            </div>
+            <div id="subProcessConfig" class="config-subprocess-grid"></div>
+        `;
+        container.appendChild(subSection);
+
+        this.refreshConfigLists();
+        this.renderSubProcessConfig();
+    }
+
+    formatCountLabel(count) {
+        return `${count} valeur${count > 1 ? 's' : ''}`;
+    }
+
+    getConfigLabel(key) {
+        const labels = {
             processes: 'Processus',
             riskTypes: 'Types de corruption',
             tiers: 'Tiers',
@@ -415,42 +523,200 @@ class RiskManagementSystem {
             controlEffectiveness: 'Efficacités',
             controlStatuses: 'Statuts des contrôles'
         };
+        return labels[key] || key;
+    }
 
-        container.innerHTML = '';
-        Object.entries(sections).forEach(([key, label]) => {
-            const section = document.createElement('div');
-            section.className = 'config-section';
-            section.innerHTML = `
-                <h3>${label}</h3>
-                <ul id="list-${key}" class="config-list"></ul>
-                <div class="config-add">
-                    <input type="text" id="input-${key}-value" placeholder="valeur">
-                    <input type="text" id="input-${key}-label" placeholder="libellé">
-                    <button onclick="rms.addConfigOption('${key}')">Ajouter</button>
-                </div>
-            `;
-            container.appendChild(section);
-        });
+    autoFillValue(valueInputId, labelInputId) {
+        const valueInput = document.getElementById(valueInputId);
+        const labelInput = document.getElementById(labelInputId);
+        if (!valueInput || !labelInput) return;
+        if (valueInput.dataset.manual === 'true' && valueInput.value.trim() !== '') return;
+        const generated = this.generateValueFromLabel(labelInput.value);
+        if (!generated) {
+            valueInput.value = '';
+            this.markInputManual(valueInputId, false);
+            return;
+        }
+        valueInput.value = generated;
+    }
 
-        const subSection = document.createElement('div');
-        subSection.className = 'config-section';
-        subSection.innerHTML = `
-            <h3>Sous-processus</h3>
-            <div id="subProcessConfig"></div>
-        `;
-        container.appendChild(subSection);
+    markInputManual(valueInputId, manual = true) {
+        const input = document.getElementById(valueInputId);
+        if (!input) return;
+        if (manual && input.value.trim() !== '') {
+            input.dataset.manual = 'true';
+        } else if (!manual) {
+            delete input.dataset.manual;
+        }
+    }
 
+    generateValueFromLabel(label) {
+        return label
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    startConfigEdit(key, index) {
+        this.activeConfigEdit = { key, index };
         this.refreshConfigLists();
-        this.renderSubProcessConfig();
+    }
+
+    cancelConfigEdit() {
+        this.activeConfigEdit = null;
+        this.refreshConfigLists();
+    }
+
+    saveConfigEdit(key, index) {
+        if (!this.config[key] || !this.config[key][index]) return;
+        const option = this.config[key][index];
+        const editLabelInput = document.getElementById(`edit-${key}-${index}-label`);
+        const editValueInput = document.getElementById(`edit-${key}-${index}-value`);
+        if (!editLabelInput || !editValueInput) return;
+        const label = editLabelInput.value.trim();
+        const value = editValueInput.value.trim();
+        if (!value || !label) {
+            showNotification('error', 'Merci de renseigner un libellé et un code interne.');
+            return;
+        }
+
+        const oldValue = option.value;
+        option.value = value;
+        option.label = label;
+        this.config[key][index] = option;
+        this.saveConfig();
+        this.populateSelects();
+
+        if (key === 'processes') {
+            if (oldValue !== value) {
+                this.config.subProcesses[value] = this.config.subProcesses[oldValue] || [];
+                delete this.config.subProcesses[oldValue];
+                if (this.activeSubProcessEdit && this.activeSubProcessEdit.process === oldValue) {
+                    this.activeSubProcessEdit = null;
+                }
+                if (this.filters.process === oldValue) {
+                    this.filters.process = value;
+                }
+                this.risks.forEach(risk => {
+                    if (risk.processus === oldValue) {
+                        risk.processus = value;
+                    }
+                });
+                this.saveData();
+                this.updateRisksList();
+                this.initializeMatrix();
+                this.updateDashboard();
+                const processSelect = document.getElementById('processus');
+                if (processSelect && processSelect.value === oldValue) {
+                    processSelect.value = value;
+                }
+                const filterSelect = document.getElementById('processFilter');
+                if (filterSelect && filterSelect.value === oldValue) {
+                    filterSelect.value = value;
+                }
+            }
+            this.renderConfiguration();
+        } else {
+            this.refreshConfigLists();
+        }
+
+        this.activeConfigEdit = null;
+        showNotification('success', `Valeur mise à jour dans « ${this.getConfigLabel(key)} ».`);
+    }
+
+    startSubProcessEdit(process, index) {
+        this.activeSubProcessEdit = { process, index };
+        this.refreshSubProcessLists();
+    }
+
+    cancelSubProcessEdit() {
+        this.activeSubProcessEdit = null;
+        this.refreshSubProcessLists();
+    }
+
+    saveSubProcessEdit(process, index) {
+        if (!this.config.subProcesses[process] || !this.config.subProcesses[process][index]) return;
+        const procId = sanitizeId(process);
+        const editLabelInput = document.getElementById(`edit-sub-${procId}-${index}-label`);
+        const editValueInput = document.getElementById(`edit-sub-${procId}-${index}-value`);
+        if (!editLabelInput || !editValueInput) return;
+        const label = editLabelInput.value.trim();
+        const value = editValueInput.value.trim();
+        if (!value || !label) {
+            showNotification('error', 'Merci de renseigner un libellé et un code interne.');
+            return;
+        }
+
+        const subProcess = this.config.subProcesses[process][index];
+        const oldValue = subProcess.value;
+        subProcess.label = label;
+        subProcess.value = value;
+        this.config.subProcesses[process][index] = subProcess;
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.refreshSubProcessLists();
+
+        if (oldValue !== value) {
+            this.risks.forEach(risk => {
+                if (risk.processus === process && risk.sousProcessus === oldValue) {
+                    risk.sousProcessus = value;
+                }
+            });
+            this.saveData();
+            this.updateRisksList();
+            this.initializeMatrix();
+        }
+
+        this.activeSubProcessEdit = null;
+        showNotification('success', `Sous-processus « ${label} » mis à jour.`);
     }
 
     refreshConfigLists() {
         const updateList = (key) => {
             const list = document.getElementById(`list-${key}`);
             if (!list) return;
-            list.innerHTML = this.config[key]
-                .map((opt, idx) => `<li>${opt.label} (${opt.value}) <button onclick="rms.removeConfigOption('${key}', ${idx})">×</button></li>`)
-                .join('');
+            const options = this.config[key] || [];
+            if (!options.length) {
+                list.innerHTML = `<li class="config-list-empty">Aucune valeur pour le moment.</li>`;
+            } else {
+                list.innerHTML = options
+                    .map((opt, idx) => {
+                        const isEditing = this.activeConfigEdit && this.activeConfigEdit.key === key && this.activeConfigEdit.index === idx;
+                        if (isEditing) {
+                            const editLabelId = `edit-${key}-${idx}-label`;
+                            const editValueId = `edit-${key}-${idx}-value`;
+                            return `
+                                <li class="config-item editing">
+                                    <div class="config-item-fields">
+                                        <input type="text" id="${editLabelId}" value="${opt.label}" placeholder="Libellé">
+                                        <input type="text" id="${editValueId}" value="${opt.value}" placeholder="Code interne">
+                                    </div>
+                                    <div class="config-item-actions">
+                                        <button class="config-icon-btn config-icon-btn--success" onclick="rms.saveConfigEdit('${key}', ${idx})">💾 <span>Sauvegarder</span></button>
+                                        <button class="config-icon-btn" onclick="rms.cancelConfigEdit()">↩️ <span>Annuler</span></button>
+                                    </div>
+                                </li>
+                            `;
+                        }
+                        return `
+                            <li class="config-item">
+                                <div class="config-item-info">
+                                    <span class="config-item-label">${opt.label}</span>
+                                    <span class="config-item-value">${opt.value}</span>
+                                </div>
+                                <div class="config-item-actions">
+                                    <button class="config-icon-btn" onclick="rms.startConfigEdit('${key}', ${idx})">✏️ <span>Modifier</span></button>
+                                    <button class="config-icon-btn config-icon-btn--danger" onclick="rms.removeConfigOption('${key}', ${idx})">🗑️ <span>Supprimer</span></button>
+                                </div>
+                            </li>
+                        `;
+                    })
+                    .join('');
+            }
+
+            const counter = document.querySelector(`[data-config-count='${key}']`);
+            if (counter) {
+                counter.textContent = this.formatCountLabel(options.length);
+            }
         };
 
         Object.keys(this.config).filter(k => k !== 'subProcesses').forEach(updateList);
@@ -462,8 +728,16 @@ class RiskManagementSystem {
         if (!valueInput || !labelInput) return;
         const value = valueInput.value.trim();
         const label = labelInput.value.trim();
-        if (!value || !label) return;
+        if (!value || !label) {
+            showNotification('error', 'Merci de renseigner un libellé et un code interne.');
+            return;
+        }
+
+        this.config[key] = this.config[key] || [];
         this.config[key].push({ value, label });
+        valueInput.value = '';
+        labelInput.value = '';
+        this.markInputManual(`input-${key}-value`, false);
         if (key === 'processes') {
             this.config.subProcesses[value] = [];
             this.saveConfig();
@@ -474,22 +748,48 @@ class RiskManagementSystem {
             this.populateSelects();
             this.refreshConfigLists();
         }
-        valueInput.value = '';
-        labelInput.value = '';
+        showNotification('success', `« ${label} » ajouté à « ${this.getConfigLabel(key)} ».`);
     }
 
     removeConfigOption(key, index) {
+        if (!this.config[key] || !this.config[key][index]) return;
+
+        if (this.activeConfigEdit && this.activeConfigEdit.key === key && this.activeConfigEdit.index === index) {
+            this.activeConfigEdit = null;
+        }
+
         if (key === 'processes') {
             const removed = this.config.processes.splice(index, 1)[0];
+            if (!removed) return;
             delete this.config.subProcesses[removed.value];
+            if (this.activeSubProcessEdit && this.activeSubProcessEdit.process === removed.value) {
+                this.activeSubProcessEdit = null;
+            }
+            if (this.filters.process === removed.value) {
+                this.filters.process = '';
+            }
+            this.risks.forEach(risk => {
+                if (risk.processus === removed.value) {
+                    risk.processus = '';
+                    risk.sousProcessus = '';
+                }
+            });
+            this.saveData();
+            this.updateRisksList();
+            this.initializeMatrix();
+            this.updateDashboard();
             this.saveConfig();
             this.populateSelects();
             this.renderConfiguration();
+            showNotification('success', `Processus « ${removed.label} » supprimé.`);
         } else {
-            this.config[key].splice(index, 1);
+            const removed = this.config[key].splice(index, 1)[0];
             this.saveConfig();
             this.populateSelects();
             this.refreshConfigLists();
+            if (removed) {
+                showNotification('success', `« ${removed.label} » supprimé de « ${this.getConfigLabel(key)} ».`);
+            }
         }
     }
 
@@ -497,18 +797,36 @@ class RiskManagementSystem {
         const container = document.getElementById('subProcessConfig');
         if (!container) return;
         container.innerHTML = '';
+        if (!this.config.processes.length) {
+            container.innerHTML = '<div class="config-empty-hint">Ajoutez d\'abord un processus pour définir ses sous-processus.</div>';
+            return;
+        }
+
         this.config.processes.forEach(proc => {
-            const block = document.createElement('div');
-            block.className = 'subprocess-section';
+            const block = document.createElement('article');
+            block.className = 'config-card config-card--nested';
             const procId = sanitizeId(proc.value);
+            const safeValue = escapeForAttribute(proc.value);
             const listId = `list-sub-${procId}`;
             block.innerHTML = `
-                <h4>${proc.label}</h4>
-                <ul id="${listId}" class="config-list"></ul>
+                <div class="config-card-header">
+                    <div class="config-card-text">
+                        <h4>${proc.label}</h4>
+                        <p>Valeurs proposées pour le processus ${proc.label}.</p>
+                    </div>
+                    <span class="config-pill" data-subprocess-count="${procId}">${this.formatCountLabel((this.config.subProcesses[proc.value] || []).length)}</span>
+                </div>
+                <ul id="${listId}" class="config-list config-list--sub"></ul>
                 <div class="config-add">
-                    <input type="text" id="input-sub-${procId}-value" placeholder="valeur">
-                    <input type="text" id="input-sub-${procId}-label" placeholder="libellé">
-                    <button onclick=\"rms.addSubProcess('${proc.value}')\">Ajouter</button>
+                    <div class="config-add-field">
+                        <label for="input-sub-${procId}-label">Libellé affiché</label>
+                        <input type="text" id="input-sub-${procId}-label" placeholder="Ex : Études cliniques" oninput="rms.autoFillValue('input-sub-${procId}-value', 'input-sub-${procId}-label')">
+                    </div>
+                    <div class="config-add-field">
+                        <label for="input-sub-${procId}-value">Code interne</label>
+                        <input type="text" id="input-sub-${procId}-value" placeholder="Ex : etudes_cliniques" oninput="rms.markInputManual('input-sub-${procId}-value')">
+                    </div>
+                    <button class="btn btn-secondary config-add-btn" onclick="rms.addSubProcess('${safeValue}')">+ Ajouter</button>
                 </div>
             `;
             container.appendChild(block);
@@ -522,9 +840,49 @@ class RiskManagementSystem {
             const list = document.getElementById(`list-sub-${procId}`);
             if (!list) return;
             const subs = this.config.subProcesses[proc.value] || [];
-            list.innerHTML = subs
-                .map((sp, idx) => `<li>${sp.label} (${sp.value}) <button onclick="rms.removeSubProcess('${proc.value}', ${idx})">×</button></li>`)
-                .join('');
+            if (!subs.length) {
+                list.innerHTML = `<li class="config-list-empty">Aucun sous-processus enregistré.</li>`;
+            } else {
+                const safeValue = escapeForAttribute(proc.value);
+                list.innerHTML = subs
+                    .map((sp, idx) => {
+                        const isEditing = this.activeSubProcessEdit && this.activeSubProcessEdit.process === proc.value && this.activeSubProcessEdit.index === idx;
+                        if (isEditing) {
+                            const editLabelId = `edit-sub-${procId}-${idx}-label`;
+                            const editValueId = `edit-sub-${procId}-${idx}-value`;
+                            return `
+                                <li class="config-item editing">
+                                    <div class="config-item-fields">
+                                        <input type="text" id="${editLabelId}" value="${sp.label}" placeholder="Libellé">
+                                        <input type="text" id="${editValueId}" value="${sp.value}" placeholder="Code interne">
+                                    </div>
+                                    <div class="config-item-actions">
+                                        <button class="config-icon-btn config-icon-btn--success" onclick="rms.saveSubProcessEdit('${safeValue}', ${idx})">💾 <span>Sauvegarder</span></button>
+                                        <button class="config-icon-btn" onclick="rms.cancelSubProcessEdit()">↩️ <span>Annuler</span></button>
+                                    </div>
+                                </li>
+                            `;
+                        }
+                        return `
+                            <li class="config-item">
+                                <div class="config-item-info">
+                                    <span class="config-item-label">${sp.label}</span>
+                                    <span class="config-item-value">${sp.value}</span>
+                                </div>
+                                <div class="config-item-actions">
+                                    <button class="config-icon-btn" onclick="rms.startSubProcessEdit('${safeValue}', ${idx})">✏️ <span>Modifier</span></button>
+                                    <button class="config-icon-btn config-icon-btn--danger" onclick="rms.removeSubProcess('${safeValue}', ${idx})">🗑️ <span>Supprimer</span></button>
+                                </div>
+                            </li>
+                        `;
+                    })
+                    .join('');
+            }
+
+            const counter = document.querySelector(`[data-subprocess-count='${procId}']`);
+            if (counter) {
+                counter.textContent = this.formatCountLabel(subs.length);
+            }
         });
     }
 
@@ -535,7 +893,10 @@ class RiskManagementSystem {
         if (!valueInput || !labelInput) return;
         const value = valueInput.value.trim();
         const label = labelInput.value.trim();
-        if (!value || !label) return;
+        if (!value || !label) {
+            showNotification('error', 'Merci de renseigner un libellé et un code interne.');
+            return;
+        }
         this.config.subProcesses[process] = this.config.subProcesses[process] || [];
         this.config.subProcesses[process].push({ value, label });
         this.saveConfig();
@@ -543,14 +904,30 @@ class RiskManagementSystem {
         this.refreshSubProcessLists();
         valueInput.value = '';
         labelInput.value = '';
+        this.markInputManual(`input-sub-${procId}-value`, false);
+        showNotification('success', `« ${label} » ajouté au processus « ${process} ».`);
     }
 
     removeSubProcess(process, index) {
         if (!this.config.subProcesses[process]) return;
-        this.config.subProcesses[process].splice(index, 1);
+        const removed = this.config.subProcesses[process].splice(index, 1)[0];
+        if (this.activeSubProcessEdit && this.activeSubProcessEdit.process === process && this.activeSubProcessEdit.index === index) {
+            this.activeSubProcessEdit = null;
+        }
+        this.risks.forEach(risk => {
+            if (risk.processus === process && risk.sousProcessus === (removed ? removed.value : '')) {
+                risk.sousProcessus = '';
+            }
+        });
+        this.saveData();
+        this.updateRisksList();
+        this.initializeMatrix();
         this.saveConfig();
         this.updateSousProcessusOptions();
         this.refreshSubProcessLists();
+        if (removed) {
+            showNotification('success', `Sous-processus « ${removed.label} » supprimé du processus « ${process} ».`);
+        }
     }
 
     updateSousProcessusOptions() {
