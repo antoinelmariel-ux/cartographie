@@ -751,57 +751,49 @@
 
                     <div class="form-section">
                         <div class="form-section-title">Évaluation du Risque</div>
-                        <div class="evaluation-cards">
-                            <div class="evaluation-card brut">
-                                <div class="evaluation-card-header" style="color: #e74c3c;">Risque Brut</div>
-                                <div class="evaluation-inputs">
-                                    <div class="form-group">
-                                        <label class="form-label">Probabilité</label>
-                                        <select class="form-select" id="probBrut" onchange="calculateScore('brut')">
-                                            <option value="1">1 - Très rare</option>
-                                            <option value="2">2 - Peu probable</option>
-                                            <option value="3">3 - Probable</option>
-                                            <option value="4">4 - Très probable</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Impact</label>
-                                        <select class="form-select" id="impactBrut" onchange="calculateScore('brut')">
-                                            <option value="1">1 - Mineur</option>
-                                            <option value="2">2 - Modéré</option>
-                                            <option value="3">3 - Majeur</option>
-                                            <option value="4">4 - Critique</option>
-                                        </select>
+                        <div class="risk-matrix-editor">
+                            <div class="risk-state-selector">
+                                <button type="button" class="state-btn active" data-state="brut" onclick="setActiveRiskState('brut')">Risque Brut</button>
+                                <button type="button" class="state-btn" data-state="net" onclick="setActiveRiskState('net')">Risque Net</button>
+                                <button type="button" class="state-btn" data-state="post" onclick="setActiveRiskState('post')">Post-mitigation</button>
+                            </div>
+                            <div class="risk-matrix-layout">
+                                <div class="edit-matrix-container">
+                                    <div class="matrix edit-matrix" id="riskMatrixEdit">
+                                        <div class="matrix-grid" id="riskMatrixEditGrid"></div>
+                                        <div class="axis-label x-axis">Impact →</div>
+                                        <div class="axis-label y-axis">Probabilité →</div>
                                     </div>
                                 </div>
-                                <div class="risk-score-display" id="scoreBrut">Score: 1</div>
-                            </div>
-
-                            <div class="evaluation-card net">
-                                <div class="evaluation-card-header" style="color: #f39c12;">Risque Net</div>
-                                <div class="evaluation-inputs">
-                                    <div class="form-group">
-                                        <label class="form-label">Probabilité</label>
-                                        <select class="form-select" id="probNet" onchange="calculateScore('net')">
-                                            <option value="1">1 - Très rare</option>
-                                            <option value="2">2 - Peu probable</option>
-                                            <option value="3">3 - Probable</option>
-                                            <option value="4">4 - Très probable</option>
-                                        </select>
-                                    </div>
-                                    <div class="form-group">
-                                        <label class="form-label">Impact</label>
-                                        <select class="form-select" id="impactNet" onchange="calculateScore('net')">
-                                            <option value="1">1 - Mineur</option>
-                                            <option value="2">2 - Modéré</option>
-                                            <option value="3">3 - Majeur</option>
-                                            <option value="4">4 - Critique</option>
-                                        </select>
+                                <div id="matrixDescription" class="matrix-description">
+                                    <div class="matrix-description-empty">
+                                        Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
                                     </div>
                                 </div>
-                                <div class="risk-score-display" id="scoreNet">Score: 1</div>
                             </div>
-
+                            <div class="risk-score-cards">
+                                <div class="risk-score-card brut active" data-state="brut">
+                                    <div class="risk-score-title">Risque Brut</div>
+                                    <div class="risk-score-value" id="scoreBrut">Score: 1</div>
+                                    <div class="risk-score-meta" id="coordBrut">P1 × I1</div>
+                                </div>
+                                <div class="risk-score-card net" data-state="net">
+                                    <div class="risk-score-title">Risque Net</div>
+                                    <div class="risk-score-value" id="scoreNet">Score: 1</div>
+                                    <div class="risk-score-meta" id="coordNet">P1 × I1</div>
+                                </div>
+                                <div class="risk-score-card post" data-state="post">
+                                    <div class="risk-score-title">Post-mitigation</div>
+                                    <div class="risk-score-value" id="scorePost">Score: 1</div>
+                                    <div class="risk-score-meta" id="coordPost">P1 × I1</div>
+                                </div>
+                            </div>
+                            <input type="hidden" id="probBrut" value="1">
+                            <input type="hidden" id="impactBrut" value="1">
+                            <input type="hidden" id="probNet" value="1">
+                            <input type="hidden" id="impactNet" value="1">
+                            <input type="hidden" id="probPost" value="1">
+                            <input type="hidden" id="impactPost" value="1">
                         </div>
                     </div>
 
@@ -829,33 +821,6 @@
                         </div>
                     </div>
 
-                    <div class="form-section" id="postMitigationSection" style="display: none;">
-                        <div class="form-section-title">Score post-mitigation</div>
-                        <div class="evaluation-card post-mitigation">
-                            <div class="evaluation-card-header" style="color: #27ae60;">Post-Mitigation</div>
-                            <div class="evaluation-inputs">
-                                <div class="form-group">
-                                    <label class="form-label">Probabilité</label>
-                                    <select class="form-select" id="probPost" onchange="calculateScore('post')">
-                                        <option value="1">1 - Très rare</option>
-                                        <option value="2">2 - Peu probable</option>
-                                        <option value="3">3 - Probable</option>
-                                        <option value="4">4 - Très probable</option>
-                                    </select>
-                                </div>
-                                <div class="form-group">
-                                    <label class="form-label">Impact</label>
-                                    <select class="form-select" id="impactPost" onchange="calculateScore('post')">
-                                        <option value="1">1 - Mineur</option>
-                                        <option value="2">2 - Modéré</option>
-                                        <option value="3">3 - Majeur</option>
-                                        <option value="4">4 - Critique</option>
-                                    </select>
-                                </div>
-                            </div>
-                            <div class="risk-score-display" id="scorePost">Score: 1</div>
-                        </div>
-                    </div>
                 </form>
             </div>
             <div class="modal-footer">
