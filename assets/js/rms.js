@@ -5,6 +5,23 @@ function sanitizeId(str) {
     return str.replace(/[^a-z0-9_-]/gi, '_');
 }
 
+// Convert URLs in text to clickable links while escaping HTML
+function linkify(text) {
+    if (!text) return '';
+
+    const escapedText = text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
+    const urlRegex = /(https?:\/\/[^\s]+)/g;
+    return escapedText.replace(urlRegex, url =>
+        `<a href="${url}" target="_blank" rel="noopener noreferrer">${url}</a>`
+    );
+}
+
 class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
@@ -883,7 +900,7 @@ class RiskManagementSystem {
                         ${control.status ? `<span class="control-status-badge ${control.status}">${statusMap[control.status] || control.status}</span>` : ''}
                     </div>
                     
-                    ${control.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${control.description}</div>` : ''}
+                    ${control.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${linkify(control.description)}</div>` : ''}
                     
                     <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
                         <strong>Risques couverts:</strong> ${coveredRisks}
@@ -937,7 +954,7 @@ class RiskManagementSystem {
                             <div class="control-type-badge">${plan.status || ''}</div>
                         </div>
                     </div>
-                    ${plan.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${plan.description}</div>` : ''}
+                    ${plan.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${linkify(plan.description)}</div>` : ''}
                     <div class="control-meta">
                         ${plan.owner ? `<div class="control-meta-item"><div class="control-meta-label">Propriétaire</div><div class="control-meta-value">${plan.owner}</div></div>` : ''}
                         ${plan.dueDate ? `<div class="control-meta-item"><div class="control-meta-label">Échéance</div><div class="control-meta-value">${plan.dueDate}</div></div>` : ''}
