@@ -8,9 +8,23 @@ Application de cartographie des risques corruption.
 - **Matrice des risques** : visualisation interactive des niveaux brut, net et post-mitigations.
 - **Liste des risques** : création, édition, suppression et filtrage des risques.
 - **Contrôles et mesures** : gestion des contrôles, association aux risques et suivi de l'efficacité.
-- **Rapports** : génération et export des données en PDF ou CSV.
+- **Plans d'actions** : suivi des plans associés aux risques et rappels sur les échéances.
+- **Import/Export** : export JSON/CSV, capture de la matrice, export PDF du tableau de bord et import depuis des fichiers externes.
 - **Historique** : suivi chronologique des actions effectuées.
 - **Configuration** : administration des options des listes déroulantes.
+
+### Répartition des modules JavaScript
+
+Le précédent fichier monolithique `assets/js/rms.js` a été découpé en modules plus ciblés :
+
+- `assets/js/rms.utils.js` : fonctions d'aide génériques (sanitisation d'identifiants, comparaison normalisée, incréments séquentiels).
+- `assets/js/rms.constants.js` : définitions partagées des libellés de probabilité/impact et de la configuration des états de risque.
+- `assets/js/rms.core.js` : classe `RiskManagementSystem`, jeux de données par défaut, persistance locale, rendu des écrans et logique métier centrale.
+- `assets/js/rms.ui.js` : interactions DOM, gestion des formulaires risques/contrôles/plans d'action, filtres et notifications utilisateur.
+- `assets/js/rms.matrix.js` : comportement de la matrice d'édition (drag & drop, calculs de score, mise en forme contextuelle).
+- `assets/js/rms.integrations.js` : fonctionnalités avancées (import/export JSON/CSV/PNG/PDF, correctifs hérités et gestion enrichie des contrôles).
+
+`assets/js/main.js` reste le point d'entrée : il instancie `RiskManagementSystem`, expose l'instance via `setRms`, lie les événements globaux et déclenche le rendu initial.
 
 ## Utilisation hors-ligne
 
