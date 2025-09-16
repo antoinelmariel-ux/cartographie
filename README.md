@@ -27,3 +27,12 @@ Toutes les dépendances sont chargées localement, l'application peut donc fonct
 ## Configuration
 
 L'onglet **Configuration** permet d'ajouter ou de supprimer les valeurs utilisées dans les listes déroulantes des formulaires (processus, types de risque, statuts, etc.). Les modifications sont conservées dans le navigateur grâce au stockage local.
+
+## Tests manuels
+
+### Export CSV avec un registre vide
+
+1. Ouvrez `CartoModel.html` dans votre navigateur.
+2. Accédez à l'onglet **Registre des Risques** et supprimez tous les risques afin que la table soit vide.
+3. Cliquez sur le bouton "📤 Exporter" du registre.
+4. Vérifiez qu'une notification "Aucune donnée disponible pour l'export CSV." s'affiche, qu'aucun fichier n'est téléchargé et qu'aucune erreur n'apparaît dans la console du navigateur.

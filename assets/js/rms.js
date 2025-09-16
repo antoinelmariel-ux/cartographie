@@ -1211,21 +1211,65 @@ class RiskManagementSystem {
         } else if (format === 'csv') {
             // CSV export implementation
             const csv = this.convertToCSV(this.risks);
+
+            if (!csv) {
+                showNotification('warning', "Aucune donnée disponible pour l'export CSV.");
+                return;
+            }
+
             const blob = new Blob([csv], { type: 'text/csv' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
             a.download = `risks_${new Date().toISOString().split('T')[0]}.csv`;
             a.click();
+            URL.revokeObjectURL(url);
         }
-        
+
         showNotification('success', 'Export réussi!');
     }
 
     convertToCSV(data) {
-        const headers = Object.keys(data[0]).join(',');
-        const rows = data.map(row => Object.values(row).join(','));
-        return [headers, ...rows].join('\n');
+        if (!Array.isArray(data) || data.length === 0) {
+            return '';
+        }
+
+        const headerSet = new Set();
+        data.forEach(item => {
+            if (item && typeof item === 'object' && !Array.isArray(item)) {
+                Object.keys(item).forEach(key => headerSet.add(key));
+            }
+        });
+
+        const headers = Array.from(headerSet);
+        if (headers.length === 0) {
+            return '';
+        }
+
+        const escapeValue = (value) => {
+            if (value === null || value === undefined) {
+                return '';
+            }
+
+            let stringValue;
+            if (Array.isArray(value)) {
+                stringValue = value.join('; ');
+            } else if (typeof value === 'object') {
+                stringValue = JSON.stringify(value);
+            } else {
+                stringValue = String(value);
+            }
+
+            const shouldQuote = /[",\n\r]/.test(stringValue);
+            const escapedValue = stringValue.replace(/"/g, '""');
+            return shouldQuote ? `"${escapedValue}"` : escapedValue;
+        };
+
+        const rows = data.map(row => {
+            return headers.map(header => escapeValue(row ? row[header] : undefined)).join(',');
+        });
+
+        return [headers.join(','), ...rows].join('\n');
     }
 }
 
