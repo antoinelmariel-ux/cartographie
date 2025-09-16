@@ -88,6 +88,27 @@ class RiskManagementSystem {
         this.actionPlans = this.loadData('actionPlans') || [];
         this.history = this.loadData('history') || [];
         this.config = this.loadConfig() || this.getDefaultConfig();
+        let configStructureUpdated = false;
+        if (!this.config.subProcesses || typeof this.config.subProcesses !== 'object' || Array.isArray(this.config.subProcesses)) {
+            this.config.subProcesses = {};
+            configStructureUpdated = true;
+        }
+        if (Array.isArray(this.config.processes)) {
+            this.config.processes.forEach(process => {
+                if (!process || !process.value) return;
+                if (!Array.isArray(this.config.subProcesses[process.value])) {
+                    this.config.subProcesses[process.value] = [];
+                    configStructureUpdated = true;
+                }
+            });
+        } else {
+            this.config.processes = [];
+            configStructureUpdated = true;
+        }
+        if (configStructureUpdated) {
+            this.saveConfig();
+        }
+        this.needsConfigStructureRerender = configStructureUpdated;
         this.currentView = 'brut';
         this.currentTab = 'dashboard';
         this.filters = {
@@ -108,6 +129,10 @@ class RiskManagementSystem {
     init() {
         this.populateSelects();
         this.renderAll();
+        if (this.needsConfigStructureRerender) {
+            this.renderConfiguration();
+            this.needsConfigStructureRerender = false;
+        }
         this.saveData();
         this.updateLastSaveTime();
 
@@ -879,6 +904,9 @@ class RiskManagementSystem {
         const value = valueInput.value.trim();
         const label = labelInput.value.trim();
         if (!value || !label) return;
+        if (!this.config.subProcesses || typeof this.config.subProcesses !== 'object' || Array.isArray(this.config.subProcesses)) {
+            this.config.subProcesses = {};
+        }
         this.config.subProcesses[process] = this.config.subProcesses[process] || [];
         this.config.subProcesses[process].push({ value, label });
         this.saveConfig();
