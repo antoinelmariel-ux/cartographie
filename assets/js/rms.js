@@ -103,17 +103,25 @@ class RiskManagementSystem {
 
     init() {
         this.populateSelects();
+        this.renderAll();
+        this.saveData();
+        this.updateLastSaveTime();
+
+        // Auto-save every 30 seconds
+        setInterval(() => this.autoSave(), 30000);
+    }
+
+    renderAll() {
         this.initializeMatrix();
         this.updateDashboard();
         this.updateRisksList();
         this.updateControlsList();
         this.updateActionPlansList();
         this.updateHistory();
-        this.saveData();
-        this.updateLastSaveTime();
-        
-        // Auto-save every 30 seconds
-        setInterval(() => this.autoSave(), 30000);
+
+        if (this.currentTab === 'config') {
+            this.renderConfiguration();
+        }
     }
 
     getDefaultRisks() {
@@ -1229,46 +1237,48 @@ function setRms(instance) {
 }
 
 // Global functions for HTML event handlers
-function switchTab(tabName) {
+function switchTab(tabNameOrEvent, maybeTabName) {
+    let tabName = tabNameOrEvent;
+    let evt = null;
+
+    if (typeof tabNameOrEvent === 'object' && tabNameOrEvent !== null && !(tabNameOrEvent instanceof String)) {
+        evt = tabNameOrEvent;
+        tabName = maybeTabName;
+    } else {
+        evt = window.event || null;
+    }
+
+    if (typeof tabName !== 'string' || !tabName) {
+        return;
+    }
+
     // Hide all tabs
     document.querySelectorAll('.tab-content').forEach(tab => {
         tab.classList.remove('active');
     });
-    
+
     // Remove active class from all tab buttons
     document.querySelectorAll('.tab').forEach(btn => {
         btn.classList.remove('active');
     });
-    
+
     // Show selected tab
     const selectedTab = document.getElementById(`${tabName}-tab`);
     if (selectedTab) {
         selectedTab.classList.add('active');
     }
-    
-    // Add active class to clicked button
-    const evt = window.event;
-    evt && evt.target.classList.add('active');
-    
+
+    // Add active class to clicked button or fallback to matching button
+    if (evt && evt.target) {
+        evt.target.classList.add('active');
+    } else {
+        const fallbackButton = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
+        fallbackButton && fallbackButton.classList.add('active');
+    }
+
     if (rms) {
         rms.currentTab = tabName;
-        
-        // Update relevant content based on tab
-        if (tabName === 'matrix') {
-            rms.initializeMatrix();
-        } else if (tabName === 'dashboard') {
-            rms.updateDashboard();
-        } else if (tabName === 'risks') {
-            rms.updateRisksList();
-        } else if (tabName === 'controls') {
-            rms.updateControlsList();
-        } else if (tabName === 'plans') {
-            rms.updateActionPlansList();
-        } else if (tabName === 'history') {
-            rms.updateHistory();
-        } else if (tabName === 'config') {
-            rms.renderConfiguration();
-        }
+        rms.renderAll();
     }
 }
 window.switchTab = switchTab;
@@ -1804,8 +1814,7 @@ function saveRisk() {
         });
 
         rms.saveData();
-        rms.updateControlsList();
-        rms.updateActionPlansList();
+        rms.renderAll();
         closeModal('riskModal');
         showNotification('success', 'Risque ajouté avec succès!');
     }
@@ -2041,9 +2050,7 @@ function deleteActionPlan(planId) {
         }
     });
     rms.saveData();
-    rms.updateActionPlansList();
-    rms.updateRisksList();
-    rms.updateDashboard();
+    rms.renderAll();
     showNotification('success', `Plan "${title}" supprimé`);
 }
 window.deleteActionPlan = deleteActionPlan;
@@ -2098,9 +2105,7 @@ function saveActionPlan() {
 
     lastActionPlanData = { ...planData };
     rms.saveData();
-    rms.updateActionPlansList();
-    rms.updateRisksList();
-    rms.updateDashboard();
+    rms.renderAll();
     closeActionPlanModal();
 }
 window.saveActionPlan = saveActionPlan;
@@ -2219,7 +2224,7 @@ window.generateReport = generateReport;
 
 function refreshDashboard() {
     if (rms) {
-        rms.updateDashboard();
+        rms.renderAll();
         showNotification('success', 'Tableau de bord actualisé');
     }
 }
