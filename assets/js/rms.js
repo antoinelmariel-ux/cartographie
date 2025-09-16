@@ -5,6 +5,10 @@ function sanitizeId(str) {
     return str.replace(/[^a-z0-9_-]/gi, '_');
 }
 
+function idsEqual(a, b) {
+    return String(a) === String(b);
+}
+
 const RISK_PROBABILITY_INFO = {
     1: {
         label: 'Très rare',
@@ -1049,17 +1053,18 @@ class RiskManagementSystem {
     }
 
     selectRisk(riskId) {
-        const risk = this.risks.find(r => r.id === riskId);
+        const targetId = String(riskId);
+        const risk = this.risks.find(r => idsEqual(r.id, targetId));
         if (!risk) return;
-        
+
         // Update selected state in details panel
         document.querySelectorAll('.risk-item').forEach(item => {
             item.classList.remove('selected');
-            if (item.dataset.riskId == riskId) {
+            if (idsEqual(item.dataset.riskId, targetId)) {
                 item.classList.add('selected');
             }
         });
-        
+
         // Show risk details
         this.showRiskDetails(risk);
     }
@@ -1096,7 +1101,7 @@ class RiskManagementSystem {
             
             const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
             return `
-                <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${risk.id})">
+                <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
                     <div class="risk-item-header">
                         <span class="risk-item-title">${risk.description}</span>
                         <span class="risk-item-score ${scoreClass}">${score}</span>
@@ -1168,8 +1173,8 @@ class RiskManagementSystem {
                     <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
                     <td>${owner}</td>
                     <td class="table-actions-cell">
-                        <button class="action-btn" onclick="rms.selectRisk(${risk.id})">👁️</button>
-                        <button class="action-btn" onclick="rms.editRisk(${risk.id})">✏️</button>
+                        <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
+                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
                     </td>
                 </tr>
             `;
@@ -1222,8 +1227,8 @@ class RiskManagementSystem {
                 <td><span class="table-badge badge-${risk.statut === 'traite' ? 'success' : risk.statut === 'en-cours' ? 'warning' : 'danger'}">${risk.statut}</span></td>
                 <td>${risk.responsable}</td>
                 <td class="table-actions-cell">
-                    <button class="action-btn" onclick="rms.editRisk(${risk.id})">✏️</button>
-                    <button class="action-btn" onclick="rms.deleteRisk(${risk.id})">🗑️</button>
+                    <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                    <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
                 </td>
             </tr>
         `).join('');
@@ -1394,10 +1399,11 @@ class RiskManagementSystem {
     }
 
     editRisk(riskId) {
-        const risk = this.risks.find(r => r.id === riskId);
+        const targetId = String(riskId);
+        const risk = this.risks.find(r => idsEqual(r.id, targetId));
         if (!risk) return;
 
-        currentEditingRiskId = riskId;
+        currentEditingRiskId = risk.id;
 
         const form = document.getElementById('riskForm');
         if (form) {
@@ -1440,8 +1446,8 @@ class RiskManagementSystem {
 
     deleteRisk(riskId) {
         if (!confirm('Êtes-vous sûr de vouloir supprimer ce risque?')) return;
-        
-        const index = this.risks.findIndex(r => r.id === riskId);
+
+        const index = this.risks.findIndex(r => idsEqual(r.id, riskId));
         if (index > -1) {
             const risk = this.risks[index];
             this.risks.splice(index, 1);
@@ -2060,7 +2066,8 @@ function saveRisk() {
     }
 
     if (currentEditingRiskId) {
-        const riskIndex = rms.risks.findIndex(r => r.id === currentEditingRiskId);
+        const targetId = String(currentEditingRiskId);
+        const riskIndex = rms.risks.findIndex(r => idsEqual(r.id, targetId));
         if (riskIndex !== -1) {
             rms.risks[riskIndex] = { ...rms.risks[riskIndex], ...formData };
 
@@ -2068,22 +2075,22 @@ function saveRisk() {
             rms.controls.forEach(control => {
                 control.risks = control.risks || [];
                 if (selectedControlsForRisk.includes(control.id)) {
-                    if (!control.risks.includes(currentEditingRiskId)) {
-                        control.risks.push(currentEditingRiskId);
+                    if (!control.risks.some(id => idsEqual(id, targetId))) {
+                        control.risks.push(rms.risks[riskIndex].id);
                     }
                 } else {
-                    control.risks = control.risks.filter(id => id !== currentEditingRiskId);
+                    control.risks = control.risks.filter(id => !idsEqual(id, targetId));
                 }
             });
 
             rms.actionPlans.forEach(plan => {
                 plan.risks = plan.risks || [];
                 if (selectedActionPlansForRisk.includes(plan.id)) {
-                    if (!plan.risks.includes(currentEditingRiskId)) {
-                        plan.risks.push(currentEditingRiskId);
+                    if (!plan.risks.some(id => idsEqual(id, targetId))) {
+                        plan.risks.push(rms.risks[riskIndex].id);
                     }
                 } else {
-                    plan.risks = plan.risks.filter(id => id !== currentEditingRiskId);
+                    plan.risks = plan.risks.filter(id => !idsEqual(id, targetId));
                 }
             });
 
@@ -2397,7 +2404,7 @@ function saveActionPlan() {
         const newPlan = { id: Date.now(), ...planData };
         rms.actionPlans.push(newPlan);
         planData.risks.forEach(rid => {
-            const risk = rms.risks.find(r => r.id === rid);
+            const risk = rms.risks.find(r => idsEqual(r.id, rid));
             if (risk) {
                 risk.actionPlans = risk.actionPlans || [];
                 if (!risk.actionPlans.includes(newPlan.id)) risk.actionPlans.push(newPlan.id);
@@ -2430,11 +2437,11 @@ function renderRiskSelectionListForPlan() {
         const title = (risk.titre || risk.description || '').toLowerCase();
         return String(risk.id).includes(query) || title.includes(query);
     }).map(risk => {
-        const isSelected = selectedRisksForPlan.includes(risk.id);
+        const isSelected = selectedRisksForPlan.some(id => idsEqual(id, risk.id));
         const title = risk.titre || risk.description || 'Sans titre';
         return `
             <div class="risk-list-item">
-              <input type="checkbox" id="plan-risk-${risk.id}" ${isSelected ? 'checked' : ''} onchange="toggleRiskSelectionForPlan(${risk.id})">
+              <input type="checkbox" id="plan-risk-${risk.id}" ${isSelected ? 'checked' : ''} onchange="toggleRiskSelectionForPlan(${JSON.stringify(risk.id)})">
               <div class="risk-item-info">
                 <div class="risk-item-title">#${risk.id} - ${title}</div>
                 <div class="risk-item-meta">Processus: ${risk.processus}${risk.sousProcessus ? ` > ${risk.sousProcessus}` : ''} | Type: ${risk.typeCorruption}</div>
@@ -2454,7 +2461,8 @@ function closeRiskSelectorForPlan() {
 window.closeRiskSelectorForPlan = closeRiskSelectorForPlan;
 
 function toggleRiskSelectionForPlan(riskId) {
-    const index = selectedRisksForPlan.indexOf(riskId);
+    const targetId = String(riskId);
+    const index = selectedRisksForPlan.findIndex(id => idsEqual(id, targetId));
     if (index > -1) {
         selectedRisksForPlan.splice(index, 1);
     } else {
@@ -2477,20 +2485,20 @@ function updateSelectedRisksForPlanDisplay() {
         return;
     }
     container.innerHTML = selectedRisksForPlan.map(riskId => {
-        const risk = rms.risks.find(r => r.id === riskId);
+        const risk = rms.risks.find(r => idsEqual(r.id, riskId));
         if (!risk) return '';
         const title = risk.titre || risk.description || 'Sans titre';
         return `
             <div class="selected-risk-item">
               #${risk.id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
-              <span class="remove-risk" onclick="removeRiskFromPlanSelection(${riskId})">×</span>
+              <span class="remove-risk" onclick="removeRiskFromPlanSelection(${JSON.stringify(riskId)})">×</span>
             </div>`;
     }).join('');
 }
 window.updateSelectedRisksForPlanDisplay = updateSelectedRisksForPlanDisplay;
 
 function removeRiskFromPlanSelection(riskId) {
-    selectedRisksForPlan = selectedRisksForPlan.filter(id => id !== riskId);
+    selectedRisksForPlan = selectedRisksForPlan.filter(id => !idsEqual(id, riskId));
     updateSelectedRisksForPlanDisplay();
 }
 window.removeRiskFromPlanSelection = removeRiskFromPlanSelection;
@@ -3028,12 +3036,12 @@ function applyPatch() {
           const title = (risk.titre || risk.description || '').toLowerCase();
           return String(risk.id).includes(query) || title.includes(query);
         }).map(risk => {
-          const isSelected = selectedRisksForControl.includes(risk.id);
+          const isSelected = selectedRisksForControl.some(id => idsEqual(id, risk.id));
           const title = risk.titre || risk.description || 'Sans titre';
           return `
             <div class="risk-list-item">
               <input type="checkbox" id="risk-${risk.id}" ${isSelected ? 'checked' : ''}
-                     onchange="toggleRiskSelection(${risk.id})">
+                     onchange="toggleRiskSelection(${JSON.stringify(risk.id)})">
               <div class="risk-item-info">
                 <div class="risk-item-title">#${risk.id} - ${title}</div>
                 <div class="risk-item-meta">
@@ -3057,7 +3065,8 @@ function applyPatch() {
     
       // Toggle risk selection
       window.toggleRiskSelection = function(riskId) {
-        const index = selectedRisksForControl.indexOf(riskId);
+        const targetId = String(riskId);
+        const index = selectedRisksForControl.findIndex(id => idsEqual(id, targetId));
         if (index > -1) {
           selectedRisksForControl.splice(index, 1);
         } else {
@@ -3081,22 +3090,22 @@ function applyPatch() {
         }
     
         container.innerHTML = selectedRisksForControl.map(riskId => {
-          const risk = state.risks.find(r => r.id === riskId);
+          const risk = state.risks.find(r => idsEqual(r.id, riskId));
           if (!risk) return '';
-          
+
           const title = risk.titre || risk.description || 'Sans titre';
           return `
             <div class="selected-risk-item">
               #${risk.id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
-              <span class="remove-risk" onclick="removeRiskFromSelection(${riskId})">×</span>
+              <span class="remove-risk" onclick="removeRiskFromSelection(${JSON.stringify(riskId)})">×</span>
             </div>
           `;
         }).join('');
       }
-    
+
       // Remove risk from selection
       window.removeRiskFromSelection = function(riskId) {
-        selectedRisksForControl = selectedRisksForControl.filter(id => id !== riskId);
+        selectedRisksForControl = selectedRisksForControl.filter(id => !idsEqual(id, riskId));
         updateSelectedRisksDisplay();
       };
     
