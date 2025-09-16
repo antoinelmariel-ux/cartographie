@@ -1058,15 +1058,44 @@ class RiskManagementSystem {
         if (!risk) return;
 
         // Update selected state in details panel
+        let selectedElement = null;
         document.querySelectorAll('.risk-item').forEach(item => {
             item.classList.remove('selected');
             if (idsEqual(item.dataset.riskId, targetId)) {
                 item.classList.add('selected');
+                selectedElement = item;
             }
         });
 
+        if (selectedElement) {
+            this.scrollRiskItemIntoView(selectedElement);
+        }
+
         // Show risk details
         this.showRiskDetails(risk);
+    }
+
+    scrollRiskItemIntoView(element) {
+        if (!element) return;
+
+        const scrollContainer = element.closest('.risk-details-panel');
+        if (scrollContainer) {
+            const containerRect = scrollContainer.getBoundingClientRect();
+            const targetRect = element.getBoundingClientRect();
+            const offset = targetRect.top - containerRect.top + scrollContainer.scrollTop;
+            const desiredTop = Math.max(offset - (scrollContainer.clientHeight / 2) + (element.offsetHeight / 2), 0);
+
+            if (typeof scrollContainer.scrollTo === 'function') {
+                scrollContainer.scrollTo({
+                    top: desiredTop,
+                    behavior: 'smooth'
+                });
+            } else {
+                scrollContainer.scrollTop = desiredTop;
+            }
+        } else if (typeof element.scrollIntoView === 'function') {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }
     }
 
     showRiskDetails(risk) {
@@ -1079,26 +1108,40 @@ class RiskManagementSystem {
         if (!container) return;
         
         const filteredRisks = this.getFilteredRisks();
-        
-        container.innerHTML = filteredRisks.map(risk => {
-            let prob, impact;
-            if (this.currentView === 'brut') {
-                prob = risk.probBrut;
-                impact = risk.impactBrut;
-            } else if (this.currentView === 'net') {
-                prob = risk.probNet;
-                impact = risk.impactNet;
-            } else {
-                prob = risk.probPost;
-                impact = risk.impactPost;
-            }
-            
-            const score = prob * impact;
+        const viewConfig = {
+            'brut': { prob: 'probBrut', impact: 'impactBrut' },
+            'net': { prob: 'probNet', impact: 'impactNet' },
+            'post': { prob: 'probPost', impact: 'impactPost' },
+            'post-mitigation': { prob: 'probPost', impact: 'impactPost' }
+        };
+        const { prob: probKey, impact: impactKey } = viewConfig[this.currentView] || viewConfig['brut'];
+
+        const scoredRisks = filteredRisks.map(risk => {
+            const prob = Number(risk[probKey]) || 0;
+            const impact = Number(risk[impactKey]) || 0;
+            return {
+                risk,
+                prob,
+                impact,
+                score: prob * impact
+            };
+        }).sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (b.prob !== a.prob) return b.prob - a.prob;
+            if (b.impact !== a.impact) return b.impact - a.impact;
+
+            const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
+            if (descComparison !== 0) return descComparison;
+
+            return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        container.innerHTML = scoredRisks.map(({ risk, score }) => {
             let scoreClass = 'low';
             if (score > 12) scoreClass = 'critical';
             else if (score > 8) scoreClass = 'high';
             else if (score > 4) scoreClass = 'medium';
-            
+
             const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
             return `
                 <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
