@@ -352,6 +352,7 @@ class RiskManagementSystem {
                 { value: 'nouveau', label: 'Nouveau' },
                 { value: 'en-cours', label: 'En cours de traitement' },
                 { value: 'traite', label: 'Traité' },
+                { value: 'validé', label: 'Validé' },
                 { value: 'archive', label: 'Archivé' }
             ],
             controlTypes: [
@@ -420,6 +421,7 @@ class RiskManagementSystem {
         fill('processus', this.config.processes, 'Sélectionner...');
         this.updateSousProcessusOptions();
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
+        fill('statut', this.config.riskStatuses, 'Sélectionner...');
         fill('tiers', this.config.tiers);
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -1437,7 +1439,7 @@ class RiskManagementSystem {
             id: getNextSequentialId(this.risks),
             ...riskData,
             dateCreation: new Date().toISOString(),
-            statut: 'nouveau'
+            statut: riskData.statut || 'nouveau'
         };
 
         this.risks.push(newRisk);
@@ -1462,6 +1464,24 @@ class RiskManagementSystem {
             this.updateSousProcessusOptions();
             document.getElementById('sousProcessus').value = risk.sousProcessus || '';
             document.getElementById('typeCorruption').value = risk.typeCorruption || '';
+            const statutSelect = document.getElementById('statut');
+            if (statutSelect) {
+                const defaultStatus = this.config?.riskStatuses?.[0]?.value || '';
+                const statusToApply = risk.statut || defaultStatus;
+                if (statusToApply) {
+                    const normalized = String(statusToApply);
+                    const hasOption = Array.from(statutSelect.options).some(opt => opt.value === normalized);
+                    if (!hasOption) {
+                        const option = document.createElement('option');
+                        option.value = normalized;
+                        option.textContent = normalized;
+                        statutSelect.appendChild(option);
+                    }
+                    statutSelect.value = normalized;
+                } else {
+                    statutSelect.value = '';
+                }
+            }
 
             const tiersSelect = document.getElementById('tiers');
             Array.from(tiersSelect.options).forEach(opt => {
