@@ -1818,6 +1818,28 @@ class RiskManagementSystem {
             this.charts = {};
         }
 
+        const filteredRisks = this.getFilteredRisks();
+        const processMetrics = filteredRisks.reduce((acc, risk) => {
+            const rawLabel = risk?.processus;
+            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
+            if (!acc[label]) {
+                acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
+            }
+
+            const probNet = Number(risk?.probNet) || 0;
+            const impactNet = Number(risk?.impactNet) || 0;
+            const score = probNet * impactNet;
+
+            acc[label].count += 1;
+            acc[label].totalScore += score;
+            acc[label].maxScore = Math.max(acc[label].maxScore, score);
+            return acc;
+        }, {});
+
+        if (Object.keys(processMetrics).length === 0) {
+            processMetrics['Aucun risque'] = { count: 0, totalScore: 0, maxScore: 0 };
+        }
+
         const evolutionCanvas = document.getElementById('evolutionChart');
         if (evolutionCanvas) {
             const now = new Date();
@@ -1950,19 +1972,8 @@ class RiskManagementSystem {
 
         const processCanvas = document.getElementById('processChart');
         if (processCanvas) {
-            const processCounts = this.risks.reduce((acc, risk) => {
-                const process = risk?.processus || 'Non défini';
-                acc[process] = (acc[process] || 0) + 1;
-                return acc;
-            }, {});
-
-            const processLabels = Object.keys(processCounts);
-            if (processLabels.length === 0) {
-                processLabels.push('Aucun risque');
-                processCounts['Aucun risque'] = 0;
-            }
-
-            const dataValues = processLabels.map(label => processCounts[label]);
+            const processLabels = Object.keys(processMetrics);
+            const dataValues = processLabels.map(label => processMetrics[label].count);
             const palette = [
                 'rgba(52, 152, 219, 0.8)',
                 'rgba(46, 204, 113, 0.8)',
@@ -2010,6 +2021,125 @@ class RiskManagementSystem {
                     data: processData,
                     options: processOptions
                 });
+            }
+        }
+
+        const severityCanvas = document.getElementById('processSeverityChart');
+        const summaryElement = document.getElementById('processChartSummary');
+        if (severityCanvas || summaryElement) {
+            const severityEntries = Object.entries(processMetrics).map(([label, metrics]) => {
+                const count = metrics.count || 0;
+                const average = count > 0 ? metrics.totalScore / count : 0;
+                const maxScore = metrics.maxScore || 0;
+                return { label, count, average, maxScore };
+            });
+
+            const sortedSeverityEntries = severityEntries.slice().sort((a, b) => {
+                if (b.average !== a.average) return b.average - a.average;
+                if (b.maxScore !== a.maxScore) return b.maxScore - a.maxScore;
+                return a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' });
+            });
+
+            if (severityCanvas) {
+                const maxTheoreticalScore = 16;
+                const colorScale = sortedSeverityEntries.map(entry => {
+                    const ratio = Math.min(Math.max(entry.average / maxTheoreticalScore, 0), 1);
+                    const r = Math.round(241 + (192 - 241) * ratio);
+                    const g = Math.round(196 + (57 - 196) * ratio);
+                    const b = Math.round(15 + (43 - 15) * ratio);
+                    return {
+                        background: `rgba(${r}, ${g}, ${b}, 0.85)`,
+                        border: `rgba(${r}, ${g}, ${b}, 1)`
+                    };
+                });
+
+                const severityData = {
+                    labels: sortedSeverityEntries.map(entry => entry.label),
+                    datasets: [
+                        {
+                            data: sortedSeverityEntries.map(entry => Number(entry.average.toFixed(2))),
+                            backgroundColor: colorScale.map(color => color.background),
+                            borderColor: colorScale.map(color => color.border),
+                            borderWidth: 1,
+                            metadata: sortedSeverityEntries
+                        }
+                    ]
+                };
+
+                const severityOptions = {
+                    indexAxis: 'y',
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        x: {
+                            beginAtZero: true,
+                            suggestedMax: maxTheoreticalScore,
+                            ticks: {
+                                stepSize: 2
+                            },
+                            title: {
+                                display: true,
+                                text: 'Score net moyen'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (context) => {
+                                    const entry = context?.dataset?.metadata?.[context.dataIndex];
+                                    if (!entry) {
+                                        return context.formattedValue || '';
+                                    }
+                                    const average = entry.average.toFixed(1).replace('.', ',');
+                                    const maxScore = entry.maxScore.toFixed(1).replace('.', ',');
+                                    const risksLabel = entry.count > 1 ? 'risques' : 'risque';
+                                    return `${average} • ${entry.count} ${risksLabel} • Max ${maxScore}`;
+                                }
+                            }
+                        }
+                    }
+                };
+
+                const computedHeight = Math.max(200, sortedSeverityEntries.length * 48);
+                if (severityCanvas.height !== computedHeight) {
+                    severityCanvas.height = computedHeight;
+                }
+
+                if (this.charts.processSeverity) {
+                    const chart = this.charts.processSeverity;
+                    chart.data.labels = severityData.labels;
+                    chart.data.datasets = severityData.datasets;
+                    chart.options = severityOptions;
+                    chart.update();
+                } else {
+                    this.charts.processSeverity = new Chart(severityCanvas, {
+                        type: 'bar',
+                        data: severityData,
+                        options: severityOptions
+                    });
+                }
+            }
+
+            if (summaryElement) {
+                const totalCount = sortedSeverityEntries.reduce((sum, entry) => sum + entry.count, 0);
+                const nonZeroEntries = sortedSeverityEntries.filter(entry => entry.count > 0);
+                const formatScore = (value) => value.toFixed(1).replace('.', ',');
+
+                if (!totalCount || nonZeroEntries.length === 0) {
+                    summaryElement.textContent = 'Aucun risque filtré à analyser.';
+                } else if (nonZeroEntries.length === 1) {
+                    const [top] = nonZeroEntries;
+                    summaryElement.textContent = `Le processus ${top.label} concentre 100 % des risques filtrés avec un score net moyen de ${formatScore(top.average)}.`;
+                } else {
+                    const [first, second] = nonZeroEntries;
+                    const shareCount = nonZeroEntries.slice(0, 2).reduce((sum, entry) => sum + entry.count, 0);
+                    const share = Math.round((shareCount / totalCount) * 100);
+                    summaryElement.textContent = `Les processus ${first.label} et ${second.label} concentrent ${share}% des risques filtrés avec des scores nets moyens de ${formatScore(first.average)} et ${formatScore(second.average)}.`;
+                }
             }
         }
     }

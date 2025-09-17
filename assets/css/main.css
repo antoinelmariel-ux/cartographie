@@ -892,7 +892,7 @@ body {
 /* Charts container */
 .charts-row {
     display: grid;
-    grid-template-columns: 2fr 1fr;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
     gap: 20px;
     margin-bottom: 20px;
 }
@@ -909,6 +909,48 @@ body {
     font-weight: 600;
     color: #2c3e50;
     margin-bottom: 15px;
+}
+
+.chart-subtitle {
+    font-size: 0.85em;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #7f8c8d;
+    margin-bottom: 10px;
+}
+
+.process-chart-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.process-chart-card {
+    background: #f9fbfd;
+    border: 1px solid #ecf0f1;
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.process-chart-card canvas {
+    width: 100%;
+}
+
+.chart-comment {
+    font-size: 0.95em;
+    color: #34495e;
+    font-weight: 500;
+    border-top: 1px solid #ecf0f1;
+    padding-top: 12px;
+}
+
+@media (min-width: 992px) {
+    .process-chart-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
 }
 
 /* Table améliorée */
