@@ -420,31 +420,41 @@ class RiskManagementSystem {
     }
 
     populateSelects() {
-        const fill = (id, options, placeholder) => {
-            const el = document.getElementById(id);
-            if (!el) return;
-            const current = el.value;
-            el.innerHTML = '';
-            if (placeholder !== undefined) {
-                const opt = document.createElement('option');
-                opt.value = '';
-                opt.textContent = placeholder;
-                el.appendChild(opt);
-            }
-            options.forEach(o => {
-                const opt = document.createElement('option');
-                opt.value = o.value;
-                opt.textContent = o.label;
-                el.appendChild(opt);
+        const fill = (ids, options, placeholder) => {
+            const targetIds = Array.isArray(ids) ? ids : [ids];
+            const optionList = Array.isArray(options) ? options : [];
+
+            targetIds.forEach(id => {
+                const el = document.getElementById(id);
+                if (!el) return;
+
+                const current = el.value;
+                el.innerHTML = '';
+
+                if (placeholder !== undefined) {
+                    const opt = document.createElement('option');
+                    opt.value = '';
+                    opt.textContent = placeholder;
+                    el.appendChild(opt);
+                }
+
+                optionList.forEach(o => {
+                    if (!o || typeof o !== 'object') return;
+                    const opt = document.createElement('option');
+                    opt.value = o.value;
+                    opt.textContent = o.label;
+                    el.appendChild(opt);
+                });
+
+                if (current && optionList.some(o => o && o.value === current)) {
+                    el.value = current;
+                }
             });
-            if (current && options.some(o => o.value === current)) {
-                el.value = current;
-            }
         };
 
-        fill('processFilter', this.config.processes, 'Tous les processus');
-        fill('riskTypeFilter', this.config.riskTypes, 'Tous les types');
-        fill('statusFilter', this.config.riskStatuses, 'Tous les statuts');
+        fill(['matrixProcessFilter', 'risksProcessFilter'], this.config.processes, 'Tous les processus');
+        fill(['matrixRiskTypeFilter', 'risksTypeFilter'], this.config.riskTypes, 'Tous les types');
+        fill(['matrixStatusFilter', 'risksStatusFilter'], this.config.riskStatuses, 'Tous les statuts');
         fill('processus', this.config.processes, 'Sélectionner...');
         this.updateSousProcessusOptions();
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
@@ -496,6 +506,35 @@ class RiskManagementSystem {
         syncFilterValue('owner', this.actionPlanFilters?.owner || '', { attribute: 'data-action-plan-filter' });
         syncFilterValue('status', this.actionPlanFilters?.status || '', { attribute: 'data-action-plan-filter' });
         syncFilterValue('dueDateOrder', this.actionPlanFilters?.dueDateOrder || '', { attribute: 'data-action-plan-filter' });
+
+        const riskFilterSync = typeof window !== 'undefined' && typeof window.syncRiskFilterWidgets === 'function'
+            ? window.syncRiskFilterWidgets
+            : null;
+
+        if (riskFilterSync) {
+            Object.entries(this.filters).forEach(([key, value]) => {
+                riskFilterSync(key, value, null);
+            });
+        } else if (typeof document !== 'undefined') {
+            document.querySelectorAll('[data-risk-filter]').forEach(element => {
+                const key = element.dataset?.riskFilter;
+                if (!key || !(key in this.filters)) {
+                    return;
+                }
+                const normalizedValue = this.filters[key] == null ? '' : String(this.filters[key]);
+                if (element.tagName === 'SELECT') {
+                    if (normalizedValue && !Array.from(element.options).some(opt => opt.value === normalizedValue)) {
+                        const opt = document.createElement('option');
+                        opt.value = normalizedValue;
+                        opt.textContent = normalizedValue;
+                        element.appendChild(opt);
+                    }
+                }
+                if (element.value !== normalizedValue) {
+                    element.value = normalizedValue;
+                }
+            });
+        }
     }
 
     setupAutoValueSync(labelInput, valueInput) {
