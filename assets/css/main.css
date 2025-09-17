@@ -715,7 +715,7 @@ body {
 .axis-label.y-axis {
     left: 0;
     top: 50%;
-    transform: translate(-100%, -50%) rotate(-90deg);
+    transform: translate(-50%, 50%) rotate(-90deg);
     transform-origin: left center;
 }
 
