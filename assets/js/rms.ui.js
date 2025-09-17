@@ -540,6 +540,29 @@ function confirmActionPlanSelection() {
 }
 window.confirmActionPlanSelection = confirmActionPlanSelection;
 
+function populatePlanOwnerSuggestions() {
+    const datalist = document.getElementById('planOwnerSuggestions');
+    if (!datalist) return;
+
+    datalist.innerHTML = '';
+
+    if (!window.rms || !Array.isArray(rms.actionPlans)) {
+        return;
+    }
+
+    const uniqueOwners = Array.from(new Set(
+        rms.actionPlans
+            .map(plan => (plan && typeof plan.owner === 'string') ? plan.owner.trim() : '')
+            .filter(owner => owner)
+    ));
+
+    uniqueOwners.forEach(owner => {
+        const option = document.createElement('option');
+        option.value = owner;
+        datalist.appendChild(option);
+    });
+}
+
 function addNewActionPlan() {
     currentEditingActionPlanId = null;
     const form = document.getElementById('actionPlanForm');
@@ -557,6 +580,7 @@ function addNewActionPlan() {
         updateSelectedRisksForPlanDisplay();
     }
     document.getElementById('actionPlanModalTitle').textContent = "Nouveau Plan d'action";
+    populatePlanOwnerSuggestions();
     document.getElementById('actionPlanModal').classList.add('show');
 }
 window.addNewActionPlan = addNewActionPlan;
@@ -576,6 +600,7 @@ function editActionPlan(planId) {
         updateSelectedRisksForPlanDisplay();
     }
     document.getElementById('actionPlanModalTitle').textContent = "Modifier le Plan d'action";
+    populatePlanOwnerSuggestions();
     document.getElementById('actionPlanModal').classList.add('show');
 }
 window.editActionPlan = editActionPlan;
@@ -647,6 +672,7 @@ function saveActionPlan() {
     lastActionPlanData = { ...planData };
     rms.saveData();
     rms.renderAll();
+    populatePlanOwnerSuggestions();
     closeActionPlanModal();
 }
 window.saveActionPlan = saveActionPlan;
