@@ -69,6 +69,63 @@ function searchRisks(searchTerm) {
 }
 window.searchRisks = searchRisks;
 
+function syncControlFilterWidgets(filterKey, value, sourceElement) {
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+    if (!normalizedKey) return;
+
+    const normalizedValue = value == null ? '' : String(value);
+
+    document.querySelectorAll(`[data-filter-key="${normalizedKey}"]`).forEach(element => {
+        if (element === sourceElement) {
+            return;
+        }
+        if (!('value' in element)) {
+            return;
+        }
+
+        if (element.value !== normalizedValue) {
+            element.value = normalizedValue;
+        }
+    });
+}
+
+function applyControlFilters(filterKey, value, sourceElement) {
+    if (!window.rms) return;
+
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+    if (!normalizedKey) return;
+
+    const normalizedValue = value == null ? '' : String(value);
+
+    if (!rms.controlFilters) {
+        rms.controlFilters = { type: '', status: '', search: '' };
+    }
+
+    rms.controlFilters[normalizedKey] = normalizedValue;
+
+    syncControlFilterWidgets(normalizedKey, normalizedValue, sourceElement);
+
+    rms.updateControlsList();
+}
+window.applyControlFilters = applyControlFilters;
+
+function searchControls(searchTerm, sourceElement) {
+    if (!window.rms) return;
+
+    const normalizedValue = searchTerm == null ? '' : String(searchTerm);
+
+    if (!rms.controlFilters) {
+        rms.controlFilters = { type: '', status: '', search: '' };
+    }
+
+    rms.controlFilters.search = normalizedValue;
+
+    syncControlFilterWidgets('search', normalizedValue, sourceElement);
+
+    rms.updateControlsList();
+}
+window.searchControls = searchControls;
+
 var lastRiskData = null;
 var selectedControlsForRisk = [];
 var controlFilterQueryForRisk = '';
