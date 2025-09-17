@@ -1615,15 +1615,121 @@ class RiskManagementSystem {
             ? Math.max((totals.brut - totals.net) / totalRisks, 0)
             : 0;
 
-        const activeControls = Array.isArray(this.controls)
-            ? this.controls.filter(control => String(control?.status || '').toLowerCase() === 'actif').length
-            : 0;
-        const totalControls = Array.isArray(this.controls) ? this.controls.length : 0;
+        const allControls = Array.isArray(this.controls) ? this.controls : [];
+        const activeControlsList = allControls.filter(control => String(control?.status || '').toLowerCase() === 'actif');
+        const activeControls = activeControlsList.length;
+        const totalControls = allControls.length;
+
+        const controlTypeOptions = Array.isArray(this.config?.controlTypes)
+            ? this.config.controlTypes.filter(option => option && option.value !== undefined && option.value !== null)
+            : [];
+        const controlTypeOrder = controlTypeOptions.map(option => String(option.value).toLowerCase());
+        const controlTypeLabelMap = controlTypeOptions.reduce((acc, option) => {
+            const key = String(option.value).toLowerCase();
+            acc[key] = option.label || option.value;
+            return acc;
+        }, {});
+
+        const controlTypeCounts = activeControlsList.reduce((acc, control) => {
+            const rawType = control?.type ?? '';
+            const normalizedType = rawType ? String(rawType).toLowerCase() : '';
+            const key = normalizedType || '__undefined__';
+
+            if (!acc[key]) {
+                acc[key] = { count: 0, value: normalizedType, rawValue: rawType };
+            }
+
+            acc[key].count += 1;
+            return acc;
+        }, {});
+
+        const computeDistributionLabel = (entry) => {
+            if (!entry) {
+                return 'Non défini';
+            }
+
+            const normalizedValue = entry.value;
+            if (normalizedValue) {
+                return controlTypeLabelMap[normalizedValue] || entry.rawValue || normalizedValue;
+            }
+
+            return 'Non défini';
+        };
+
+        const controlTypeDistribution = [];
+        const pushDistributionEntry = (key) => {
+            const entry = controlTypeCounts[key];
+            if (!entry) return;
+
+            controlTypeDistribution.push({
+                value: entry.value,
+                label: computeDistributionLabel(entry),
+                count: entry.count,
+                percentage: 0
+            });
+
+            delete controlTypeCounts[key];
+        };
+
+        controlTypeOrder.forEach(pushDistributionEntry);
+
+        Object.keys(controlTypeCounts).forEach((key) => {
+            pushDistributionEntry(key);
+        });
+
+        if (activeControls > 0 && controlTypeDistribution.length > 0) {
+            const distributionWithRemainder = controlTypeDistribution.map((item) => {
+                const rawShare = (item.count / activeControls) * 100;
+                const baseShare = Math.floor(rawShare);
+
+                return {
+                    item,
+                    baseShare,
+                    remainder: rawShare - baseShare
+                };
+            });
+
+            let assigned = 0;
+            distributionWithRemainder.forEach(({ item, baseShare }) => {
+                item.percentage = baseShare;
+                assigned += baseShare;
+            });
+
+            let remaining = Math.max(0, 100 - assigned);
+
+            if (remaining > 0) {
+                distributionWithRemainder
+                    .slice()
+                    .sort((a, b) => {
+                        if (b.remainder === a.remainder) {
+                            return (b.item.count || 0) - (a.item.count || 0);
+                        }
+
+                        return b.remainder - a.remainder;
+                    })
+                    .forEach(({ item }) => {
+                        if (remaining <= 0) {
+                            return;
+                        }
+
+                        item.percentage += 1;
+                        remaining -= 1;
+                    });
+            }
+
+            let index = 0;
+            while (remaining > 0 && controlTypeDistribution.length > 0) {
+                controlTypeDistribution[index % controlTypeDistribution.length].percentage += 1;
+                remaining -= 1;
+                index += 1;
+            }
+        }
 
         return {
             stats: { ...stats },
             activeControls,
             totalControls,
+            controlTypeDistribution,
             globalScore,
             averageReduction
         };
@@ -1632,7 +1738,7 @@ class RiskManagementSystem {
     updateKpiCards(metrics) {
         if (!metrics || !metrics.stats) return;
 
-        const { stats, activeControls, totalControls, globalScore, averageReduction, previous } = metrics;
+        const { stats, activeControls, controlTypeDistribution, globalScore, averageReduction, previous } = metrics;
         const previousStats = previous?.stats || null;
         const previousActiveControls = previous?.activeControls ?? activeControls;
         const previousGlobalScore = previous?.globalScore ?? globalScore;
@@ -1663,6 +1769,29 @@ class RiskManagementSystem {
             const card = document.querySelector(selector);
             if (!card) return;
             updateFn(card);
+        };
+
+        const formatControlTypeDistribution = (distribution, total) => {
+            if (!total) {
+                return 'Aucun contrôle actif';
+            }
+
+            if (!Array.isArray(distribution) || distribution.length === 0) {
+                const plural = total > 1 ? 's' : '';
+                return `${total} contrôle${plural} actif${plural}`;
+            }
+
+            return distribution.map((item) => {
+                if (!item) {
+                    return '0% de contrôles "Non défini"';
+                }
+
+                const percent = Number.isFinite(item.percentage)
+                    ? item.percentage
+                    : (total > 0 ? Math.round((Number(item.count) || 0) / total * 100) : 0);
+                const label = item.label || item.value || 'Non défini';
+                return `${percent}% de contrôles "${label}"`;
+            }).join(' ; ');
         };
 
         updateCard('.stat-card.danger', (card) => {
@@ -1703,13 +1832,16 @@ class RiskManagementSystem {
                 valueEl.textContent = activeControls;
             }
 
-            const ratio = totalControls > 0 ? Math.round((activeControls / totalControls) * 100) : 0;
             const delta = activeControls - previousActiveControls;
             const changeEl = card.querySelector('.stat-change');
+            const distributionLabel = formatControlTypeDistribution(controlTypeDistribution, activeControls);
             applyTrend(changeEl, delta, {
                 inverted: false,
-                stableLabel: () => `${ratio}% des contrôles actifs`,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} vs dernière mesure (${ratio}% actifs)`
+                stableLabel: () => distributionLabel,
+                formatter: ({ arrow, signedValue }) => {
+                    const base = `${arrow} ${signedValue} vs dernière mesure`;
+                    return distributionLabel ? `${base} (${distributionLabel})` : base;
+                }
             });
         });
 
@@ -1736,57 +1868,168 @@ class RiskManagementSystem {
     }
 
     updateRecentAlerts() {
-        const tbody = document.getElementById('recentAlertsBody');
-        if (!tbody) return;
+        const risksBody = document.getElementById('recentAlertsRisksBody');
+        const plansBody = document.getElementById('recentAlertsPlansBody');
 
-        const highRisks = this.risks
-            .filter(risk => {
-                const score = (risk.probNet || 0) * (risk.impactNet || 0);
-                const hasPlans = risk.actionPlans && risk.actionPlans.length > 0;
-                return score > 8 && !hasPlans;
-            })
-            .sort((a, b) => {
-                const getTime = (risk) => {
-                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-                    const parsed = dateValue ? new Date(dateValue).getTime() : 0;
-                    return isNaN(parsed) ? 0 : parsed;
-                };
-                return getTime(b) - getTime(a);
-            });
-
-        if (highRisks.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="table-empty">Aucune alerte récente</td>
-                </tr>
-            `;
+        if (!risksBody && !plansBody) {
             return;
         }
 
-        tbody.innerHTML = highRisks.map(risk => {
-            const score = (risk.probNet || 0) * (risk.impactNet || 0);
-            const isCritical = score > 12;
-            const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
-            const levelLabel = isCritical ? 'Critique' : 'Élevé';
-            const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-            const parsedDate = dateValue ? new Date(dateValue) : null;
-            const formattedDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toLocaleDateString('fr-FR') : '-';
-            const description = risk.description || 'Sans description';
-            const process = risk.processus || '-';
+        const formatDate = (value) => {
+            if (!value) {
+                return '-';
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleDateString('fr-FR');
+        };
 
-            return `
-                <tr>
-                    <td>${formattedDate}</td>
-                    <td>${description}</td>
-                    <td>${process}</td>
-                    <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
-                    <td class="table-actions-cell">
-                        <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
-                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        const normalizeValue = (value) => {
+            if (value == null) {
+                return '';
+            }
+            const str = String(value).trim().toLowerCase();
+            if (typeof str.normalize === 'function') {
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return str;
+        };
+
+        const parsePlanDueDate = (value) => {
+            if (value == null) {
+                return null;
+            }
+            const raw = String(value).trim();
+            if (!raw) {
+                return null;
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return new Date(`${raw}T00:00:00`);
+            }
+
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+                const [day, month, year] = raw.split('/');
+                return new Date(`${year}-${month}-${day}T00:00:00`);
+            }
+
+            const parsed = Date.parse(raw);
+            if (Number.isNaN(parsed)) {
+                return null;
+            }
+            const date = new Date(parsed);
+            return Number.isNaN(date.getTime()) ? null : date;
+        };
+
+        if (risksBody) {
+            const severeRisks = this.risks
+                .filter(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
+                    return score >= 9 && !hasPlans;
+                })
+                .sort((a, b) => {
+                    const getTime = (risk) => {
+                        const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                        const parsed = dateValue ? new Date(dateValue).getTime() : 0;
+                        return Number.isNaN(parsed) ? 0 : parsed;
+                    };
+                    return getTime(b) - getTime(a);
+                });
+
+            if (severeRisks.length === 0) {
+                risksBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="table-empty">Aucune alerte récente</td>
+                    </tr>
+                `;
+            } else {
+                risksBody.innerHTML = severeRisks.map(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const isCritical = score > 12;
+                    const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
+                    const levelLabel = isCritical ? 'Critique' : 'Sévère';
+                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                    const description = risk.description || risk.titre || 'Sans description';
+                    const process = risk.processus || risk.process || '-';
+
+                    return `
+                        <tr>
+                            <td>${formatDate(dateValue)}</td>
+                            <td>${description}</td>
+                            <td>${process}</td>
+                            <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
+                            <td class="table-actions-cell">
+                                <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
+                                <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (plansBody) {
+            const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
+                const key = normalizeValue(item?.value);
+                if (key) {
+                    acc[key] = item?.label || item?.value;
+                }
+                return acc;
+            }, {});
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayTime = today.getTime();
+
+            const overduePlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
+                .map(plan => ({
+                    plan,
+                    dueDate: parsePlanDueDate(plan?.dueDate)
+                }))
+                .filter(({ dueDate, plan }) => {
+                    if (!dueDate || Number.isNaN(dueDate.getTime())) {
+                        return false;
+                    }
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    if (statusValue === 'termine') {
+                        return false;
+                    }
+                    return dueDate.getTime() < todayTime;
+                })
+                .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+            if (overduePlans.length === 0) {
+                plansBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-empty">Aucun plan d'action en retard</td>
+                    </tr>
+                `;
+            } else {
+                plansBody.innerHTML = overduePlans.map(({ plan, dueDate }) => {
+                    const title = plan?.title || 'Plan sans titre';
+                    const owner = plan?.owner || '-';
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
+                    const formattedDueDate = dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-');
+
+                    return `
+                        <tr>
+                            <td>${title}</td>
+                            <td>${owner || '-'}</td>
+                            <td>${formattedDueDate}</td>
+                            <td>${statusLabel}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
     }
 
     calculateStats() {
@@ -1810,146 +2053,149 @@ class RiskManagementSystem {
     }
 
     updateCharts() {
-        if (typeof Chart === 'undefined') {
-            return;
-        }
-
         if (!this.charts) {
             this.charts = {};
         }
 
-        const evolutionCanvas = document.getElementById('evolutionChart');
-        if (evolutionCanvas) {
-            const now = new Date();
-            const months = [];
-            const monthIndexMap = new Map();
+        const charts = this.charts;
 
-            for (let offset = 5; offset >= 0; offset--) {
-                const refDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-                const key = `${refDate.getFullYear()}-${refDate.getMonth()}`;
-                monthIndexMap.set(key, months.length);
-                months.push({
-                    key,
-                    label: refDate.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
-                });
-            }
+        if (charts.evolution && typeof charts.evolution.destroy === 'function') {
+            charts.evolution.destroy();
+        }
+        delete charts.evolution;
 
-            const monthlyStats = months.map(() => ({ critical: 0, high: 0, total: 0 }));
-
-            const parseDate = (value) => {
-                if (!value) return null;
-                if (value instanceof Date) return isNaN(value) ? null : value;
-                if (typeof value === 'number') {
-                    const date = new Date(value);
-                    return isNaN(date) ? null : date;
+        const topRisksBody = document.getElementById('topNetRisksBody');
+        if (topRisksBody) {
+            const normalizeValue = (value) => {
+                if (value == null) {
+                    return '';
                 }
-                if (typeof value === 'string') {
-                    const trimmed = value.trim();
-                    if (!trimmed) return null;
-
-                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
-                        const [day, month, year] = trimmed.split('/').map(Number);
-                        const date = new Date(year, month - 1, day);
-                        return isNaN(date) ? null : date;
-                    }
-
-                    const date = new Date(trimmed);
-                    return isNaN(date) ? null : date;
+                const str = String(value).trim().toLowerCase();
+                if (typeof str.normalize === 'function') {
+                    return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
                 }
-                return null;
+                return str;
             };
 
-            this.risks.forEach(risk => {
-                const rawDate = risk?.dateCreation || risk?.date || risk?.createdAt;
-                const parsedDate = parseDate(rawDate);
-                if (!parsedDate) return;
-
-                const monthKey = `${parsedDate.getFullYear()}-${parsedDate.getMonth()}`;
-                const index = monthIndexMap.get(monthKey);
-                if (index === undefined) return;
-
-                const probNet = Number(risk?.probNet) || 0;
-                const impactNet = Number(risk?.impactNet) || 0;
-                const score = probNet * impactNet;
-
-                monthlyStats[index].total += 1;
-                if (score > 12) {
-                    monthlyStats[index].critical += 1;
-                } else if (score > 8) {
-                    monthlyStats[index].high += 1;
+            const escapeHtml = (value) => {
+                if (value == null) {
+                    return '';
                 }
-            });
-
-            const evolutionData = {
-                labels: months.map(month => month.label),
-                datasets: [
-                    {
-                        label: 'Critiques',
-                        data: monthlyStats.map(item => item.critical),
-                        borderColor: 'rgba(231, 76, 60, 0.9)',
-                        backgroundColor: 'rgba(231, 76, 60, 0.15)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Élevés',
-                        data: monthlyStats.map(item => item.high),
-                        borderColor: 'rgba(241, 196, 15, 0.9)',
-                        backgroundColor: 'rgba(241, 196, 15, 0.15)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Total',
-                        data: monthlyStats.map(item => item.total),
-                        borderColor: 'rgba(52, 152, 219, 0.9)',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        fill: false,
-                        borderDash: [5, 5],
-                        tension: 0.2,
-                        pointRadius: 3
-                    }
-                ]
+                return String(value)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
             };
 
-            const evolutionOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
+            const formatText = (value, fallback = '-') => {
+                if (value === undefined || value === null) {
+                    return fallback;
                 }
+                const text = String(value).trim();
+                return text || fallback;
             };
 
-            if (this.charts.evolution) {
-                const chart = this.charts.evolution;
-                chart.data.labels = evolutionData.labels;
-                chart.data.datasets = evolutionData.datasets;
-                chart.options = evolutionOptions;
-                chart.update();
+            const formatScore = (value) => {
+                if (!Number.isFinite(value)) {
+                    return '-';
+                }
+                return new Intl.NumberFormat('fr-FR', {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 2
+                }).format(value);
+            };
+
+            const risks = Array.isArray(this.risks) ? this.risks : [];
+
+            const topRisks = risks
+                .map((risk) => {
+                    const probNet = Number(risk?.probNet);
+                    const impactNet = Number(risk?.impactNet);
+                    if (!Number.isFinite(probNet) || !Number.isFinite(impactNet)) {
+                        return null;
+                    }
+
+                    const scoreNet = probNet * impactNet;
+                    const rawTitle = risk?.titre
+                        ?? risk?.title
+                        ?? risk?.name
+                        ?? risk?.description
+                        ?? risk?.libelle
+                        ?? risk?.label;
+                    const fallbackTitle = risk?.id != null ? `Risque #${risk.id}` : 'Risque sans titre';
+                    const title = formatText(rawTitle, fallbackTitle);
+
+                    return {
+                        risk,
+                        scoreNet,
+                        title,
+                        normalizedTitle: normalizeValue(title)
+                    };
+                })
+                .filter(Boolean)
+                .filter(({ risk }) => {
+                    const statusValue = normalizeValue(risk?.statut ?? risk?.status ?? risk?.statusLabel);
+                    return statusValue && statusValue.startsWith('valide');
+                })
+                .sort((a, b) => {
+                    if (b.scoreNet !== a.scoreNet) {
+                        return b.scoreNet - a.scoreNet;
+                    }
+
+                    if (a.normalizedTitle < b.normalizedTitle) {
+                        return -1;
+                    }
+                    if (a.normalizedTitle > b.normalizedTitle) {
+                        return 1;
+                    }
+
+                    const idA = Number(a.risk?.id) || 0;
+                    const idB = Number(b.risk?.id) || 0;
+                    return idA - idB;
+                })
+                .slice(0, 10);
+
+            if (topRisks.length === 0) {
+                topRisksBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-empty">Aucun risque validé disponible</td>
+                    </tr>
+                `;
             } else {
-                this.charts.evolution = new Chart(evolutionCanvas, {
-                    type: 'line',
-                    data: evolutionData,
-                    options: evolutionOptions
-                });
+                topRisksBody.innerHTML = topRisks.map(({ risk, scoreNet, title }) => {
+                    const processLabel = formatText(
+                        risk?.processus ?? risk?.process ?? risk?.processusLibelle ?? risk?.processName,
+                        'Non défini'
+                    );
+                    const subProcessLabel = formatText(
+                        risk?.sousProcessus
+                            ?? risk?.sous_processus
+                            ?? risk?.subProcess
+                            ?? risk?.subprocess
+                            ?? risk?.subProcessus,
+                        '—'
+                    );
+                    const safeTitle = escapeHtml(title);
+                    const safeProcess = escapeHtml(processLabel);
+                    const safeSubProcess = escapeHtml(subProcessLabel);
+                    const safeScore = escapeHtml(formatScore(scoreNet));
+
+                    return `
+                        <tr>
+                            <td class="top-risk-title" title="${safeTitle}">${safeTitle}</td>
+                            <td title="${safeProcess}">${safeProcess}</td>
+                            <td title="${safeSubProcess}">${safeSubProcess}</td>
+                            <td class="top-risk-score">${safeScore}</td>
+                        </tr>
+                    `;
+                }).join('');
             }
         }
 
         const processCanvas = document.getElementById('processChart');
-        if (processCanvas) {
+        if (processCanvas && typeof Chart !== 'undefined') {
             const processCounts = this.risks.reduce((acc, risk) => {
                 const process = risk?.processus || 'Non défini';
                 acc[process] = (acc[process] || 0) + 1;
@@ -2011,6 +2257,9 @@ class RiskManagementSystem {
                     options: processOptions
                 });
             }
+        } else if (charts.process && typeof charts.process.destroy === 'function') {
+            charts.process.destroy();
+            delete charts.process;
         }
     }
 

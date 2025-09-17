@@ -911,6 +911,47 @@ body {
     margin-bottom: 15px;
 }
 
+.top-risks-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+.top-risks-table-wrapper {
+    flex: 1;
+    overflow-y: auto;
+}
+
+.top-risks-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.top-risks-table .score-column,
+.top-risks-table .top-risk-score {
+    text-align: right;
+    white-space: nowrap;
+}
+
+.top-risks-table .top-risk-title {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.top-risks-table .top-risk-score {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.top-risks-table-wrapper::-webkit-scrollbar {
+    width: 6px;
+}
+
+.top-risks-table-wrapper::-webkit-scrollbar-thumb {
+    background: rgba(149, 165, 166, 0.4);
+    border-radius: 3px;
+}
+
 /* Table améliorée */
 .table-container {
     background: white;
@@ -936,6 +977,32 @@ body {
 .table-actions {
     display: flex;
     gap: 10px;
+}
+
+.alerts-sections {
+    display: flex;
+    flex-direction: column;
+}
+
+.alerts-section {
+    padding: 20px;
+}
+
+.alerts-section + .alerts-section {
+    border-top: 1px solid #ecf0f1;
+}
+
+.alerts-section-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
 }
 
 table {
@@ -970,6 +1037,13 @@ tbody tr {
 
 tbody tr:hover {
     background: var(--light-bg);
+}
+
+.table-empty {
+    text-align: center;
+    padding: 24px;
+    color: #95a5a6;
+    font-style: italic;
 }
 
 .table-badge {
