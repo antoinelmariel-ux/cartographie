@@ -568,34 +568,148 @@ class RiskManagementSystem {
         };
 
         container.innerHTML = '';
-        Object.entries(sections).forEach(([key, label]) => {
-            const section = document.createElement('div');
-            section.className = 'config-section';
-            section.innerHTML = `
-                <h3>${label}</h3>
-                <ul id="list-${key}" class="config-list"></ul>
-                <div class="config-add">
-                    <input type="text" id="input-${key}-value" placeholder="valeur">
-                    <input type="text" id="input-${key}-label" placeholder="libellé">
-                    <button onclick="rms.addConfigOption('${key}')">Ajouter</button>
-                </div>
+
+        const accordion = document.createElement('div');
+        accordion.className = 'config-accordion';
+        container.appendChild(accordion);
+
+        Object.entries(sections).forEach(([key, label], index) => {
+            const item = document.createElement('div');
+            item.className = 'config-accordion-item';
+
+            const headerButton = document.createElement('button');
+            headerButton.type = 'button';
+            headerButton.className = 'config-accordion-header';
+            headerButton.id = `config-accordion-${key}-header`;
+            headerButton.innerHTML = `
+                <span class="config-accordion-title">${label}</span>
+                <span class="config-accordion-icon" aria-hidden="true"></span>
             `;
-            const valueInput = section.querySelector(`#input-${key}-value`);
-            const labelInput = section.querySelector(`#input-${key}-label`);
+
+            const body = document.createElement('div');
+            body.className = 'config-accordion-body';
+            body.id = `config-accordion-${key}-panel`;
+            body.setAttribute('aria-labelledby', headerButton.id);
+            body.setAttribute('role', 'region');
+            headerButton.setAttribute('aria-controls', body.id);
+
+            item.appendChild(headerButton);
+            item.appendChild(body);
+            accordion.appendChild(item);
+
+            this.configureAccordionItem(item, headerButton, body, index === 0);
+
+            const list = document.createElement('ul');
+            list.id = `list-${key}`;
+            list.className = 'config-list';
+
+            const addContainer = document.createElement('div');
+            addContainer.className = 'config-add';
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.id = `input-${key}-value`;
+            valueInput.placeholder = 'valeur';
+
+            const labelInput = document.createElement('input');
+            labelInput.type = 'text';
+            labelInput.id = `input-${key}-label`;
+            labelInput.placeholder = 'libellé';
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.textContent = 'Ajouter';
+            addButton.addEventListener('click', () => {
+                this.addConfigOption(key);
+            });
+
+            addContainer.appendChild(valueInput);
+            addContainer.appendChild(labelInput);
+            addContainer.appendChild(addButton);
+
+            body.appendChild(list);
+            body.appendChild(addContainer);
+
             this.setupAutoValueSync(labelInput, valueInput);
-            container.appendChild(section);
         });
 
-        const subSection = document.createElement('div');
-        subSection.className = 'config-section';
-        subSection.innerHTML = `
-            <h3>Sous-processus</h3>
-            <div id="subProcessConfig"></div>
+        const subItem = document.createElement('div');
+        subItem.className = 'config-accordion-item';
+
+        const subHeader = document.createElement('button');
+        subHeader.type = 'button';
+        subHeader.className = 'config-accordion-header';
+        subHeader.id = 'config-accordion-subprocesses-header';
+        subHeader.innerHTML = `
+            <span class="config-accordion-title">Sous-processus</span>
+            <span class="config-accordion-icon" aria-hidden="true"></span>
         `;
-        container.appendChild(subSection);
+
+        const subBody = document.createElement('div');
+        subBody.className = 'config-accordion-body';
+        subBody.id = 'config-accordion-subprocesses-panel';
+        subBody.setAttribute('aria-labelledby', subHeader.id);
+        subBody.setAttribute('role', 'region');
+        subHeader.setAttribute('aria-controls', subBody.id);
+
+        const subProcessContainer = document.createElement('div');
+        subProcessContainer.id = 'subProcessConfig';
+        subBody.appendChild(subProcessContainer);
+
+        subItem.appendChild(subHeader);
+        subItem.appendChild(subBody);
+        accordion.appendChild(subItem);
+
+        this.configureAccordionItem(subItem, subHeader, subBody);
 
         this.refreshConfigLists();
         this.renderSubProcessConfig();
+        this.adjustOpenAccordionBodies(container);
+    }
+
+    configureAccordionItem(item, headerButton, body, initiallyOpen = false) {
+        if (!item || !headerButton || !body) {
+            return { setOpen: () => {} };
+        }
+
+        const setState = (open) => {
+            if (open) {
+                item.classList.add('open');
+                headerButton.setAttribute('aria-expanded', 'true');
+                body.setAttribute('aria-hidden', 'false');
+                body.style.maxHeight = `${body.scrollHeight}px`;
+                requestAnimationFrame(() => {
+                    this.adjustOpenAccordionBodies(item.closest('.config-accordion') || document);
+                });
+            } else {
+                item.classList.remove('open');
+                headerButton.setAttribute('aria-expanded', 'false');
+                body.setAttribute('aria-hidden', 'true');
+                body.style.maxHeight = '0px';
+            }
+        };
+
+        headerButton.addEventListener('click', () => {
+            const willOpen = !item.classList.contains('open');
+            setState(willOpen);
+        });
+
+        headerButton.setAttribute('aria-expanded', 'false');
+        body.setAttribute('aria-hidden', 'true');
+        body.style.maxHeight = '0px';
+
+        if (initiallyOpen) {
+            requestAnimationFrame(() => setState(true));
+        }
+
+        return { setOpen: setState };
+    }
+
+    adjustOpenAccordionBodies(scope) {
+        const root = scope instanceof HTMLElement ? scope : document;
+        root.querySelectorAll('.config-accordion-item.open > .config-accordion-body').forEach(body => {
+            body.style.maxHeight = `${body.scrollHeight}px`;
+        });
     }
 
     refreshConfigLists() {
@@ -632,6 +746,8 @@ class RiskManagementSystem {
                 actions.appendChild(editButton);
                 actions.appendChild(removeButton);
                 listItem.appendChild(actions);
+
+                this.adjustOpenAccordionBodies();
             };
 
             const renderEditForm = () => {
@@ -682,6 +798,8 @@ class RiskManagementSystem {
                 form.appendChild(actions);
                 this.setupAutoValueSync(labelInput, valueInput);
                 listItem.appendChild(form);
+
+                this.adjustOpenAccordionBodies();
             };
 
             renderDisplay();
@@ -701,6 +819,8 @@ class RiskManagementSystem {
         Object.keys(this.config)
             .filter(k => k !== 'subProcesses')
             .forEach(updateList);
+
+        this.adjustOpenAccordionBodies();
     }
 
     updateConfigOption(key, index, updated) {
@@ -789,40 +909,89 @@ class RiskManagementSystem {
     renderSubProcessConfig() {
         const container = document.getElementById('subProcessConfig');
         if (!container) return;
+
         container.innerHTML = '';
-        this.config.processes.forEach(proc => {
-            const block = document.createElement('div');
-            block.className = 'subprocess-section';
+
+        if (!this.config.processes.length) {
+            const empty = document.createElement('p');
+            empty.className = 'config-empty';
+            empty.textContent = 'Ajoutez un processus pour configurer ses sous-processus.';
+            container.appendChild(empty);
+            this.adjustOpenAccordionBodies(container);
+            return;
+        }
+
+        const subAccordion = document.createElement('div');
+        subAccordion.className = 'config-accordion config-accordion-nested';
+        container.appendChild(subAccordion);
+
+        this.config.processes.forEach((proc, index) => {
             const procId = sanitizeId(proc.value);
-            const listId = `list-sub-${procId}`;
-            block.innerHTML = `
-                <h4>${proc.label}</h4>
-                <ul id="${listId}" class="config-list"></ul>
-                <div class="config-add">
-                    <input type="text" id="input-sub-${procId}-value" placeholder="valeur">
-                    <input type="text" id="input-sub-${procId}-label" placeholder="libellé">
-                </div>
+
+            const item = document.createElement('div');
+            item.className = 'config-accordion-item';
+
+            const headerButton = document.createElement('button');
+            headerButton.type = 'button';
+            headerButton.className = 'config-accordion-header';
+            headerButton.id = `subprocess-accordion-${procId}-header`;
+            headerButton.innerHTML = `
+                <span class="config-accordion-title">${proc.label}</span>
+                <span class="config-accordion-icon" aria-hidden="true"></span>
             `;
-            const valueInput = block.querySelector(`#input-sub-${procId}-value`);
-            const labelInput = block.querySelector(`#input-sub-${procId}-label`);
+
+            const body = document.createElement('div');
+            body.className = 'config-accordion-body';
+            body.id = `subprocess-accordion-${procId}-panel`;
+            body.setAttribute('aria-labelledby', headerButton.id);
+            body.setAttribute('role', 'region');
+            headerButton.setAttribute('aria-controls', body.id);
+
+            const list = document.createElement('ul');
+            list.id = `list-sub-${procId}`;
+            list.className = 'config-list';
+
+            const addContainer = document.createElement('div');
+            addContainer.className = 'config-add';
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.id = `input-sub-${procId}-value`;
+            valueInput.placeholder = 'valeur';
+
+            const labelInput = document.createElement('input');
+            labelInput.type = 'text';
+            labelInput.id = `input-sub-${procId}-label`;
+            labelInput.placeholder = 'libellé';
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.textContent = 'Ajouter';
+            addButton.dataset.process = proc.value;
+            addButton.addEventListener('click', (event) => {
+                const { process } = event.currentTarget.dataset;
+                if (typeof process !== 'undefined') {
+                    this.addSubProcess(process);
+                }
+            });
+
+            addContainer.appendChild(valueInput);
+            addContainer.appendChild(labelInput);
+            addContainer.appendChild(addButton);
+
+            body.appendChild(list);
+            body.appendChild(addContainer);
+
+            item.appendChild(headerButton);
+            item.appendChild(body);
+            subAccordion.appendChild(item);
+
+            this.configureAccordionItem(item, headerButton, body, index === 0);
             this.setupAutoValueSync(labelInput, valueInput);
-            container.appendChild(block);
-            const addContainer = block.querySelector('.config-add');
-            if (addContainer) {
-                const addButton = document.createElement('button');
-                addButton.type = 'button';
-                addButton.textContent = 'Ajouter';
-                addButton.dataset.process = proc.value;
-                addButton.addEventListener('click', (event) => {
-                    const { process } = event.currentTarget.dataset;
-                    if (typeof process !== 'undefined') {
-                        this.addSubProcess(process);
-                    }
-                });
-                addContainer.appendChild(addButton);
-            }
         });
+
         this.refreshSubProcessLists();
+        this.adjustOpenAccordionBodies(container);
     }
 
     refreshSubProcessLists() {
@@ -865,6 +1034,8 @@ class RiskManagementSystem {
                     actions.appendChild(editButton);
                     actions.appendChild(removeButton);
                     listItem.appendChild(actions);
+
+                    this.adjustOpenAccordionBodies();
                 };
 
                 const renderEditForm = () => {
@@ -915,12 +1086,16 @@ class RiskManagementSystem {
                     form.appendChild(actions);
                     this.setupAutoValueSync(labelInput, valueInput);
                     listItem.appendChild(form);
+
+                    this.adjustOpenAccordionBodies();
                 };
 
                 renderDisplay();
                 list.appendChild(listItem);
             });
         });
+
+        this.adjustOpenAccordionBodies();
     }
 
     updateSubProcess(process, index, updated) {
