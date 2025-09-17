@@ -28,12 +28,16 @@ function switchTab(tabNameOrEvent, maybeTabName) {
         selectedTab.classList.add('active');
     }
 
-    if (evt && evt.target) {
-        evt.target.classList.add('active');
-    } else {
-        const fallbackButton = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
-        fallbackButton && fallbackButton.classList.add('active');
+    let activeButton = null;
+    if (evt) {
+        activeButton = evt.currentTarget || (evt.target && evt.target.closest('.tab'));
     }
+
+    if (!activeButton) {
+        activeButton = document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`);
+    }
+
+    activeButton && activeButton.classList.add('active');
 
     if (window.rms) {
         rms.currentTab = tabName;
