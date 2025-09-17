@@ -1,5 +1,78 @@
 // Enhanced Risk Management System - Core Logic
 
+let emptyChartPluginRegistered = false;
+
+function ensureEmptyChartMessagePlugin() {
+    if (emptyChartPluginRegistered) {
+        return;
+    }
+
+    if (typeof Chart === 'undefined') {
+        return;
+    }
+
+    const emptyChartMessagePlugin = {
+        id: 'emptyChartMessage',
+        defaults: {
+            display: false,
+            message: 'Aucune donnée disponible',
+            color: '#95a5a6',
+            font: {
+                family: 'Inter, Arial, sans-serif',
+                size: 14,
+                style: '600'
+            }
+        },
+        afterDraw(chart, args, options) {
+            if (!options || !options.display) {
+                return;
+            }
+
+            const dataset = chart?.data?.datasets?.[0];
+            const data = Array.isArray(dataset?.data) ? dataset.data : [];
+            const total = data.reduce((sum, value) => sum + (Number(value) || 0), 0);
+            if (total > 0) {
+                return;
+            }
+
+            const { ctx, chartArea } = chart;
+            if (!ctx || !chartArea) {
+                return;
+            }
+
+            const { left, top, width, height } = chartArea;
+            const message = typeof options.message === 'string' && options.message.trim()
+                ? options.message.trim()
+                : 'Aucune donnée disponible';
+            const fontFamily = options.font?.family || 'Inter, Arial, sans-serif';
+            const fontSize = options.font?.size || 14;
+            const fontStyle = options.font?.style || '600';
+
+            ctx.save();
+            ctx.font = `${fontStyle} ${fontSize}px ${fontFamily}`;
+            ctx.fillStyle = options.color || '#95a5a6';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(message, left + width / 2, top + height / 2);
+            ctx.restore();
+        }
+    };
+
+    let registered = false;
+    if (typeof Chart.register === 'function') {
+        Chart.register(emptyChartMessagePlugin);
+        registered = true;
+    } else if (Chart.plugins && typeof Chart.plugins.register === 'function') {
+        Chart.plugins.register(emptyChartMessagePlugin);
+        registered = true;
+    }
+
+    if (registered) {
+        emptyChartPluginRegistered = true;
+    }
+}
+
+
 class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
@@ -2071,6 +2144,8 @@ class RiskManagementSystem {
             return;
         }
 
+        ensureEmptyChartMessagePlugin();
+
         if (!this.charts) {
             this.charts = {};
         }
@@ -2231,6 +2306,8 @@ class RiskManagementSystem {
         if (processCanvas) {
             const processLabels = Object.keys(processMetrics);
             const dataValues = processLabels.map(label => processMetrics[label].count);
+            const totalProcessRisks = dataValues.reduce((sum, value) => sum + value, 0);
+            const hasProcessData = totalProcessRisks > 0;
             const palette = [
                 'rgba(52, 152, 219, 0.8)',
                 'rgba(46, 204, 113, 0.8)',
@@ -2242,7 +2319,18 @@ class RiskManagementSystem {
                 'rgba(149, 165, 166, 0.8)'
             ];
 
-            const colors = dataValues.map((_, index) => palette[index % palette.length]);
+            const neutralColor = 'rgba(189, 195, 199, 0.6)';
+            const colors = processLabels.map((_, index) => hasProcessData ? palette[index % palette.length] : neutralColor);
+            const toOpaqueColor = (color) => {
+                if (typeof color !== 'string') {
+                    return color;
+                }
+                if (color.startsWith('rgba')) {
+                    return color.replace(/rgba\(([^)]+),\s*([0-9]*\.?[0-9]+)\)/, 'rgba($1, 1)');
+                }
+                return color;
+            };
+            const borderColors = colors.map(toOpaqueColor);
 
             const processData = {
                 labels: processLabels,
@@ -2250,8 +2338,9 @@ class RiskManagementSystem {
                     {
                         data: dataValues,
                         backgroundColor: colors,
-                        borderColor: colors.map(color => color.replace('0.8', '1')),
-                        borderWidth: 1
+                        borderColor: borderColors,
+                        borderWidth: hasProcessData ? 1 : 0,
+                        hoverOffset: hasProcessData ? 8 : 0
                     }
                 ]
             };
@@ -2261,7 +2350,15 @@ class RiskManagementSystem {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom'
+                        position: 'bottom',
+                        display: hasProcessData
+                    },
+                    tooltip: {
+                        enabled: hasProcessData
+                    },
+                    emptyChartMessage: {
+                        display: !hasProcessData,
+                        message: 'Aucun risque à afficher'
                     }
                 }
             };
