@@ -843,6 +843,7 @@ body {
 .stat-card.success { border-left-color: var(--success-color); }
 .stat-card.warning { border-left-color: var(--warning-color); }
 .stat-card.danger { border-left-color: var(--danger-color); }
+.stat-card.plan-status-card { border-left-color: var(--primary-color); }
 
 .stat-header {
     display: flex;
@@ -879,6 +880,61 @@ body {
 .stat-change {
     font-size: 0.85em;
     color: #7f8c8d;
+}
+
+.plan-status-total {
+    font-size: 1.2em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.plan-status-chart {
+    position: relative;
+    height: 180px;
+    margin-bottom: 15px;
+}
+
+.plan-status-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.plan-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.95em;
+    color: #34495e;
+}
+
+.plan-status-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.plan-status-label {
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.plan-status-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.plan-status-count {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.plan-status-empty {
+    color: #7f8c8d;
+    font-style: italic;
 }
 
 .stat-change.positive { color: var(--success-color); }

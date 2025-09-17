@@ -113,13 +113,18 @@
                             <div class="stat-change positive">↑ +3 nouveaux</div>
                         </div>
                         
-                        <div class="stat-card primary">
+                        <div class="stat-card plan-status-card">
                             <div class="stat-header">
-                                <span class="stat-title">Score Global</span>
-                                <span class="stat-icon">📊</span>
+                                <span class="stat-title">Plans d'actions par statut</span>
+                                <span class="stat-icon">🗂️</span>
                             </div>
-                            <div class="stat-value primary">72%</div>
-                            <div class="stat-change positive">↑ +5% d'amélioration</div>
+                            <div class="plan-status-total" id="actionPlanStatusTotal">Aucun plan d'action</div>
+                            <div class="plan-status-chart">
+                                <canvas id="actionPlanStatusChart" height="160"></canvas>
+                            </div>
+                            <div class="plan-status-summary" id="actionPlanStatusSummary">
+                                <div class="plan-status-empty">Aucun plan d'action enregistré</div>
+                            </div>
                         </div>
                     </div>
 
