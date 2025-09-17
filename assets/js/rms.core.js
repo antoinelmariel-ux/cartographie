@@ -1997,6 +1997,98 @@ class RiskManagementSystem {
         };
     }
 
+    getDashboardExportData() {
+        const validatedRisks = this.getRisksByStatus('validé');
+        const stats = this.calculateStats(validatedRisks);
+        const metrics = this.computeDashboardMetrics(validatedRisks, stats);
+        const filteredRisks = this.getFilteredRisks(Array.isArray(validatedRisks) ? validatedRisks : []);
+
+        const enrichedRisks = filteredRisks.map(risk => {
+            const probNet = Number(risk?.probNet) || 0;
+            const impactNet = Number(risk?.impactNet) || 0;
+            const score = probNet * impactNet;
+            return { risk, probNet, impactNet, score };
+        }).filter(entry => Number.isFinite(entry.score));
+
+        const topRisks = enrichedRisks
+            .slice()
+            .sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (b.impactNet !== a.impactNet) return b.impactNet - a.impactNet;
+                if (b.probNet !== a.probNet) return b.probNet - a.probNet;
+                const aTitle = a.risk?.titre || a.risk?.description || '';
+                const bTitle = b.risk?.titre || b.risk?.description || '';
+                return aTitle.localeCompare(bTitle, 'fr', { sensitivity: 'base' });
+            })
+            .slice(0, 10)
+            .map((entry, index) => {
+                const risk = entry.risk || {};
+                const subProcessRaw = risk.sousProcessus;
+                const subProcessLabel = subProcessRaw && String(subProcessRaw).trim() ? subProcessRaw : '';
+                return {
+                    rank: index + 1,
+                    id: risk.id,
+                    titre: risk.titre || risk.description || 'Risque sans titre',
+                    processus: risk.processus || 'Non défini',
+                    sousProcessus: subProcessLabel,
+                    score: Number.isFinite(entry.score) ? entry.score : 0,
+                    probNet: Number.isFinite(entry.probNet) ? entry.probNet : 0,
+                    impactNet: Number.isFinite(entry.impactNet) ? entry.impactNet : 0
+                };
+            });
+
+        const processMetrics = filteredRisks.reduce((acc, risk) => {
+            const rawLabel = risk?.processus;
+            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
+            if (!acc[label]) {
+                acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
+            }
+
+            const probNet = Number(risk?.probNet) || 0;
+            const impactNet = Number(risk?.impactNet) || 0;
+            const score = probNet * impactNet;
+
+            acc[label].count += 1;
+            if (Number.isFinite(score)) {
+                acc[label].totalScore += score;
+                acc[label].maxScore = Math.max(acc[label].maxScore, score);
+            }
+            return acc;
+        }, {});
+
+        const processDistribution = Object.keys(processMetrics).map(label => ({
+            label,
+            count: processMetrics[label].count || 0
+        })).sort((a, b) => {
+            if (b.count !== a.count) return b.count - a.count;
+            return a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' });
+        });
+
+        const processSeverity = Object.entries(processMetrics).map(([label, metrics]) => {
+            const count = metrics.count || 0;
+            const average = count > 0 ? metrics.totalScore / count : 0;
+            const maxScore = metrics.maxScore || 0;
+            return { label, count, average, maxScore };
+        }).sort((a, b) => {
+            if (b.average !== a.average) return b.average - a.average;
+            if (b.maxScore !== a.maxScore) return b.maxScore - a.maxScore;
+            return a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' });
+        });
+
+        const alerts = this.getRecentAlertsData(filteredRisks);
+
+        return {
+            generatedAt: new Date().toISOString(),
+            metrics,
+            topRisks,
+            processOverview: {
+                distribution: processDistribution,
+                severity: processSeverity
+            },
+            alerts
+        };
+    }
+
     updateKpiCards(metrics) {
         if (!metrics || !metrics.stats) return;
 
@@ -2248,14 +2340,7 @@ class RiskManagementSystem {
         });
     }
 
-    updateRecentAlerts(risks = this.risks) {
-        const risksBody = document.getElementById('recentAlertsRisksBody');
-        const plansBody = document.getElementById('recentAlertsPlansBody');
-
-        if (!risksBody && !plansBody) {
-            return;
-        }
-
+    getRecentAlertsData(risks = this.risks) {
         const sourceRisks = Array.isArray(risks) ? risks : [];
 
         const formatDate = (value) => {
@@ -2306,24 +2391,99 @@ class RiskManagementSystem {
             return Number.isNaN(date.getTime()) ? null : date;
         };
 
-        if (risksBody) {
-            const severeRisks = sourceRisks
-                .filter(risk => {
-                    const prob = Number(risk.probNet) || 0;
-                    const impact = Number(risk.impactNet) || 0;
-                    const score = prob * impact;
-                    const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
-                    return score >= 9 && !hasPlans;
-                })
-                .sort((a, b) => {
-                    const getTime = (risk) => {
-                        const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-                        const parsed = dateValue ? new Date(dateValue).getTime() : 0;
-                        return Number.isNaN(parsed) ? 0 : parsed;
-                    };
-                    return getTime(b) - getTime(a);
-                });
+        const severeRisks = sourceRisks
+            .filter(risk => {
+                const prob = Number(risk.probNet) || 0;
+                const impact = Number(risk.impactNet) || 0;
+                const score = prob * impact;
+                const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
+                return score >= 9 && !hasPlans;
+            })
+            .map(risk => {
+                const prob = Number(risk.probNet) || 0;
+                const impact = Number(risk.impactNet) || 0;
+                const score = prob * impact;
+                const isCritical = score > 12;
+                const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                return {
+                    id: risk.id,
+                    description: risk.description || risk.titre || 'Sans description',
+                    process: risk.processus || risk.process || '-',
+                    level: isCritical ? 'Critique' : 'Sévère',
+                    score,
+                    probNet: prob,
+                    impactNet: impact,
+                    date: dateValue || null,
+                    formattedDate: formatDate(dateValue)
+                };
+            })
+            .sort((a, b) => {
+                const getTime = (entry) => {
+                    if (!entry.date) {
+                        return 0;
+                    }
+                    const parsed = new Date(entry.date).getTime();
+                    return Number.isNaN(parsed) ? 0 : parsed;
+                };
+                return getTime(b) - getTime(a);
+            });
 
+        const statusMap = (this.config?.actionPlanStatuses || []).reduce((acc, item) => {
+            const key = normalizeValue(item?.value);
+            if (key) {
+                acc[key] = item?.label || item?.value;
+            }
+            return acc;
+        }, {});
+
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayTime = today.getTime();
+
+        const overdueActionPlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
+            .map(plan => {
+                const dueDate = parsePlanDueDate(plan?.dueDate);
+                const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
+                return {
+                    plan,
+                    dueDate,
+                    statusValue,
+                    statusLabel
+                };
+            })
+            .filter(({ dueDate, statusValue }) => {
+                if (!dueDate || Number.isNaN(dueDate.getTime())) {
+                    return false;
+                }
+                if (statusValue === 'termine') {
+                    return false;
+                }
+                return dueDate.getTime() < todayTime;
+            })
+            .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
+            .map(({ plan, dueDate, statusLabel }) => ({
+                title: plan?.title || 'Plan sans titre',
+                owner: plan?.owner || '-',
+                statusLabel,
+                dueDate: dueDate ? dueDate.toISOString() : null,
+                formattedDueDate: dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-')
+            }));
+
+        return { severeRisks, overdueActionPlans };
+    }
+
+    updateRecentAlerts(risks = this.risks) {
+        const risksBody = document.getElementById('recentAlertsRisksBody');
+        const plansBody = document.getElementById('recentAlertsPlansBody');
+
+        if (!risksBody && !plansBody) {
+            return;
+        }
+
+        const { severeRisks, overdueActionPlans } = this.getRecentAlertsData(risks);
+
+        if (risksBody) {
             if (severeRisks.length === 0) {
                 risksBody.innerHTML = `
                     <tr>
@@ -2332,22 +2492,14 @@ class RiskManagementSystem {
                 `;
             } else {
                 risksBody.innerHTML = severeRisks.map(risk => {
-                    const prob = Number(risk.probNet) || 0;
-                    const impact = Number(risk.impactNet) || 0;
-                    const score = prob * impact;
-                    const isCritical = score > 12;
-                    const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
-                    const levelLabel = isCritical ? 'Critique' : 'Sévère';
-                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-                    const description = risk.description || risk.titre || 'Sans description';
-                    const process = risk.processus || risk.process || '-';
+                    const badgeClass = risk.level === 'Critique' ? 'badge-danger' : 'badge-warning';
 
                     return `
                         <tr>
-                            <td>${formatDate(dateValue)}</td>
-                            <td>${description}</td>
-                            <td>${process}</td>
-                            <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
+                            <td>${risk.formattedDate}</td>
+                            <td>${risk.description}</td>
+                            <td>${risk.process}</td>
+                            <td><span class="table-badge ${badgeClass}">${risk.level}</span></td>
                             <td class="table-actions-cell">
                                 <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
                                 <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
@@ -2359,58 +2511,21 @@ class RiskManagementSystem {
         }
 
         if (plansBody) {
-            const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
-                const key = normalizeValue(item?.value);
-                if (key) {
-                    acc[key] = item?.label || item?.value;
-                }
-                return acc;
-            }, {});
-
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const todayTime = today.getTime();
-
-            const overduePlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
-                .map(plan => ({
-                    plan,
-                    dueDate: parsePlanDueDate(plan?.dueDate)
-                }))
-                .filter(({ dueDate, plan }) => {
-                    if (!dueDate || Number.isNaN(dueDate.getTime())) {
-                        return false;
-                    }
-                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
-                    if (statusValue === 'termine') {
-                        return false;
-                    }
-                    return dueDate.getTime() < todayTime;
-                })
-                .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
-
-            if (overduePlans.length === 0) {
+            if (overdueActionPlans.length === 0) {
                 plansBody.innerHTML = `
                     <tr>
                         <td colspan="4" class="table-empty">Aucun plan d'action en retard</td>
                     </tr>
                 `;
             } else {
-                plansBody.innerHTML = overduePlans.map(({ plan, dueDate }) => {
-                    const title = plan?.title || 'Plan sans titre';
-                    const owner = plan?.owner || '-';
-                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
-                    const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
-                    const formattedDueDate = dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-');
-
-                    return `
+                plansBody.innerHTML = overdueActionPlans.map(plan => `
                         <tr>
-                            <td>${title}</td>
-                            <td>${owner || '-'}</td>
-                            <td>${formattedDueDate}</td>
-                            <td>${statusLabel}</td>
+                            <td>${plan.title}</td>
+                            <td>${plan.owner || '-'}</td>
+                            <td>${plan.formattedDueDate}</td>
+                            <td>${plan.statusLabel}</td>
                         </tr>
-                    `;
-                }).join('');
+                    `).join('');
             }
         }
     }
