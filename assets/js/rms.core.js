@@ -1329,6 +1329,11 @@ class RiskManagementSystem {
             const key = `${prob}-${impact}`;
             const index = cellCounts[key] || 0;
             cellCounts[key] = index + 1;
+            const slots = cellCounts[key];
+            const gridSize = Math.ceil(Math.sqrt(slots));
+            const slotIndex = index;
+            const row = Math.floor(slotIndex / gridSize);
+            const col = slotIndex % gridSize;
 
             // Create point element and temporarily add it to the DOM to get its size
             const point = document.createElement('div');
@@ -1341,12 +1346,9 @@ class RiskManagementSystem {
             // Determine actual diameter and offset
             const diameter = point.offsetWidth;
             const margin = 4;
-            const offset = diameter + margin;
-
-            // Spread points around the center in eight directions
-            const angle = index * Math.PI / 4;
-            const dx = Math.cos(angle) * offset;
-            const dy = Math.sin(angle) * offset;
+            const step = diameter + margin;
+            const dx = (col - (gridSize - 1) / 2) * step;
+            const dy = (row - (gridSize - 1) / 2) * step;
 
             // Position the point
             point.style.left = `calc(${leftPercent}% + ${dx}px)`;
