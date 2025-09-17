@@ -1,7 +1,253 @@
 // Enhanced Risk Management System - Integrations & Advanced Features
 
 function exportDashboard() {
-    if (window.rms) rms.exportData('json');
+    if (!window.rms) {
+        const message = 'Instance du tableau de bord introuvable : export impossible';
+        console.warn(message);
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(message);
+        }
+        return;
+    }
+
+    const jsPdfNamespace = window.jspdf || window.jsPDF || window.jsPdf;
+    const jsPDFConstructor = jsPdfNamespace && (jsPdfNamespace.jsPDF || jsPdfNamespace);
+
+    if (typeof jsPDFConstructor !== 'function') {
+        const message = 'Bibliothèque jsPDF introuvable : impossible de générer le PDF';
+        console.error(message);
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(message);
+        }
+        return;
+    }
+
+    if (typeof rms.getDashboardExportData !== 'function') {
+        const message = 'Export du tableau de bord indisponible avec la version actuelle';
+        console.error(message);
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(message);
+        }
+        return;
+    }
+
+    try {
+        const data = rms.getDashboardExportData();
+
+        if (!data || !data.metrics || !data.metrics.stats) {
+            const message = 'Aucune donnée valide à exporter pour le tableau de bord';
+            console.warn(message, data);
+            if (typeof showNotification === 'function') {
+                showNotification('warning', message);
+            } else {
+                alert(message);
+            }
+            return;
+        }
+
+        const doc = new jsPDFConstructor({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        const margin = 40;
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const pageHeight = doc.internal.pageSize.getHeight();
+        const lineHeight = 14;
+        let cursorY = margin;
+
+        const ensureSpace = (height = lineHeight) => {
+            if (cursorY + height > pageHeight - margin) {
+                doc.addPage();
+                cursorY = margin;
+                doc.setFont('helvetica', 'normal');
+                doc.setFontSize(11);
+            }
+        };
+
+        const splitText = (text, widthOffset = 0) => {
+            return doc.splitTextToSize(String(text ?? ''), pageWidth - (2 * margin) - widthOffset);
+        };
+
+        const addParagraph = (text) => {
+            const lines = splitText(text);
+            lines.forEach((line) => {
+                ensureSpace();
+                doc.text(line, margin, cursorY);
+                cursorY += lineHeight;
+            });
+        };
+
+        const addSectionTitle = (title) => {
+            ensureSpace(24);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(14);
+            doc.text(String(title || ''), margin, cursorY);
+            cursorY += 18;
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(11);
+        };
+
+        const addBullet = (text) => {
+            const lines = splitText(text, 16);
+            lines.forEach((line, index) => {
+                ensureSpace();
+                if (index === 0) {
+                    doc.text('•', margin, cursorY);
+                    doc.text(line, margin + 12, cursorY);
+                } else {
+                    doc.text(line, margin + 12, cursorY);
+                }
+                cursorY += lineHeight;
+            });
+        };
+
+        const formatNumber = (value, { decimals = 0 } = {}) => {
+            if (!Number.isFinite(value)) {
+                return '-';
+            }
+            return Number(value).toLocaleString('fr-FR', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        };
+
+        const formatDateTime = (isoString) => {
+            if (!isoString) {
+                return '-';
+            }
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleString('fr-FR');
+        };
+
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(18);
+        doc.text('Tableau de bord - Synthèse', margin, cursorY);
+        cursorY += 26;
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(11);
+        addParagraph(`Généré le ${formatDateTime(data.generatedAt)}`);
+
+        const { metrics, topRisks = [], processOverview = {}, alerts = {} } = data;
+        const stats = metrics.stats || {};
+
+        addSectionTitle('Indicateurs clés');
+        addParagraph(`Total des risques validés : ${formatNumber(stats.total)}`);
+        const criticalShare = stats.total ? Math.round((stats.critical / stats.total) * 100) : 0;
+        const highShare = stats.total ? Math.round((stats.high / stats.total) * 100) : 0;
+        addParagraph(`Risques critiques : ${formatNumber(stats.critical)} (${criticalShare}% du total)`);
+        addParagraph(`Risques élevés : ${formatNumber(stats.high)} (${highShare}% du total)`);
+        addParagraph(`Score global de maîtrise : ${formatNumber(metrics.globalScore)} %`);
+        addParagraph(`Réduction moyenne du score net : ${formatNumber(metrics.averageReduction, { decimals: 1 })}`);
+        addParagraph(`Contrôles actifs : ${formatNumber(metrics.activeControls)} sur ${formatNumber(metrics.totalControls)}`);
+
+        const actionPlanMetrics = metrics.actionPlanStatusMetrics || { total: 0, distribution: [] };
+        if (!actionPlanMetrics.total) {
+            addParagraph("Plans d'actions : aucun plan enregistré.");
+        } else {
+            addParagraph(`Plans d'actions suivis : ${formatNumber(actionPlanMetrics.total)}`);
+            const filledDistribution = Array.isArray(actionPlanMetrics.distribution)
+                ? actionPlanMetrics.distribution.filter(item => (Number(item?.count) || 0) > 0)
+                : [];
+            if (filledDistribution.length) {
+                addParagraph('Répartition par statut :');
+                filledDistribution.forEach((item) => {
+                    const label = item?.label || item?.value || 'Non défini';
+                    addBullet(`${label} : ${formatNumber(item.count)} plan${item.count > 1 ? 's' : ''}`);
+                });
+            }
+        }
+
+        addSectionTitle('Processus surveillés');
+        const distribution = Array.isArray(processOverview.distribution) ? processOverview.distribution : [];
+        if (!distribution.length) {
+            addParagraph('Aucun risque à analyser sur les processus.');
+        } else {
+            const maxProcess = 5;
+            distribution.slice(0, maxProcess).forEach((entry) => {
+                addBullet(`${entry.label} : ${formatNumber(entry.count)} risque${entry.count > 1 ? 's' : ''}`);
+            });
+            if (distribution.length > maxProcess) {
+                addParagraph(`... et ${distribution.length - maxProcess} processus supplémentaires.`);
+            }
+        }
+
+        const severity = Array.isArray(processOverview.severity)
+            ? processOverview.severity.filter(item => Number.isFinite(item?.average) && item.count > 0)
+            : [];
+        if (severity.length) {
+            addParagraph('Scores nets moyens par processus :');
+            const maxSeverity = 5;
+            severity.slice(0, maxSeverity).forEach((entry) => {
+                addBullet(`${entry.label} : score moyen ${formatNumber(entry.average, { decimals: 1 })} (max ${formatNumber(entry.maxScore, { decimals: 1 })})`);
+            });
+            if (severity.length > maxSeverity) {
+                addParagraph(`... et ${severity.length - maxSeverity} autres processus suivis.`);
+            }
+        }
+
+        addSectionTitle('Top risques nets');
+        if (!topRisks.length) {
+            addParagraph('Aucun risque validé disponible.');
+        } else {
+            const maxRisks = 5;
+            topRisks.slice(0, maxRisks).forEach((risk) => {
+                const processLabel = risk.sousProcessus
+                    ? `${risk.processus} / ${risk.sousProcessus}`
+                    : risk.processus;
+                addBullet(`${risk.rank}. ${risk.titre} — ${processLabel} (Score ${formatNumber(risk.score)}, P${risk.probNet} × I${risk.impactNet})`);
+            });
+            if (topRisks.length > maxRisks) {
+                addParagraph(`... et ${topRisks.length - maxRisks} risques supplémentaires dans l'application.`);
+            }
+        }
+
+        addSectionTitle('Alertes et éléments de vigilance');
+        const severeRisks = Array.isArray(alerts.severeRisks) ? alerts.severeRisks : [];
+        if (!severeRisks.length) {
+            addParagraph("Aucun risque sévère ou critique sans plan d'action.");
+        } else {
+            addParagraph('Risques sévères ou critiques sans plan d\'actions :');
+            severeRisks.slice(0, 5).forEach((risk) => {
+                addBullet(`${risk.description} — ${risk.process} (${risk.level}) • Score ${formatNumber(risk.score)} • ${risk.formattedDate}`);
+            });
+            if (severeRisks.length > 5) {
+                addParagraph(`... et ${severeRisks.length - 5} alertes supplémentaires.`);
+            }
+        }
+
+        const overduePlans = Array.isArray(alerts.overdueActionPlans) ? alerts.overdueActionPlans : [];
+        if (!overduePlans.length) {
+            addParagraph("Plans d'actions : aucun retard détecté.");
+        } else {
+            addParagraph("Plans d'actions en retard :");
+            overduePlans.slice(0, 5).forEach((plan) => {
+                addBullet(`${plan.title} — ${plan.owner || 'Responsable non défini'} • Échéance ${plan.formattedDueDate} • Statut ${plan.statusLabel}`);
+            });
+            if (overduePlans.length > 5) {
+                addParagraph(`... et ${overduePlans.length - 5} plans supplémentaires en retard.`);
+            }
+        }
+
+        doc.save('tableau-de-bord.pdf');
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Export PDF du tableau de bord généré');
+        }
+    } catch (error) {
+        console.error('Erreur lors de la génération du PDF du tableau de bord', error);
+        const message = "Échec de la génération du PDF du tableau de bord";
+        if (typeof showNotification === 'function') {
+            showNotification('error', `${message} : ${error.message}`);
+        } else {
+            alert(`${message}\n${error.message}`);
+        }
+    }
 }
 window.exportDashboard = exportDashboard;
 
