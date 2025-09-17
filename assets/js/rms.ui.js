@@ -604,6 +604,23 @@ function removeRiskFromPlanSelection(riskId) {
 window.removeRiskFromPlanSelection = removeRiskFromPlanSelection;
 
 function showNotification(type, message) {
+    const notification = document.createElement('div');
+    notification.classList.add('notification');
+
+    if (['success', 'error', 'info'].includes(type)) {
+        notification.classList.add(type);
+    }
+
+    notification.textContent = message;
+    document.body.appendChild(notification);
+
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 4000);
+}
+window.showNotification = showNotification;
 function generateReport(type) {
     showNotification('info', `Génération du rapport ${type} en cours...`);
     setTimeout(() => {
