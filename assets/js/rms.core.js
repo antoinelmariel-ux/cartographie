@@ -32,6 +32,8 @@ class RiskManagementSystem {
             owner: '',
             dueDateOrder: ''
         };
+        this.lastDashboardMetrics = null;
+        this.charts = {};
         this.risks.forEach(r => {
             if (!r.actionPlans || r.actionPlans.length === 0) {
                 r.probPost = r.probNet;
@@ -1577,11 +1579,160 @@ class RiskManagementSystem {
     updateDashboard() {
         // Update stats
         const stats = this.calculateStats();
+        const metrics = this.computeDashboardMetrics(stats);
 
-        // Update KPI cards (if elements exist)
-        // Update charts
+        this.updateKpiCards({ ...metrics, previous: this.lastDashboardMetrics });
         this.updateCharts();
         this.updateRecentAlerts();
+
+        this.lastDashboardMetrics = metrics;
+    }
+
+    computeDashboardMetrics(stats) {
+        const totalRisks = stats?.total || 0;
+
+        const totals = this.risks.reduce((acc, risk) => {
+            const brut = (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+            const net = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
+            const post = (Number(risk?.probPost) || 0) * (Number(risk?.impactPost) || 0);
+
+            return {
+                brut: acc.brut + brut,
+                net: acc.net + net,
+                post: acc.post + post
+            };
+        }, { brut: 0, net: 0, post: 0 });
+
+        const maxScorePerRisk = 16; // 4x4 matrix
+        const potentialScore = totalRisks * maxScorePerRisk;
+        const rawResidualScore = totals.net;
+        const normalizedScore = potentialScore > 0
+            ? Math.max(0, Math.min(1, 1 - (rawResidualScore / potentialScore)))
+            : 1;
+        const globalScore = Math.round(normalizedScore * 100);
+
+        const averageReduction = totalRisks > 0
+            ? Math.max((totals.brut - totals.net) / totalRisks, 0)
+            : 0;
+
+        const activeControls = Array.isArray(this.controls)
+            ? this.controls.filter(control => String(control?.status || '').toLowerCase() === 'actif').length
+            : 0;
+        const totalControls = Array.isArray(this.controls) ? this.controls.length : 0;
+
+        return {
+            stats: { ...stats },
+            activeControls,
+            totalControls,
+            globalScore,
+            averageReduction
+        };
+    }
+
+    updateKpiCards(metrics) {
+        if (!metrics || !metrics.stats) return;
+
+        const { stats, activeControls, totalControls, globalScore, averageReduction, previous } = metrics;
+        const previousStats = previous?.stats || null;
+        const previousActiveControls = previous?.activeControls ?? activeControls;
+        const previousGlobalScore = previous?.globalScore ?? globalScore;
+
+        const applyTrend = (element, delta, { inverted = false, stableLabel = '→ Stable', formatter } = {}) => {
+            if (!element) return;
+
+            element.classList.remove('positive', 'negative');
+
+            if (!Number.isFinite(delta) || delta === 0) {
+                const label = typeof stableLabel === 'function' ? stableLabel() : stableLabel;
+                element.textContent = label;
+                return;
+            }
+
+            const arrow = delta > 0 ? '↑' : '↓';
+            const signedValue = `${delta > 0 ? '+' : ''}${delta}`;
+            const message = formatter
+                ? formatter({ arrow, signedValue, delta })
+                : `${arrow} ${signedValue} vs dernière mesure`;
+            element.textContent = message;
+
+            const isPositiveChange = inverted ? delta < 0 : delta > 0;
+            element.classList.add(isPositiveChange ? 'positive' : 'negative');
+        };
+
+        const updateCard = (selector, updateFn) => {
+            const card = document.querySelector(selector);
+            if (!card) return;
+            updateFn(card);
+        };
+
+        updateCard('.stat-card.danger', (card) => {
+            const valueEl = card.querySelector('.stat-value');
+            if (valueEl) {
+                valueEl.textContent = stats.critical;
+            }
+
+            const share = stats.total > 0 ? Math.round((stats.critical / stats.total) * 100) : 0;
+            const delta = stats.critical - (previousStats?.critical ?? stats.critical);
+            const changeEl = card.querySelector('.stat-change');
+            applyTrend(changeEl, delta, {
+                inverted: true,
+                stableLabel: () => `${share}% du total`,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% du total)`
+            });
+        });
+
+        updateCard('.stat-card.warning', (card) => {
+            const valueEl = card.querySelector('.stat-value');
+            if (valueEl) {
+                valueEl.textContent = stats.high;
+            }
+
+            const share = stats.total > 0 ? Math.round((stats.high / stats.total) * 100) : 0;
+            const delta = stats.high - (previousStats?.high ?? stats.high);
+            const changeEl = card.querySelector('.stat-change');
+            applyTrend(changeEl, delta, {
+                inverted: true,
+                stableLabel: () => `${share}% du total`,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% du total)`
+            });
+        });
+
+        updateCard('.stat-card.success', (card) => {
+            const valueEl = card.querySelector('.stat-value');
+            if (valueEl) {
+                valueEl.textContent = activeControls;
+            }
+
+            const ratio = totalControls > 0 ? Math.round((activeControls / totalControls) * 100) : 0;
+            const delta = activeControls - previousActiveControls;
+            const changeEl = card.querySelector('.stat-change');
+            applyTrend(changeEl, delta, {
+                inverted: false,
+                stableLabel: () => `${ratio}% des contrôles actifs`,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} vs dernière mesure (${ratio}% actifs)`
+            });
+        });
+
+        updateCard('.stat-card.primary', (card) => {
+            const valueEl = card.querySelector('.stat-value');
+            if (valueEl) {
+                valueEl.textContent = `${globalScore}%`;
+            }
+
+            const delta = globalScore - previousGlobalScore;
+            const changeEl = card.querySelector('.stat-change');
+            const reductionLabel = `${averageReduction.toFixed(1)} pts de réduction moyenne`;
+            applyTrend(changeEl, delta, {
+                inverted: false,
+                stableLabel: () => reductionLabel,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} pts vs dernière mesure (${reductionLabel})`
+            });
+        });
+
+        const dashboardBadge = document.querySelector('.tabs-container .tab .tab-badge');
+        if (dashboardBadge) {
+            dashboardBadge.textContent = String(stats.critical + stats.high);
+        }
     }
 
     updateRecentAlerts() {
@@ -1659,8 +1810,208 @@ class RiskManagementSystem {
     }
 
     updateCharts() {
-        // Placeholder for chart updates
-        // Would use Chart.js or similar library
+        if (typeof Chart === 'undefined') {
+            return;
+        }
+
+        if (!this.charts) {
+            this.charts = {};
+        }
+
+        const evolutionCanvas = document.getElementById('evolutionChart');
+        if (evolutionCanvas) {
+            const now = new Date();
+            const months = [];
+            const monthIndexMap = new Map();
+
+            for (let offset = 5; offset >= 0; offset--) {
+                const refDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
+                const key = `${refDate.getFullYear()}-${refDate.getMonth()}`;
+                monthIndexMap.set(key, months.length);
+                months.push({
+                    key,
+                    label: refDate.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
+                });
+            }
+
+            const monthlyStats = months.map(() => ({ critical: 0, high: 0, total: 0 }));
+
+            const parseDate = (value) => {
+                if (!value) return null;
+                if (value instanceof Date) return isNaN(value) ? null : value;
+                if (typeof value === 'number') {
+                    const date = new Date(value);
+                    return isNaN(date) ? null : date;
+                }
+                if (typeof value === 'string') {
+                    const trimmed = value.trim();
+                    if (!trimmed) return null;
+
+                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
+                        const [day, month, year] = trimmed.split('/').map(Number);
+                        const date = new Date(year, month - 1, day);
+                        return isNaN(date) ? null : date;
+                    }
+
+                    const date = new Date(trimmed);
+                    return isNaN(date) ? null : date;
+                }
+                return null;
+            };
+
+            this.risks.forEach(risk => {
+                const rawDate = risk?.dateCreation || risk?.date || risk?.createdAt;
+                const parsedDate = parseDate(rawDate);
+                if (!parsedDate) return;
+
+                const monthKey = `${parsedDate.getFullYear()}-${parsedDate.getMonth()}`;
+                const index = monthIndexMap.get(monthKey);
+                if (index === undefined) return;
+
+                const probNet = Number(risk?.probNet) || 0;
+                const impactNet = Number(risk?.impactNet) || 0;
+                const score = probNet * impactNet;
+
+                monthlyStats[index].total += 1;
+                if (score > 12) {
+                    monthlyStats[index].critical += 1;
+                } else if (score > 8) {
+                    monthlyStats[index].high += 1;
+                }
+            });
+
+            const evolutionData = {
+                labels: months.map(month => month.label),
+                datasets: [
+                    {
+                        label: 'Critiques',
+                        data: monthlyStats.map(item => item.critical),
+                        borderColor: 'rgba(231, 76, 60, 0.9)',
+                        backgroundColor: 'rgba(231, 76, 60, 0.15)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'Élevés',
+                        data: monthlyStats.map(item => item.high),
+                        borderColor: 'rgba(241, 196, 15, 0.9)',
+                        backgroundColor: 'rgba(241, 196, 15, 0.15)',
+                        fill: true,
+                        tension: 0.3,
+                        pointRadius: 4
+                    },
+                    {
+                        label: 'Total',
+                        data: monthlyStats.map(item => item.total),
+                        borderColor: 'rgba(52, 152, 219, 0.9)',
+                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
+                        fill: false,
+                        borderDash: [5, 5],
+                        tension: 0.2,
+                        pointRadius: 3
+                    }
+                ]
+            };
+
+            const evolutionOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'bottom'
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            };
+
+            if (this.charts.evolution) {
+                const chart = this.charts.evolution;
+                chart.data.labels = evolutionData.labels;
+                chart.data.datasets = evolutionData.datasets;
+                chart.options = evolutionOptions;
+                chart.update();
+            } else {
+                this.charts.evolution = new Chart(evolutionCanvas, {
+                    type: 'line',
+                    data: evolutionData,
+                    options: evolutionOptions
+                });
+            }
+        }
+
+        const processCanvas = document.getElementById('processChart');
+        if (processCanvas) {
+            const processCounts = this.risks.reduce((acc, risk) => {
+                const process = risk?.processus || 'Non défini';
+                acc[process] = (acc[process] || 0) + 1;
+                return acc;
+            }, {});
+
+            const processLabels = Object.keys(processCounts);
+            if (processLabels.length === 0) {
+                processLabels.push('Aucun risque');
+                processCounts['Aucun risque'] = 0;
+            }
+
+            const dataValues = processLabels.map(label => processCounts[label]);
+            const palette = [
+                'rgba(52, 152, 219, 0.8)',
+                'rgba(46, 204, 113, 0.8)',
+                'rgba(241, 196, 15, 0.8)',
+                'rgba(231, 76, 60, 0.8)',
+                'rgba(155, 89, 182, 0.8)',
+                'rgba(26, 188, 156, 0.8)',
+                'rgba(230, 126, 34, 0.8)',
+                'rgba(149, 165, 166, 0.8)'
+            ];
+
+            const colors = dataValues.map((_, index) => palette[index % palette.length]);
+
+            const processData = {
+                labels: processLabels,
+                datasets: [
+                    {
+                        data: dataValues,
+                        backgroundColor: colors,
+                        borderColor: colors.map(color => color.replace('0.8', '1')),
+                        borderWidth: 1
+                    }
+                ]
+            };
+
+            const processOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom'
+                    }
+                }
+            };
+
+            if (this.charts.process) {
+                const chart = this.charts.process;
+                chart.data.labels = processData.labels;
+                chart.data.datasets = processData.datasets;
+                chart.options = processOptions;
+                chart.update();
+            } else {
+                this.charts.process = new Chart(processCanvas, {
+                    type: 'doughnut',
+                    data: processData,
+                    options: processOptions
+                });
+            }
+        }
     }
 
     // Risk list functions
