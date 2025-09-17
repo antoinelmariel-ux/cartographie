@@ -125,9 +125,23 @@
 
                     <!-- Charts -->
                     <div class="charts-row">
-                        <div class="chart-container">
-                            <div class="chart-title">Évolution des Risques (6 derniers mois)</div>
-                            <canvas id="evolutionChart" height="200"></canvas>
+                        <div class="chart-container top-risks-container">
+                            <div class="chart-title">Top 10 des risques nets</div>
+                            <div class="top-risks-content" id="topRisksContent">
+                                <table class="top-risks-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Titre</th>
+                                            <th>Processus</th>
+                                            <th>Sous-processus</th>
+                                            <th>Score net</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="topRisksTableBody"></tbody>
+                                </table>
+                                <div class="top-risks-empty">Aucun risque à afficher</div>
+                            </div>
                         </div>
                         <div class="chart-container process-charts">
                             <div class="chart-title">Répartition par Processus</div>

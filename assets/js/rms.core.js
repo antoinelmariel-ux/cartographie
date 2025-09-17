@@ -2208,6 +2208,73 @@ class RiskManagementSystem {
     }
 
     updateCharts(risks = this.risks, stats = null) {
+        const baseRisks = Array.isArray(risks) ? risks : [];
+        const filteredRisks = this.getFilteredRisks(baseRisks);
+
+        const topRisksBody = document.getElementById('topRisksTableBody');
+        const topRisksContent = document.getElementById('topRisksContent');
+        if (topRisksBody && topRisksContent) {
+            const enrichedRisks = filteredRisks.map(risk => {
+                const probNet = Number(risk?.probNet) || 0;
+                const impactNet = Number(risk?.impactNet) || 0;
+                const score = probNet * impactNet;
+                return { risk, score, probNet, impactNet };
+            }).filter(entry => Number.isFinite(entry.score));
+
+            const topRisks = enrichedRisks.sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (b.impactNet !== a.impactNet) return b.impactNet - a.impactNet;
+                if (b.probNet !== a.probNet) return b.probNet - a.probNet;
+                const aTitle = a.risk?.titre || a.risk?.description || '';
+                const bTitle = b.risk?.titre || b.risk?.description || '';
+                return aTitle.localeCompare(bTitle, 'fr', { sensitivity: 'base' });
+            }).slice(0, 10);
+
+            if (!topRisks.length) {
+                topRisksBody.innerHTML = '';
+                topRisksContent.classList.add('is-empty');
+            } else {
+                topRisksContent.classList.remove('is-empty');
+                topRisksBody.innerHTML = topRisks.map((entry, index) => {
+                    const risk = entry.risk || {};
+                    const rank = index + 1;
+                    const title = risk.titre || risk.description || 'Risque sans titre';
+                    const processLabel = risk.processus || 'Non défini';
+                    const subProcessRaw = risk.sousProcessus;
+                    const subProcessLabel = subProcessRaw && String(subProcessRaw).trim() ? subProcessRaw : '—';
+                    const scoreLabel = Number.isFinite(entry.score)
+                        ? entry.score.toLocaleString('fr-FR')
+                        : '0';
+
+                    const meta = `P${entry.probNet} × I${entry.impactNet}`;
+
+                    return `
+                        <tr>
+                            <td>${rank}</td>
+                            <td>
+                                <span class="top-risk-title">${title}</span>
+                                <span class="top-risk-meta">${meta}</span>
+                            </td>
+                            <td class="top-risk-process">${processLabel}</td>
+                            <td class="top-risk-subprocess">${subProcessLabel}</td>
+                            <td class="top-risk-score">${scoreLabel}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (this.charts && this.charts.evolution) {
+            try {
+                if (typeof this.charts.evolution.destroy === 'function') {
+                    this.charts.evolution.destroy();
+                }
+            } catch (error) {
+                console.warn('Erreur lors de la destruction du graphique d\'évolution :', error);
+            }
+            delete this.charts.evolution;
+        }
+
         if (typeof Chart === 'undefined') {
             return;
         }
@@ -2218,8 +2285,6 @@ class RiskManagementSystem {
             this.charts = {};
         }
 
-        const baseRisks = Array.isArray(risks) ? risks : [];
-        const filteredRisks = this.getFilteredRisks(baseRisks);
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
             const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
@@ -2239,136 +2304,6 @@ class RiskManagementSystem {
 
         if (Object.keys(processMetrics).length === 0) {
             processMetrics['Aucun risque'] = { count: 0, totalScore: 0, maxScore: 0 };
-        }
-
-        const evolutionCanvas = document.getElementById('evolutionChart');
-        if (evolutionCanvas) {
-            const now = new Date();
-            const months = [];
-            const monthIndexMap = new Map();
-
-            for (let offset = 5; offset >= 0; offset--) {
-                const refDate = new Date(now.getFullYear(), now.getMonth() - offset, 1);
-                const key = `${refDate.getFullYear()}-${refDate.getMonth()}`;
-                monthIndexMap.set(key, months.length);
-                months.push({
-                    key,
-                    label: refDate.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' })
-                });
-            }
-
-            const monthlyStats = months.map(() => ({ critical: 0, high: 0, total: 0 }));
-
-            const parseDate = (value) => {
-                if (!value) return null;
-                if (value instanceof Date) return isNaN(value) ? null : value;
-                if (typeof value === 'number') {
-                    const date = new Date(value);
-                    return isNaN(date) ? null : date;
-                }
-                if (typeof value === 'string') {
-                    const trimmed = value.trim();
-                    if (!trimmed) return null;
-
-                    if (/^\d{2}\/\d{2}\/\d{4}$/.test(trimmed)) {
-                        const [day, month, year] = trimmed.split('/').map(Number);
-                        const date = new Date(year, month - 1, day);
-                        return isNaN(date) ? null : date;
-                    }
-
-                    const date = new Date(trimmed);
-                    return isNaN(date) ? null : date;
-                }
-                return null;
-            };
-
-            baseRisks.forEach(risk => {
-                const rawDate = risk?.dateCreation || risk?.date || risk?.createdAt;
-                const parsedDate = parseDate(rawDate);
-                if (!parsedDate) return;
-
-                const monthKey = `${parsedDate.getFullYear()}-${parsedDate.getMonth()}`;
-                const index = monthIndexMap.get(monthKey);
-                if (index === undefined) return;
-
-                const probNet = Number(risk?.probNet) || 0;
-                const impactNet = Number(risk?.impactNet) || 0;
-                const score = probNet * impactNet;
-
-                monthlyStats[index].total += 1;
-                if (score > 12) {
-                    monthlyStats[index].critical += 1;
-                } else if (score > 8) {
-                    monthlyStats[index].high += 1;
-                }
-            });
-
-            const evolutionData = {
-                labels: months.map(month => month.label),
-                datasets: [
-                    {
-                        label: 'Critiques',
-                        data: monthlyStats.map(item => item.critical),
-                        borderColor: 'rgba(231, 76, 60, 0.9)',
-                        backgroundColor: 'rgba(231, 76, 60, 0.15)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Élevés',
-                        data: monthlyStats.map(item => item.high),
-                        borderColor: 'rgba(241, 196, 15, 0.9)',
-                        backgroundColor: 'rgba(241, 196, 15, 0.15)',
-                        fill: true,
-                        tension: 0.3,
-                        pointRadius: 4
-                    },
-                    {
-                        label: 'Total',
-                        data: monthlyStats.map(item => item.total),
-                        borderColor: 'rgba(52, 152, 219, 0.9)',
-                        backgroundColor: 'rgba(52, 152, 219, 0.1)',
-                        fill: false,
-                        borderDash: [5, 5],
-                        tension: 0.2,
-                        pointRadius: 3
-                    }
-                ]
-            };
-
-            const evolutionOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true,
-                        position: 'bottom'
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0
-                        }
-                    }
-                }
-            };
-
-            if (this.charts.evolution) {
-                const chart = this.charts.evolution;
-                chart.data.labels = evolutionData.labels;
-                chart.data.datasets = evolutionData.datasets;
-                chart.options = evolutionOptions;
-                chart.update();
-            } else {
-                this.charts.evolution = new Chart(evolutionCanvas, {
-                    type: 'line',
-                    data: evolutionData,
-                    options: evolutionOptions
-                });
-            }
         }
 
         const processCanvas = document.getElementById('processChart');
