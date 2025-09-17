@@ -6,8 +6,19 @@ class RiskManagementSystem {
         this.controls = this.loadData('controls') || this.getDefaultControls();
         this.actionPlans = this.loadData('actionPlans') || [];
         this.history = this.loadData('history') || [];
-        this.config = this.loadConfig() || this.getDefaultConfig();
+        const defaultConfig = this.getDefaultConfig();
+        this.config = this.loadConfig() || defaultConfig;
         let configStructureUpdated = false;
+        if (!Array.isArray(this.config.actionPlanStatuses)) {
+            const fallbackStatuses = defaultConfig.actionPlanStatuses || [
+                { value: 'brouillon', label: 'Brouillon' },
+                { value: 'a-demarrer', label: 'À démarrer' },
+                { value: 'en-cours', label: 'En cours' },
+                { value: 'termine', label: 'Terminé' }
+            ];
+            this.config.actionPlanStatuses = fallbackStatuses.map(status => ({ ...status }));
+            configStructureUpdated = true;
+        }
         if (!this.config.subProcesses || typeof this.config.subProcesses !== 'object' || Array.isArray(this.config.subProcesses)) {
             this.config.subProcesses = {};
             configStructureUpdated = true;
@@ -38,6 +49,10 @@ class RiskManagementSystem {
         };
         this.controlFilters = {
             type: '',
+            status: '',
+            search: ''
+        };
+        this.actionPlanFilters = {
             status: '',
             search: ''
         };
@@ -360,6 +375,12 @@ class RiskManagementSystem {
                 { value: 'validé', label: 'Validé' },
                 { value: 'archive', label: 'Archivé' }
             ],
+            actionPlanStatuses: [
+                { value: 'brouillon', label: 'Brouillon' },
+                { value: 'a-demarrer', label: 'À démarrer' },
+                { value: 'en-cours', label: 'En cours' },
+                { value: 'termine', label: 'Terminé' }
+            ],
             controlTypes: [
                 { value: 'preventif', label: 'Préventif' },
                 { value: 'detectif', label: 'Détectif' }
@@ -435,14 +456,19 @@ class RiskManagementSystem {
         fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
         fill('controlsTypeFilter', this.config.controlTypes, 'Tous les types de contrôle');
         fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
+        fill('planStatus', this.config.actionPlanStatuses, 'Sélectionner...');
+        fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'Tous les statuts');
 
-        const syncFilterValue = (filterKey, value) => {
+        const syncFilterValue = (filterKey, value, options = {}) => {
             if (typeof document === 'undefined') return;
             const normalizedKey = typeof filterKey === 'string' ? filterKey : '';
             if (!normalizedKey) return;
             const normalizedValue = value == null ? '' : String(value);
+            const attributeName = typeof options.attribute === 'string' && options.attribute
+                ? options.attribute
+                : 'data-filter-key';
 
-            document.querySelectorAll(`[data-filter-key="${normalizedKey}"]`).forEach(element => {
+            document.querySelectorAll(`[${attributeName}="${normalizedKey}"]`).forEach(element => {
                 if (!('value' in element)) {
                     return;
                 }
@@ -465,6 +491,8 @@ class RiskManagementSystem {
         syncFilterValue('type', this.controlFilters?.type || '');
         syncFilterValue('status', this.controlFilters?.status || '');
         syncFilterValue('search', this.controlFilters?.search || '');
+        syncFilterValue('status', this.actionPlanFilters?.status || '', { attribute: 'data-action-plan-filter' });
+        syncFilterValue('search', this.actionPlanFilters?.search || '', { attribute: 'data-action-plan-filter' });
     }
 
     setupAutoValueSync(labelInput, valueInput) {
@@ -1436,12 +1464,148 @@ class RiskManagementSystem {
     }
 
     // Action Plans functions
+    getFilteredActionPlans() {
+        const plans = Array.isArray(this.actionPlans) ? this.actionPlans : [];
+        const { status = '', search = '' } = this.actionPlanFilters || {};
+
+        const statusFilter = String(status || '').toLowerCase();
+        const searchTerm = String(search || '').trim().toLowerCase();
+
+        if (!statusFilter && !searchTerm) {
+            return plans.slice();
+        }
+
+        const riskIndex = new Map();
+        if (Array.isArray(this.risks)) {
+            this.risks.forEach(risk => {
+                if (!risk || risk.id === undefined || risk.id === null) {
+                    return;
+                }
+                riskIndex.set(risk.id, risk);
+            });
+        }
+
+        return plans.filter(plan => {
+            const planStatus = String(plan?.status || '').toLowerCase();
+            if (statusFilter && planStatus !== statusFilter) {
+                return false;
+            }
+
+            if (searchTerm) {
+                const searchFields = [
+                    plan?.title,
+                    plan?.description,
+                    plan?.owner,
+                    plan?.dueDate,
+                    plan?.status,
+                    plan?.id
+                ];
+
+                const directMatch = searchFields.some(field => {
+                    if (field === undefined || field === null) {
+                        return false;
+                    }
+                    return String(field).toLowerCase().includes(searchTerm);
+                });
+
+                if (!directMatch) {
+                    const relatedRisksText = (Array.isArray(plan?.risks) ? plan.risks : [])
+                        .map(riskId => {
+                            const risk = riskIndex.get(riskId);
+                            if (!risk) {
+                                return '';
+                            }
+                            const combined = `${risk.description || ''} ${risk.processus || ''} ${risk.sousProcessus || ''}`;
+                            return combined.trim();
+                        })
+                        .filter(Boolean)
+                        .join(' ')
+                        .toLowerCase();
+
+                    if (!relatedRisksText.includes(searchTerm)) {
+                        return false;
+                    }
+                }
+            }
+
+            return true;
+        });
+    }
+
     updateActionPlansList() {
         const container = document.getElementById('actionPlansList');
         if (!container) return;
 
-        container.innerHTML = this.actionPlans.map(plan => {
-            const linkedRisks = plan.risks ? this.risks.filter(r => plan.risks.includes(r.id)).map(r => r.description.substring(0, 50) + '...').join(', ') : 'Aucun risque';
+        const allPlans = Array.isArray(this.actionPlans) ? this.actionPlans : [];
+        const filteredPlans = this.getFilteredActionPlans();
+
+        if (!allPlans.length) {
+            container.innerHTML = `
+                <div class="controls-empty-state">
+                    <div class="controls-empty-title">Aucun plan d'action enregistré</div>
+                    <div class="controls-empty-text">Créez votre premier plan pour piloter vos actions correctives.</div>
+                    <button class="btn btn-secondary" onclick="addNewActionPlan()">+ Ajouter un plan</button>
+                </div>
+            `;
+            return;
+        }
+
+        if (!filteredPlans.length) {
+            container.innerHTML = `
+                <div class="controls-empty-state">
+                    <div class="controls-empty-title">Aucun plan ne correspond aux filtres</div>
+                    <div class="controls-empty-text">Ajustez votre recherche ou réinitialisez les filtres pour afficher les plans disponibles.</div>
+                </div>
+            `;
+            return;
+        }
+
+        const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
+            if (item && item.value !== undefined && item.value !== null) {
+                acc[String(item.value).toLowerCase()] = item.label || item.value;
+            }
+            return acc;
+        }, {});
+
+        const riskIndex = new Map();
+        if (Array.isArray(this.risks)) {
+            this.risks.forEach(risk => {
+                if (!risk || risk.id === undefined || risk.id === null) {
+                    return;
+                }
+                riskIndex.set(risk.id, risk);
+            });
+        }
+
+        container.innerHTML = filteredPlans.map(plan => {
+            const planTitle = plan?.title || 'Plan sans titre';
+            const rawStatus = plan?.status ?? '';
+            const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
+            const statusLabel = normalizedStatus ? (statusMap[normalizedStatus] || rawStatus) : '';
+            const statusClass = normalizedStatus ? `status-${normalizedStatus.replace(/[^a-z0-9-]+/g, '-')}` : '';
+            const descriptionBlock = plan?.description
+                ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${plan.description}</div>`
+                : '';
+            const ownerBlock = plan?.owner
+                ? `<div class="control-meta-item"><div class="control-meta-label">Propriétaire</div><div class="control-meta-value">${plan.owner}</div></div>`
+                : '';
+            const dueDateBlock = plan?.dueDate
+                ? `<div class="control-meta-item"><div class="control-meta-label">Échéance</div><div class="control-meta-value">${plan.dueDate}</div></div>`
+                : '';
+            const linkedRisks = Array.isArray(plan?.risks) && plan.risks.length
+                ? plan.risks
+                    .map(riskId => {
+                        const risk = riskIndex.get(riskId);
+                        if (!risk) {
+                            return null;
+                        }
+                        const label = risk.description || `Risque #${risk.id}`;
+                        return label.length > 70 ? `${label.substring(0, 67)}...` : label;
+                    })
+                    .filter(Boolean)
+                    .join(', ')
+                : 'Aucun risque';
+
             return `
                 <div class="control-item" data-plan-id="${plan.id}">
                     <div class="control-actions">
@@ -1450,14 +1614,14 @@ class RiskManagementSystem {
                     </div>
                     <div class="control-header">
                         <div>
-                            <div class="control-name">${plan.title || 'Plan sans titre'}</div>
-                            <div class="control-type-badge">${plan.status || ''}</div>
+                            <div class="control-name">${planTitle}</div>
+                            ${statusLabel ? `<div class="control-type-badge control-status-badge ${statusClass}">${statusLabel}</div>` : ''}
                         </div>
                     </div>
-                    ${plan.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${plan.description}</div>` : ''}
+                    ${descriptionBlock}
                     <div class="control-meta">
-                        ${plan.owner ? `<div class="control-meta-item"><div class="control-meta-label">Propriétaire</div><div class="control-meta-value">${plan.owner}</div></div>` : ''}
-                        ${plan.dueDate ? `<div class="control-meta-item"><div class="control-meta-label">Échéance</div><div class="control-meta-value">${plan.dueDate}</div></div>` : ''}
+                        ${ownerBlock}
+                        ${dueDateBlock}
                     </div>
                     <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
                         <strong>Risques:</strong> ${linkedRisks}

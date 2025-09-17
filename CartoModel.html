@@ -367,6 +367,18 @@
                 <div class="content-area">
                     <div class="controls-section">
                         <div class="form-section-title">Plans d'actions</div>
+                        <div class="filters-bar">
+                            <div class="filter-group">
+                                <label class="filter-label" for="actionPlansStatusFilter">Statut</label>
+                                <select id="actionPlansStatusFilter" class="filter-select" data-action-plan-filter="status" onchange="applyActionPlanFilters('status', this.value, this)">
+                                    <option value="">Tous les statuts</option>
+                                </select>
+                            </div>
+                            <div class="search-box filter-group">
+                                <label class="filter-label" for="actionPlansSearchInput">Recherche</label>
+                                <input type="search" id="actionPlansSearchInput" class="search-input" placeholder="Rechercher un plan d'action" data-action-plan-filter="search" oninput="searchActionPlans(this.value, this)">
+                            </div>
+                        </div>
                         <div class="controls-grid" id="actionPlansList">
                             <!-- Populated by JavaScript -->
                         </div>
@@ -584,10 +596,6 @@
                                 <label class="form-label" for="planStatus">Statut</label>
                                 <select class="form-select" id="planStatus" name="status">
                                     <option value="">Sélectionner...</option>
-                                    <option value="brouillon">Brouillon</option>
-                                    <option value="a-demarrer">À démarrer</option>
-                                    <option value="en-cours">En cours</option>
-                                    <option value="termine">Terminé</option>
                                 </select>
                             </div>
                             <div class="form-group" style="grid-column: 1 / -1;">
