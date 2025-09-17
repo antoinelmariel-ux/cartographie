@@ -42,16 +42,29 @@ body {
     align-items: center;
 }
 
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 25px;
+}
+
+.header-title {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
 .header-left h1 {
     color: #2c3e50;
     font-size: 2.2em;
-    margin-bottom: 5px;
+    margin: 0 0 5px 0;
     font-weight: 600;
 }
 
 .header-left p {
     color: #7f8c8d;
     font-size: 1em;
+    margin: 0;
 }
 
 .header-right {
