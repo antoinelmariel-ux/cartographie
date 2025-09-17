@@ -46,12 +46,70 @@ function switchTab(tabNameOrEvent, maybeTabName) {
 }
 window.switchTab = switchTab;
 
-function applyFilters() {
+function syncRiskFilterWidgets(filterKey, value, sourceElement) {
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+    if (!normalizedKey) {
+        return;
+    }
+
+    const normalizedValue = value == null ? '' : String(value);
+
+    if (sourceElement && typeof sourceElement.value !== 'undefined' && sourceElement.value !== normalizedValue) {
+        sourceElement.value = normalizedValue;
+    }
+
+    document.querySelectorAll(`[data-risk-filter="${normalizedKey}"]`).forEach(element => {
+        if (element === sourceElement) {
+            return;
+        }
+        if (!('value' in element)) {
+            return;
+        }
+
+        if (element.tagName === 'SELECT') {
+            if (normalizedValue && !Array.from(element.options).some(opt => opt.value === normalizedValue)) {
+                const opt = document.createElement('option');
+                opt.value = normalizedValue;
+                opt.textContent = normalizedValue;
+                element.appendChild(opt);
+            }
+        }
+
+        if (element.value !== normalizedValue) {
+            element.value = normalizedValue;
+        }
+    });
+}
+window.syncRiskFilterWidgets = syncRiskFilterWidgets;
+
+function applyFilters(filterKeyOrEvent, value, sourceElement) {
     if (!window.rms) return;
 
-    rms.filters.process = document.getElementById('processFilter')?.value || '';
-    rms.filters.type = document.getElementById('riskTypeFilter')?.value || '';
-    rms.filters.status = document.getElementById('statusFilter')?.value || '';
+    let filterKey = filterKeyOrEvent;
+    let filterValue = value;
+    let originElement = sourceElement;
+
+    if (filterKey && typeof filterKey === 'object' && 'target' in filterKey) {
+        originElement = filterKey.target;
+        filterKey = originElement?.dataset?.riskFilter || '';
+        filterValue = originElement?.value;
+    }
+
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+
+    if (!rms.filters) {
+        rms.filters = { process: '', type: '', status: '', search: '' };
+    }
+
+    if (normalizedKey) {
+        const normalizedValue = filterValue == null ? '' : String(filterValue);
+        rms.filters[normalizedKey] = normalizedValue;
+        syncRiskFilterWidgets(normalizedKey, normalizedValue, originElement);
+    } else {
+        Object.entries(rms.filters).forEach(([key, currentValue]) => {
+            syncRiskFilterWidgets(key, currentValue, null);
+        });
+    }
 
     rms.renderRiskPoints();
     rms.updateRiskDetailsList();
@@ -59,10 +117,27 @@ function applyFilters() {
 }
 window.applyFilters = applyFilters;
 
-function searchRisks(searchTerm) {
+function searchRisks(searchTermOrEvent, sourceElement) {
     if (!window.rms) return;
 
-    rms.filters.search = searchTerm;
+    let searchTerm = searchTermOrEvent;
+    let originElement = sourceElement;
+
+    if (searchTerm && typeof searchTerm === 'object' && 'target' in searchTerm) {
+        originElement = searchTerm.target;
+        searchTerm = originElement?.value;
+    }
+
+    const normalizedValue = searchTerm == null ? '' : String(searchTerm).trim();
+
+    if (!rms.filters) {
+        rms.filters = { process: '', type: '', status: '', search: '' };
+    }
+
+    rms.filters.search = normalizedValue;
+
+    syncRiskFilterWidgets('search', normalizedValue, originElement);
+
     rms.renderRiskPoints();
     rms.updateRiskDetailsList();
     rms.updateRisksList();

@@ -171,26 +171,26 @@
 
                 <div class="filters-bar">
                     <div class="filter-group">
-                        <label class="filter-label">Processus</label>
-                        <select class="filter-select" id="processFilter" onchange="applyFilters()">
+                        <label class="filter-label" for="matrixProcessFilter">Processus</label>
+                        <select class="filter-select" id="matrixProcessFilter" data-risk-filter="process" onchange="applyFilters('process', this.value, this)">
                             <option value="">Tous les processus</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label class="filter-label">Type de Risque</label>
-                        <select class="filter-select" id="riskTypeFilter" onchange="applyFilters()">
+                        <label class="filter-label" for="matrixRiskTypeFilter">Type de Risque</label>
+                        <select class="filter-select" id="matrixRiskTypeFilter" data-risk-filter="type" onchange="applyFilters('type', this.value, this)">
                             <option value="">Tous les types</option>
                         </select>
                     </div>
                     <div class="filter-group">
-                        <label class="filter-label">Statut</label>
-                        <select class="filter-select" id="statusFilter" onchange="applyFilters()">
+                        <label class="filter-label" for="matrixStatusFilter">Statut</label>
+                        <select class="filter-select" id="matrixStatusFilter" data-risk-filter="status" onchange="applyFilters('status', this.value, this)">
                             <option value="">Tous les statuts</option>
                         </select>
                     </div>
                     <div class="search-box filter-group">
-                        <label class="filter-label">Recherche</label>
-                        <input type="text" class="search-input" placeholder="🔍 Rechercher un risque..." onkeyup="searchRisks(this.value)">
+                        <label class="filter-label" for="matrixRiskSearch">Recherche</label>
+                        <input type="search" class="search-input" id="matrixRiskSearch" data-risk-filter="search" placeholder="🔍 Rechercher un risque..." oninput="searchRisks(this.value, this)">
                     </div>
                 </div>
 
@@ -275,6 +275,30 @@
                 </div>
 
                 <div class="content-area">
+                    <div class="filters-bar">
+                        <div class="filter-group">
+                            <label class="filter-label" for="risksProcessFilter">Processus</label>
+                            <select class="filter-select" id="risksProcessFilter" data-risk-filter="process" onchange="applyFilters('process', this.value, this)">
+                                <option value="">Tous les processus</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="risksTypeFilter">Type de Risque</label>
+                            <select class="filter-select" id="risksTypeFilter" data-risk-filter="type" onchange="applyFilters('type', this.value, this)">
+                                <option value="">Tous les types</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="risksStatusFilter">Statut</label>
+                            <select class="filter-select" id="risksStatusFilter" data-risk-filter="status" onchange="applyFilters('status', this.value, this)">
+                                <option value="">Tous les statuts</option>
+                            </select>
+                        </div>
+                        <div class="search-box filter-group">
+                            <label class="filter-label" for="risksSearchInput">Recherche</label>
+                            <input type="search" class="search-input" id="risksSearchInput" data-risk-filter="search" placeholder="🔍 Rechercher un risque..." oninput="searchRisks(this.value, this)">
+                        </div>
+                    </div>
                     <div class="table-container">
                         <table id="risksTable">
                             <thead>
