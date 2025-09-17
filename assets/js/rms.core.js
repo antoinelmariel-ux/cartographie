@@ -82,7 +82,6 @@ class RiskManagementSystem {
                 probNet: 2, impactNet: 3,
                 probPost: 1, impactPost: 2,
                 statut: "a-valider",
-                responsable: "Dr. Martin",
                 dateCreation: "2024-01-15",
                 controls: [1, 2]
             },
@@ -98,7 +97,6 @@ class RiskManagementSystem {
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 2,
                 statut: "validé",
-                responsable: "M. Durand",
                 dateCreation: "2024-01-20",
                 controls: [3]
             },
@@ -114,7 +112,6 @@ class RiskManagementSystem {
                 probNet: 2, impactNet: 3,  // Même position que risque 1
                 probPost: 1, impactPost: 2,
                 statut: "brouillon",
-                responsable: "Mme. Leroy",
                 dateCreation: "2024-02-01",
                 controls: [1, 4]
             },
@@ -130,7 +127,6 @@ class RiskManagementSystem {
                 probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
                 probPost: 1, impactPost: 1,
                 statut: "a-valider",
-                responsable: "M. Bernard",
                 dateCreation: "2024-01-10",
                 controls: [2, 3]
             },
@@ -146,7 +142,6 @@ class RiskManagementSystem {
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risque 4
                 statut: "validé",
-                responsable: "Mme. Petit",
                 dateCreation: "2024-01-25",
                 controls: [1]
             },
@@ -162,7 +157,6 @@ class RiskManagementSystem {
                 probNet: 1, impactNet: 3,
                 probPost: 1, impactPost: 2,
                 statut: "brouillon",
-                responsable: "M. Moreau",
                 dateCreation: "2024-02-05",
                 controls: [2, 3, 4]
             },
@@ -178,7 +172,6 @@ class RiskManagementSystem {
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
                 statut: "a-valider",
-                responsable: "Mme. Dubois",
                 dateCreation: "2024-02-10",
                 controls: [1, 2]
             },
@@ -194,7 +187,6 @@ class RiskManagementSystem {
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
                 statut: "archive",
-                responsable: "Me. Lambert",
                 dateCreation: "2024-01-30",
                 controls: [3, 4]
             }
@@ -1578,7 +1570,7 @@ class RiskManagementSystem {
                         <span class="risk-item-score ${scoreClass}">${score}</span>
                     </div>
                     <div class="risk-item-meta">
-                        ${risk.processus}${sp} • ${risk.responsable}
+                        ${risk.processus}${sp}
                     </div>
                 </div>
             `;
@@ -1618,7 +1610,7 @@ class RiskManagementSystem {
         if (highRisks.length === 0) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="6" class="table-empty">Aucune alerte récente</td>
+                    <td colspan="5" class="table-empty">Aucune alerte récente</td>
                 </tr>
             `;
             return;
@@ -1634,7 +1626,6 @@ class RiskManagementSystem {
             const formattedDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toLocaleDateString('fr-FR') : '-';
             const description = risk.description || 'Sans description';
             const process = risk.processus || '-';
-            const owner = risk.responsable || '-';
 
             return `
                 <tr>
@@ -1642,7 +1633,6 @@ class RiskManagementSystem {
                     <td>${description}</td>
                     <td>${process}</td>
                     <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
-                    <td>${owner}</td>
                     <td class="table-actions-cell">
                         <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
                         <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
@@ -1696,7 +1686,6 @@ class RiskManagementSystem {
                 <td>${risk.probNet * risk.impactNet}</td>
                 <td>${risk.probPost * risk.impactPost}</td>
                 <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
-                <td>${risk.responsable}</td>
                 <td class="table-actions-cell">
                     <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
                     <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
