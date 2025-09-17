@@ -1403,6 +1403,17 @@ class RiskManagementSystem {
         // Track how many risks are placed in each cell to offset duplicates
         const cellCounts = {};
 
+        const viewSymbols = {
+            brut: 'B',
+            net: 'N',
+            'post-mitigation': 'P'
+        };
+        const viewLabels = {
+            brut: 'Risque brut',
+            net: 'Risque net',
+            'post-mitigation': 'Risque post-mitigation'
+        };
+
         filteredRisks.forEach(risk => {
             let prob, impact;
 
@@ -1435,6 +1446,9 @@ class RiskManagementSystem {
             point.className = `risk-point ${this.currentView}`;
             point.dataset.riskId = risk.id;
             point.title = risk.description;
+            const symbol = viewSymbols[this.currentView] || '';
+            point.textContent = symbol;
+            point.setAttribute('aria-label', `${viewLabels[this.currentView] || 'Risque'} : ${risk.description}`);
             point.onclick = () => this.selectRisk(risk.id);
             grid.appendChild(point);
 
