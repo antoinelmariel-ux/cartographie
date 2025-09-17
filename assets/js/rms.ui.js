@@ -86,6 +86,7 @@ function addNewRisk() {
     if (form) {
         form.reset();
 
+        const statutSelect = document.getElementById('statut');
         if (lastRiskData) {
             document.getElementById('processus').value = lastRiskData.processus || '';
             rms.updateSousProcessusOptions();
@@ -110,6 +111,24 @@ function addNewRisk() {
             rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
             selectedActionPlansForRisk = [];
+        }
+
+        if (statutSelect) {
+            const defaultStatus = rms?.config?.riskStatuses?.[0]?.value || '';
+            const targetStatus = lastRiskData?.statut || defaultStatus;
+            if (targetStatus) {
+                const normalized = String(targetStatus);
+                const hasOption = Array.from(statutSelect.options).some(opt => opt.value === normalized);
+                if (!hasOption) {
+                    const option = document.createElement('option');
+                    option.value = normalized;
+                    option.textContent = normalized;
+                    statutSelect.appendChild(option);
+                }
+                statutSelect.value = normalized;
+            } else {
+                statutSelect.value = '';
+            }
         }
 
         calculateScore('brut');
@@ -141,6 +160,7 @@ function saveRisk() {
         sousProcessus: document.getElementById('sousProcessus').value,
         description: document.getElementById('description').value,
         typeCorruption: document.getElementById('typeCorruption').value,
+        statut: document.getElementById('statut').value,
         tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
         probBrut: parseInt(document.getElementById('probBrut').value),
         impactBrut: parseInt(document.getElementById('impactBrut').value),
@@ -159,7 +179,7 @@ function saveRisk() {
     }
 
     // Validate form
-    if (!formData.processus || !formData.description || !formData.typeCorruption) {
+    if (!formData.processus || !formData.description || !formData.typeCorruption || !formData.statut) {
         showNotification('error', 'Veuillez remplir tous les champs obligatoires');
         return;
     }
