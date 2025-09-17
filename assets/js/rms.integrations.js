@@ -128,7 +128,11 @@ function applyPatch() {
           try {
             if (RMS.saveData) { RMS.saveData(); }
             else if (window.saveData) { window.saveData(); }
-            addHistoryItem(`Sauvegarde ${label}`);
+            const effectiveLabel = (typeof label === 'string' && label.trim()) ? label.trim() : 'auto';
+            const description = effectiveLabel !== 'auto'
+              ? `Sauvegarde "${effectiveLabel}" enregistrée.`
+              : 'Sauvegarde automatique enregistrée.';
+            addHistoryItem(`Sauvegarde ${effectiveLabel}`, description, { label: effectiveLabel });
             updateLastSaveTime && updateLastSaveTime();
           } catch(e){ console.warn("save error", e); }
         },
@@ -143,10 +147,47 @@ function applyPatch() {
         }
       };
 
-      function addHistoryItem(action, meta){
+      function addHistoryItem(action, descriptionOrMeta, meta){
         try{
-          const item = { id: Date.now().toString(36)+Math.random().toString(36).slice(2,6), ts: new Date().toISOString(), action, meta: meta||{} };
-          state.history = [...state.history, item];
+          let description = descriptionOrMeta;
+          let metadata = meta;
+
+          if (descriptionOrMeta && typeof descriptionOrMeta === 'object' && !Array.isArray(descriptionOrMeta)) {
+            metadata = descriptionOrMeta;
+            description = descriptionOrMeta.description;
+          }
+
+          if (metadata && typeof metadata !== 'object') {
+            metadata = { value: metadata };
+          }
+
+          const now = new Date();
+          const entry = {
+            id: now.getTime().toString(36) + Math.random().toString(36).slice(2, 6),
+            date: now.toISOString(),
+            action,
+            description: (typeof description === 'string' && description.trim()) ? description.trim() : action,
+            user: (metadata && typeof metadata.user === 'string' && metadata.user.trim()) ? metadata.user.trim() : 'Marie Dupont'
+          };
+
+          if (metadata && typeof metadata === 'object') {
+            const metaCopy = { ...metadata };
+            delete metaCopy.user;
+            delete metaCopy.description;
+            if (Object.keys(metaCopy).length) {
+              entry.meta = metaCopy;
+            }
+          }
+
+          state.history = [...state.history, entry];
+
+          if (RMS && typeof RMS.updateHistory === 'function') {
+            try {
+              RMS.updateHistory();
+            } catch (err) {
+              console.warn('history render error', err);
+            }
+          }
         }catch(e){ console.warn("history error", e); }
       }
 
@@ -189,7 +230,10 @@ function applyPatch() {
                 if (obj.risks) state.risks = mergeById(state.risks, obj.risks);
                 if (obj.controls) state.controls = mergeById(state.controls, obj.controls);
                 if (obj.history) state.history = [...state.history, ...obj.history];
-                addHistoryItem("Import JSON", {file: file.name, counts: {risks: obj.risks?.length||0, controls: obj.controls?.length||0}});
+                const riskCount = obj.risks?.length || 0;
+                const controlCount = obj.controls?.length || 0;
+                const jsonImportDescription = `Import du fichier ${file.name} : ${riskCount} risque${riskCount > 1 ? 's' : ''} et ${controlCount} contrôle${controlCount > 1 ? 's' : ''}.`;
+                addHistoryItem("Import JSON", jsonImportDescription, {file: file.name, counts: {risks: riskCount, controls: controlCount}});
               } else {
                 const rows = csvParse(text);
                 if (rows.length){
@@ -204,7 +248,8 @@ function applyPatch() {
                     controles: r.controles ? String(r.controles).split("|").filter(Boolean) : []
                   }));
                   state.risks = mergeById(state.risks, mapped);
-                  addHistoryItem("Import CSV", {file: file.name, count: mapped.length});
+                  const csvImportDescription = `Import du fichier ${file.name} : ${mapped.length} risque${mapped.length > 1 ? 's' : ''} ajouté${mapped.length > 1 ? 's' : ''}.`;
+                  addHistoryItem("Import CSV", csvImportDescription, {file: file.name, count: mapped.length});
                 }
               }
               state.save("après import");
@@ -271,7 +316,8 @@ function applyPatch() {
         } else {
           downloadBlob("historique.json","application/json;charset=utf-8", JSON.stringify(items, null, 2));
         }
-        addHistoryItem("Export historique", {format});
+        const description = `Historique exporté au format ${format.toUpperCase()}.`;
+        addHistoryItem("Export historique", description, {format});
       };
 
       window.exportMatrix = async function exportMatrix(){
@@ -287,7 +333,7 @@ function applyPatch() {
           a.href = url; a.download = "matrice-risques.png";
           document.body.appendChild(a); a.click();
           setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },0);
-          addHistoryItem("Export matrice (PNG)");
+          addHistoryItem("Export matrice (PNG)", "Export de la matrice des risques en image PNG.");
         });
       };
 
@@ -397,7 +443,7 @@ function applyPatch() {
           }
         });
 
-        addHistoryItem("Suppression contrôle", {id: controlId, name: controlName});
+        addHistoryItem("Suppression contrôle", `Contrôle "${controlName}" (ID ${controlId}) supprimé.`, {id: controlId, name: controlName});
         state.save("suppression-contrôle");
         state.renderAll();
 
@@ -522,7 +568,7 @@ function applyPatch() {
               ...state.controls[controlIndex],
               ...controlData
             };
-            addHistoryItem("Modification contrôle", {id: currentEditingControlId, name: controlData.name});
+            addHistoryItem("Modification contrôle", `Contrôle "${controlData.name}" (ID ${currentEditingControlId}) mis à jour.`, {id: currentEditingControlId, name: controlData.name});
             toast(`Contrôle "${controlData.name}" modifié avec succès`);
           }
         } else {
@@ -533,7 +579,7 @@ function applyPatch() {
           };
 
           state.controls.push(newControl);
-          addHistoryItem("Nouveau contrôle", {id: newControl.id, name: controlData.name});
+          addHistoryItem("Nouveau contrôle", `Nouveau contrôle "${controlData.name}" créé (ID ${newControl.id}).`, {id: newControl.id, name: controlData.name});
           toast(`Contrôle "${controlData.name}" créé avec succès`);
         }
 
