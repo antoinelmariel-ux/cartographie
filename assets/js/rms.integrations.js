@@ -97,7 +97,7 @@ function applyPatch() {
                     typeCorruption: r.typeCorruption || r.type || "autre",
                     probabilite: Number(r.probabilite ?? r.probability ?? 2),
                     impact: Number(r.impact ?? 2),
-                    status: r.status || r.statut || "nouveau",
+                    status: r.status || r.statut || "brouillon",
                     controles: r.controles ? String(r.controles).split("|").filter(Boolean) : []
                   }));
                   state.risks = mergeById(state.risks, mapped);

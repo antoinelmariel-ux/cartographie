@@ -107,7 +107,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,
                 probNet: 2, impactNet: 3,
                 probPost: 1, impactPost: 2,
-                statut: "en-cours",
+                statut: "a-valider",
                 responsable: "Dr. Martin",
                 dateCreation: "2024-01-15",
                 controls: [1, 2]
@@ -123,7 +123,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,  // Même position que risque 1
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 2,
-                statut: "traite",
+                statut: "validé",
                 responsable: "M. Durand",
                 dateCreation: "2024-01-20",
                 controls: [3]
@@ -139,7 +139,7 @@ class RiskManagementSystem {
                 probBrut: 4, impactBrut: 3,
                 probNet: 2, impactNet: 3,  // Même position que risque 1
                 probPost: 1, impactPost: 2,
-                statut: "nouveau",
+                statut: "brouillon",
                 responsable: "Mme. Leroy",
                 dateCreation: "2024-02-01",
                 controls: [1, 4]
@@ -155,7 +155,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,  // Même position que risques 1 et 2
                 probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
                 probPost: 1, impactPost: 1,
-                statut: "en-cours",
+                statut: "a-valider",
                 responsable: "M. Bernard",
                 dateCreation: "2024-01-10",
                 controls: [2, 3]
@@ -187,7 +187,7 @@ class RiskManagementSystem {
                 probBrut: 2, impactBrut: 4,
                 probNet: 1, impactNet: 3,
                 probPost: 1, impactPost: 2,
-                statut: "nouveau",
+                statut: "brouillon",
                 responsable: "M. Moreau",
                 dateCreation: "2024-02-05",
                 controls: [2, 3, 4]
@@ -203,7 +203,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 3,
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
-                statut: "en-cours",
+                statut: "a-valider",
                 responsable: "Mme. Dubois",
                 dateCreation: "2024-02-10",
                 controls: [1, 2]
@@ -219,7 +219,7 @@ class RiskManagementSystem {
                 probBrut: 2, impactBrut: 3,
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
-                statut: "traite",
+                statut: "archive",
                 responsable: "Me. Lambert",
                 dateCreation: "2024-01-30",
                 controls: [3, 4]
@@ -371,9 +371,8 @@ class RiskManagementSystem {
                 { value: 'Collaborateurs', label: 'Collaborateurs' }
             ],
             riskStatuses: [
-                { value: 'nouveau', label: 'Nouveau' },
-                { value: 'en-cours', label: 'En cours de traitement' },
-                { value: 'traite', label: 'Traité' },
+                { value: 'brouillon', label: 'Brouillon' },
+                { value: 'a-valider', label: 'A valider' },
                 { value: 'validé', label: 'Validé' },
                 { value: 'archive', label: 'Archivé' }
             ],
@@ -1520,7 +1519,7 @@ class RiskManagementSystem {
                 <td>${risk.probBrut * risk.impactBrut}</td>
                 <td>${risk.probNet * risk.impactNet}</td>
                 <td>${risk.probPost * risk.impactPost}</td>
-                <td><span class="table-badge badge-${risk.statut === 'traite' ? 'success' : risk.statut === 'en-cours' ? 'warning' : 'danger'}">${risk.statut}</span></td>
+                <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
                 <td>${risk.responsable}</td>
                 <td class="table-actions-cell">
                     <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
@@ -1853,7 +1852,7 @@ class RiskManagementSystem {
             id: getNextSequentialId(this.risks),
             ...riskData,
             dateCreation: new Date().toISOString(),
-            statut: riskData.statut || 'nouveau'
+            statut: riskData.statut || 'brouillon'
         };
 
         this.risks.push(newRisk);
