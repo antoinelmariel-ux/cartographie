@@ -9,7 +9,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 - **Registre des risques** : création, édition et suppression des risques avec liens vers les contrôles et plans d'actions associés, filtres texte/processus/statut et export CSV.
 - **Gestion des contrôles & plans** : fiches détaillées, modales d'édition, suivi des responsabilités et de l'efficacité des mesures.
 - **Historique & alertes** : timeline chronologique des actions, notifications utilisateur et badges d'alerte sur le tableau de bord.
-- **Import / Export autonome** : export JSON/CSV, capture de la matrice, export PDF du tableau de bord et import depuis fichiers CSV ou JSON sans dépendance serveur.
+- **Import / Export autonome** : export JSON/CSV (boutons 💾 Enregistrer / 📂 Charger dans l'en-tête), capture de la matrice, export PDF du tableau de bord et import depuis fichiers CSV ou JSON sans dépendance serveur.
 - **Configuration fonctionnelle** : administration des listes déroulantes (processus, types, statuts, tiers, etc.) avec persistance automatique dans le navigateur.
 
 ## Structure du projet

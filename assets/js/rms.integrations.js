@@ -10,27 +10,41 @@ function exportRisks() {
 }
 window.exportRisks = exportRisks;
 
-function saveSnapshotToFile() {
+function downloadRmsData() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Sauvegarde impossible: instance non initialisée");
+            showNotification('error', "Sauvegarde impossible : instance non initialisée");
         }
         return;
     }
 
     try {
+        if (typeof rms.saveData === 'function') {
+            rms.saveData();
+        }
+        if (typeof rms.saveConfig === 'function') {
+            rms.saveConfig();
+        }
+
         const snapshot = rms.getSnapshot();
-        snapshot.meta = {
-            exportDate: new Date().toISOString(),
-            exportedBy: 'Marie Dupont'
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            risks: Array.isArray(snapshot.risks) ? snapshot.risks : [],
+            controls: Array.isArray(snapshot.controls) ? snapshot.controls : [],
+            actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : [],
+            config: snapshot.config || {}
         };
 
-        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+        if (Array.isArray(snapshot.history)) {
+            payload.history = snapshot.history;
+        }
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const anchor = document.createElement('a');
         anchor.href = url;
-        anchor.download = 'rms-sauvegarde.json';
+        anchor.download = 'cartographie-donnees.json';
         document.body.appendChild(anchor);
         anchor.click();
         setTimeout(() => {
@@ -39,24 +53,25 @@ function saveSnapshotToFile() {
         }, 0);
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Sauvegarde téléchargée');
+            showNotification('success', 'Sauvegarde JSON générée');
         }
     } catch (error) {
-        console.error('Erreur lors de la sauvegarde', error);
+        console.error('Erreur lors de la sauvegarde JSON', error);
+        const message = "Erreur lors de l'export des données";
         if (typeof showNotification === 'function') {
-            showNotification('error', "Erreur lors de l'export de la sauvegarde");
+            showNotification('error', message);
         } else {
-            alert("Erreur lors de l'export de la sauvegarde: " + error.message);
+            alert(`${message} : ${error.message}`);
         }
     }
 }
-window.saveSnapshotToFile = saveSnapshotToFile;
+window.downloadRmsData = downloadRmsData;
 
-function loadSnapshotFromFile() {
+function loadRmsDataFromFile() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour le chargement.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Chargement impossible: instance non initialisée");
+            showNotification('error', "Chargement impossible : instance non initialisée");
         }
         return;
     }
@@ -89,10 +104,26 @@ function loadSnapshotFromFile() {
         reader.onload = () => {
             try {
                 const text = reader.result ? String(reader.result) : '';
-                const snapshot = JSON.parse(text);
+                const parsed = JSON.parse(text);
+
+                if (!parsed || typeof parsed !== 'object') {
+                    throw new Error('Fichier JSON invalide');
+                }
+
+                const snapshot = {
+                    risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+                    controls: Array.isArray(parsed.controls) ? parsed.controls : [],
+                    actionPlans: Array.isArray(parsed.actionPlans) ? parsed.actionPlans : [],
+                    config: parsed.config
+                };
+
+                if (Array.isArray(parsed.history)) {
+                    snapshot.history = parsed.history;
+                }
+
                 rms.loadSnapshot(snapshot);
             } catch (error) {
-                handleError("Impossible de charger la sauvegarde sélectionnée", error);
+                handleError('Impossible de charger le fichier de données sélectionné', error);
             } finally {
                 input.value = '';
                 input.remove();
@@ -100,7 +131,7 @@ function loadSnapshotFromFile() {
         };
 
         reader.onerror = () => {
-            handleError("Lecture du fichier de sauvegarde impossible", reader.error);
+            handleError('Lecture du fichier de données impossible', reader.error);
             input.value = '';
             input.remove();
         };
@@ -111,7 +142,7 @@ function loadSnapshotFromFile() {
     document.body.appendChild(input);
     input.click();
 }
-window.loadSnapshotFromFile = loadSnapshotFromFile;
+window.loadRmsDataFromFile = loadRmsDataFromFile;
 function applyPatch() {
     (function(){
       const RMS = window.rms || window.RMS || window.RiskSystem || {};
@@ -167,7 +198,7 @@ function applyPatch() {
             date: now.toISOString(),
             action,
             description: (typeof description === 'string' && description.trim()) ? description.trim() : action,
-            user: (metadata && typeof metadata.user === 'string' && metadata.user.trim()) ? metadata.user.trim() : 'Marie Dupont'
+            user: (metadata && typeof metadata.user === 'string' && metadata.user.trim()) ? metadata.user.trim() : 'Système'
           };
 
           if (metadata && typeof metadata === 'object') {
