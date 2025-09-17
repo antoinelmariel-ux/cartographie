@@ -155,8 +155,12 @@ function applyActionPlanFilters(filterKey, value, sourceElement) {
 
     const normalizedValue = value == null ? '' : String(value);
 
+    const defaultFilters = { status: '', name: '', owner: '', dueDateOrder: '' };
+
     if (!rms.actionPlanFilters) {
-        rms.actionPlanFilters = { status: '', search: '' };
+        rms.actionPlanFilters = { ...defaultFilters };
+    } else {
+        rms.actionPlanFilters = { ...defaultFilters, ...rms.actionPlanFilters };
     }
 
     rms.actionPlanFilters[normalizedKey] = normalizedValue;
@@ -168,19 +172,7 @@ function applyActionPlanFilters(filterKey, value, sourceElement) {
 window.applyActionPlanFilters = applyActionPlanFilters;
 
 function searchActionPlans(searchTerm, sourceElement) {
-    if (!window.rms) return;
-
-    const normalizedValue = searchTerm == null ? '' : String(searchTerm);
-
-    if (!rms.actionPlanFilters) {
-        rms.actionPlanFilters = { status: '', search: '' };
-    }
-
-    rms.actionPlanFilters.search = normalizedValue;
-
-    syncActionPlanFilterWidgets('search', normalizedValue, sourceElement);
-
-    rms.updateActionPlansList();
+    applyActionPlanFilters('name', searchTerm, sourceElement);
 }
 window.searchActionPlans = searchActionPlans;
 

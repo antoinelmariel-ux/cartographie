@@ -369,18 +369,39 @@
                         <div class="form-section-title">Plans d'actions</div>
                         <div class="filters-bar">
                             <div class="filter-group">
+                                <label class="filter-label" for="actionPlansNameFilter">Nom</label>
+                                <input type="search" id="actionPlansNameFilter" class="search-input" placeholder="Rechercher par nom" data-action-plan-filter="name" oninput="applyActionPlanFilters('name', this.value, this)">
+                            </div>
+                            <div class="filter-group">
+                                <label class="filter-label" for="actionPlansOwnerFilter">Propriétaire</label>
+                                <input type="search" id="actionPlansOwnerFilter" class="search-input" placeholder="Filtrer par propriétaire" data-action-plan-filter="owner" oninput="applyActionPlanFilters('owner', this.value, this)">
+                            </div>
+                            <div class="filter-group">
                                 <label class="filter-label" for="actionPlansStatusFilter">Statut</label>
                                 <select id="actionPlansStatusFilter" class="filter-select" data-action-plan-filter="status" onchange="applyActionPlanFilters('status', this.value, this)">
                                     <option value="">Tous les statuts</option>
                                 </select>
                             </div>
-                            <div class="search-box filter-group">
-                                <label class="filter-label" for="actionPlansSearchInput">Recherche</label>
-                                <input type="search" id="actionPlansSearchInput" class="search-input" placeholder="Rechercher un plan d'action" data-action-plan-filter="search" oninput="searchActionPlans(this.value, this)">
+                            <div class="filter-group">
+                                <label class="filter-label" for="actionPlansDueDateSort">Échéance</label>
+                                <select id="actionPlansDueDateSort" class="filter-select" data-action-plan-filter="dueDateOrder" onchange="applyActionPlanFilters('dueDateOrder', this.value, this)">
+                                    <option value="">Sans tri</option>
+                                    <option value="asc">Ordre chronologique</option>
+                                    <option value="desc">Ordre antéchronologique</option>
+                                </select>
                             </div>
                         </div>
-                        <div class="controls-grid" id="actionPlansList">
-                            <!-- Populated by JavaScript -->
+                        <div class="controls-table">
+                            <div class="controls-table-header">
+                                <div>Nom du plan d'action</div>
+                                <div>Propriétaire</div>
+                                <div>Échéance</div>
+                                <div>Statut</div>
+                                <div class="controls-table-actions">Actions</div>
+                            </div>
+                            <div class="controls-table-body" id="actionPlansList">
+                                <!-- Populated by JavaScript -->
+                            </div>
                         </div>
                     </div>
                 </div>
