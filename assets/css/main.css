@@ -1267,6 +1267,26 @@ tbody tr:hover {
     color: #721c24;
 }
 
+.control-status-badge.brouillon {
+    background: #e2e3e5;
+    color: #383d41;
+}
+
+.control-status-badge.a-demarrer {
+    background: #d1ecf1;
+    color: #0c5460;
+}
+
+.control-status-badge.en-cours {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.control-status-badge.termine {
+    background: #d4edda;
+    color: #155724;
+}
+
 .control-actions {
     position: absolute;
     top: 15px;
@@ -1509,6 +1529,12 @@ tbody tr:hover {
 .control-owner-cell .control-owner {
     font-weight: 500;
     color: #34495e;
+}
+
+.control-due-date-cell .control-due-date {
+    font-weight: 500;
+    color: #34495e;
+    white-space: nowrap;
 }
 
 .control-status-cell .control-status-badge {

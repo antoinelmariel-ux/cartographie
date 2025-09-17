@@ -54,7 +54,9 @@ class RiskManagementSystem {
         };
         this.actionPlanFilters = {
             status: '',
-            search: ''
+            name: '',
+            owner: '',
+            dueDateOrder: ''
         };
         this.risks.forEach(r => {
             if (!r.actionPlans || r.actionPlans.length === 0) {
@@ -491,8 +493,10 @@ class RiskManagementSystem {
         syncFilterValue('type', this.controlFilters?.type || '');
         syncFilterValue('status', this.controlFilters?.status || '');
         syncFilterValue('search', this.controlFilters?.search || '');
+        syncFilterValue('name', this.actionPlanFilters?.name || '', { attribute: 'data-action-plan-filter' });
+        syncFilterValue('owner', this.actionPlanFilters?.owner || '', { attribute: 'data-action-plan-filter' });
         syncFilterValue('status', this.actionPlanFilters?.status || '', { attribute: 'data-action-plan-filter' });
-        syncFilterValue('search', this.actionPlanFilters?.search || '', { attribute: 'data-action-plan-filter' });
+        syncFilterValue('dueDateOrder', this.actionPlanFilters?.dueDateOrder || '', { attribute: 'data-action-plan-filter' });
     }
 
     setupAutoValueSync(labelInput, valueInput) {
@@ -1466,70 +1470,90 @@ class RiskManagementSystem {
     // Action Plans functions
     getFilteredActionPlans() {
         const plans = Array.isArray(this.actionPlans) ? this.actionPlans : [];
-        const { status = '', search = '' } = this.actionPlanFilters || {};
+        const {
+            status = '',
+            name = '',
+            owner = '',
+            dueDateOrder = ''
+        } = this.actionPlanFilters || {};
 
         const statusFilter = String(status || '').toLowerCase();
-        const searchTerm = String(search || '').trim().toLowerCase();
+        const nameFilter = String(name || '').trim().toLowerCase();
+        const ownerFilter = String(owner || '').trim().toLowerCase();
+        const dueDateOrderFilter = String(dueDateOrder || '').toLowerCase();
 
-        if (!statusFilter && !searchTerm) {
-            return plans.slice();
-        }
-
-        const riskIndex = new Map();
-        if (Array.isArray(this.risks)) {
-            this.risks.forEach(risk => {
-                if (!risk || risk.id === undefined || risk.id === null) {
-                    return;
-                }
-                riskIndex.set(risk.id, risk);
-            });
-        }
-
-        return plans.filter(plan => {
+        const filteredPlans = plans.filter(plan => {
             const planStatus = String(plan?.status || '').toLowerCase();
             if (statusFilter && planStatus !== statusFilter) {
                 return false;
             }
 
-            if (searchTerm) {
-                const searchFields = [
-                    plan?.title,
-                    plan?.description,
-                    plan?.owner,
-                    plan?.dueDate,
-                    plan?.status,
-                    plan?.id
-                ];
+            if (nameFilter) {
+                const planTitle = plan?.title != null ? String(plan.title).toLowerCase() : '';
+                const planId = plan?.id != null ? String(plan.id).toLowerCase() : '';
+                if (!planTitle.includes(nameFilter) && !planId.includes(nameFilter)) {
+                    return false;
+                }
+            }
 
-                const directMatch = searchFields.some(field => {
-                    if (field === undefined || field === null) {
-                        return false;
-                    }
-                    return String(field).toLowerCase().includes(searchTerm);
-                });
-
-                if (!directMatch) {
-                    const relatedRisksText = (Array.isArray(plan?.risks) ? plan.risks : [])
-                        .map(riskId => {
-                            const risk = riskIndex.get(riskId);
-                            if (!risk) {
-                                return '';
-                            }
-                            const combined = `${risk.description || ''} ${risk.processus || ''} ${risk.sousProcessus || ''}`;
-                            return combined.trim();
-                        })
-                        .filter(Boolean)
-                        .join(' ')
-                        .toLowerCase();
-
-                    if (!relatedRisksText.includes(searchTerm)) {
-                        return false;
-                    }
+            if (ownerFilter) {
+                const planOwner = plan?.owner != null ? String(plan.owner).toLowerCase() : '';
+                if (!planOwner.includes(ownerFilter)) {
+                    return false;
                 }
             }
 
             return true;
         });
+
+        if (dueDateOrderFilter === 'asc' || dueDateOrderFilter === 'desc') {
+            const direction = dueDateOrderFilter === 'asc' ? 1 : -1;
+
+            const parseDueDateValue = (value) => {
+                const rawValue = value != null ? String(value).trim() : '';
+                if (!rawValue) {
+                    return null;
+                }
+
+                let date = null;
+                if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+                    date = new Date(`${rawValue}T00:00:00`);
+                } else if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawValue)) {
+                    const [day, month, year] = rawValue.split('/');
+                    date = new Date(`${year}-${month}-${day}T00:00:00`);
+                } else {
+                    const parsed = Date.parse(rawValue);
+                    if (!Number.isNaN(parsed)) {
+                        date = new Date(parsed);
+                    }
+                }
+
+                if (!date || Number.isNaN(date.getTime())) {
+                    return null;
+                }
+
+                return date.getTime();
+            };
+
+            filteredPlans.sort((a, b) => {
+                const aTime = parseDueDateValue(a?.dueDate);
+                const bTime = parseDueDateValue(b?.dueDate);
+
+                if (aTime === null && bTime === null) {
+                    return 0;
+                }
+                if (aTime === null) {
+                    return 1;
+                }
+                if (bTime === null) {
+                    return -1;
+                }
+
+                return direction === 1 ? aTime - bTime : bTime - aTime;
+            });
+        }
+
+        return filteredPlans;
     }
 
     updateActionPlansList() {
@@ -1567,66 +1591,53 @@ class RiskManagementSystem {
             return acc;
         }, {});
 
-        const riskIndex = new Map();
-        if (Array.isArray(this.risks)) {
-            this.risks.forEach(risk => {
-                if (!risk || risk.id === undefined || risk.id === null) {
-                    return;
-                }
-                riskIndex.set(risk.id, risk);
-            });
-        }
+        const formatDueDate = (value) => {
+            const rawValue = value != null ? String(value).trim() : '';
+            if (!rawValue) {
+                return '';
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(rawValue)) {
+                const [year, month, day] = rawValue.split('-');
+                return `${day}/${month}/${year}`;
+            }
+
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(rawValue)) {
+                return rawValue;
+            }
+
+            return rawValue;
+        };
 
         container.innerHTML = filteredPlans.map(plan => {
             const planTitle = plan?.title || 'Plan sans titre';
             const rawStatus = plan?.status ?? '';
             const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
             const statusLabel = normalizedStatus ? (statusMap[normalizedStatus] || rawStatus) : '';
-            const statusClass = normalizedStatus ? `status-${normalizedStatus.replace(/[^a-z0-9-]+/g, '-')}` : '';
-            const descriptionBlock = plan?.description
-                ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${plan.description}</div>`
-                : '';
-            const ownerBlock = plan?.owner
-                ? `<div class="control-meta-item"><div class="control-meta-label">Propriétaire</div><div class="control-meta-value">${plan.owner}</div></div>`
-                : '';
-            const dueDateBlock = plan?.dueDate
-                ? `<div class="control-meta-item"><div class="control-meta-label">Échéance</div><div class="control-meta-value">${plan.dueDate}</div></div>`
-                : '';
-            const linkedRisks = Array.isArray(plan?.risks) && plan.risks.length
-                ? plan.risks
-                    .map(riskId => {
-                        const risk = riskIndex.get(riskId);
-                        if (!risk) {
-                            return null;
-                        }
-                        const label = risk.description || `Risque #${risk.id}`;
-                        return label.length > 70 ? `${label.substring(0, 67)}...` : label;
-                    })
-                    .filter(Boolean)
-                    .join(', ')
-                : 'Aucun risque';
+            const statusClass = normalizedStatus ? normalizedStatus.replace(/[^a-z0-9-]+/g, '-') : '';
+            const ownerLabel = plan?.owner ? String(plan.owner) : '';
+            const dueDateLabel = formatDueDate(plan?.dueDate);
 
             return `
-                <div class="control-item" data-plan-id="${plan.id}">
-                    <div class="control-actions">
-                        <button class="control-action-btn edit" data-plan-id="${plan.id}" title="Modifier">✏️</button>
-                        <button class="control-action-btn delete" onclick="deleteActionPlan(${plan.id})" title="Supprimer">🗑️</button>
+                <div class="controls-table-row" data-plan-id="${plan.id}">
+                    <div class="controls-table-cell control-name-cell">
+                        <div class="control-name" title="${planTitle}">${planTitle}</div>
                     </div>
-                    <div class="control-header">
-                        <div>
-                            <div class="control-name">${planTitle}</div>
-                            ${statusLabel ? `<div class="control-type-badge control-status-badge ${statusClass}">${statusLabel}</div>` : ''}
-                        </div>
+                    <div class="controls-table-cell control-owner-cell">
+                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
-                    ${descriptionBlock}
-                    <div class="control-meta">
-                        ${ownerBlock}
-                        ${dueDateBlock}
+                    <div class="controls-table-cell control-due-date-cell">
+                        ${dueDateLabel ? `<span class="control-due-date">${dueDateLabel}</span>` : `<span class="text-placeholder">Non définie</span>`}
                     </div>
-                    <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
-                        <strong>Risques:</strong> ${linkedRisks}
+                    <div class="controls-table-cell control-status-cell">
+                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
-                </div>`;
+                    <div class="controls-table-cell controls-table-actions">
+                        <button class="action-btn" onclick="editActionPlan(${plan.id})" title="Modifier">✏️</button>
+                        <button class="action-btn" onclick="deleteActionPlan(${plan.id})" title="Supprimer">🗑️</button>
+                    </div>
+                </div>
+            `;
         }).join('');
     }
 
