@@ -438,13 +438,13 @@
                     <div class="form-section">
                         <div class="form-section-title">Informations Générales</div>
                         <div class="form-grid">
-                            <div class="form-group full-width">
-                                <label for="controlName">Nom du contrôle *</label>
-                                <input type="text" id="controlName" name="name" required>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label required" for="controlName">Nom du contrôle</label>
+                                <input class="form-input" type="text" id="controlName" name="name" required placeholder="Ex. Vérification croisée des factures">
                             </div>
 
-                            <div class="form-group full-width">
-                                <label for="controlObjectives">Risque(s) couvert(s)</label>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label">Risque(s) couvert(s)</label>
                                 <div class="risk-selection">
                                     <div class="selected-risks" id="selectedRisks"></div>
                                     <button type="button" class="btn btn-secondary" onclick="openRiskSelector()">+ Sélectionner des risques</button>
@@ -457,41 +457,41 @@
                         <div class="form-section-title">Paramètres du Contrôle</div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="controlType">Type de contrôle *</label>
-                                <select id="controlType" name="type" required>
+                                <label class="form-label required" for="controlType">Type de contrôle</label>
+                                <select class="form-select" id="controlType" name="type" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="controlOwner">Propriétaire *</label>
-                                <input type="text" id="controlOwner" name="owner" required placeholder="Nom ou fonction responsable">
+                                <label class="form-label required" for="controlOwner">Propriétaire</label>
+                                <input class="form-input" type="text" id="controlOwner" name="owner" required placeholder="Nom ou fonction responsable">
                             </div>
 
                             <div class="form-group">
-                                <label for="controlFrequency">Fréquence *</label>
-                                <select id="controlFrequency" name="frequency" required>
+                                <label class="form-label required" for="controlFrequency">Fréquence</label>
+                                <select class="form-select" id="controlFrequency" name="frequency" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="controlMode">Mode d'exécution *</label>
-                                <select id="controlMode" name="mode" required>
+                                <label class="form-label required" for="controlMode">Mode d'exécution</label>
+                                <select class="form-select" id="controlMode" name="mode" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="controlEffectiveness">Efficacité estimée *</label>
-                                <select id="controlEffectiveness" name="effectiveness" required>
+                                <label class="form-label required" for="controlEffectiveness">Efficacité estimée</label>
+                                <select class="form-select" id="controlEffectiveness" name="effectiveness" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label for="controlStatus">Statut *</label>
-                                <select id="controlStatus" name="status" required>
+                                <label class="form-label required" for="controlStatus">Statut</label>
+                                <select class="form-select" id="controlStatus" name="status" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
@@ -501,9 +501,9 @@
                     <div class="form-section">
                         <div class="form-section-title">Détails</div>
                         <div class="form-grid">
-                            <div class="form-group full-width">
-                                <label for="controlDescription">Description / Procédure</label>
-                                <textarea id="controlDescription" name="description" rows="4" placeholder="Description détaillée du contrôle et de sa procédure d'exécution"></textarea>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label" for="controlDescription">Description / Procédure</label>
+                                <textarea class="form-textarea" id="controlDescription" name="description" rows="4" placeholder="Décrivez le déroulé du contrôle et les points de vigilance"></textarea>
                             </div>
                         </div>
                     </div>
@@ -528,12 +528,12 @@
                     <div class="form-section">
                         <div class="form-section-title">Informations Générales</div>
                         <div class="form-grid">
-                            <div class="form-group full-width">
-                                <label for="planTitle">Titre du plan *</label>
-                                <input type="text" id="planTitle" name="title" required>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label required" for="planTitle">Titre du plan</label>
+                                <input class="form-input" type="text" id="planTitle" name="title" required placeholder="Ex. Renforcer la séparation des tâches">
                             </div>
-                            <div class="form-group full-width">
-                                <label for="planRisks">Risque(s) associé(s)</label>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label">Risque(s) associé(s)</label>
                                 <div class="risk-selection">
                                     <div class="selected-risks" id="selectedRisksForPlan"></div>
                                     <button type="button" class="btn btn-secondary" onclick="openRiskSelectorForPlan()">+ Sélectionner des risques</button>
@@ -546,16 +546,16 @@
                         <div class="form-section-title">Détails</div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label for="planOwner">Propriétaire</label>
-                                <input type="text" id="planOwner" name="owner">
+                                <label class="form-label" for="planOwner">Propriétaire</label>
+                                <input class="form-input" type="text" id="planOwner" name="owner" placeholder="Personne responsable du suivi">
                             </div>
                             <div class="form-group">
-                                <label for="planDueDate">Échéance</label>
-                                <input type="date" id="planDueDate" name="dueDate">
+                                <label class="form-label" for="planDueDate">Échéance</label>
+                                <input class="form-input" type="date" id="planDueDate" name="dueDate">
                             </div>
-                            <div class="form-group full-width">
-                                <label for="planStatus">Statut</label>
-                                <select id="planStatus" name="status">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label" for="planStatus">Statut</label>
+                                <select class="form-select" id="planStatus" name="status">
                                     <option value="">Sélectionner...</option>
                                     <option value="brouillon">Brouillon</option>
                                     <option value="a-demarrer">À démarrer</option>
@@ -563,9 +563,9 @@
                                     <option value="termine">Terminé</option>
                                 </select>
                             </div>
-                            <div class="form-group full-width">
-                                <label for="planDescription">Description</label>
-                                <textarea id="planDescription" name="description" rows="4" placeholder="Description détaillée du plan"></textarea>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label" for="planDescription">Description</label>
+                                <textarea class="form-textarea" id="planDescription" name="description" rows="4" placeholder="Précisez les étapes clés et livrables attendus"></textarea>
                             </div>
                         </div>
                     </div>
@@ -582,16 +582,25 @@
     <div id="riskSelectorPlanModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>Sélectionner les risques associés</h2>
-                <span class="close" onclick="closeRiskSelectorForPlan()">&times;</span>
+                <h3 class="modal-title">Associer un risque</h3>
+                <button class="modal-close" onclick="closeRiskSelectorForPlan()">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="search-box">
-                    <input type="text" class="search-input" id="riskSearchInputPlan" placeholder="Filtrer par ID ou titre..." onkeyup="filterRisksForPlan(this.value)">
+                <div class="form-section">
+                    <div class="form-section-title">Recherche dans le registre</div>
+                    <div class="form-grid">
+                        <div class="form-group" style="grid-column: 1 / -1;">
+                            <label class="form-label" for="riskSearchInputPlan">Filtrer les risques</label>
+                            <input class="form-input" type="text" id="riskSearchInputPlan" placeholder="Rechercher par identifiant, titre ou description" onkeyup="filterRisksForPlan(this.value)">
+                        </div>
+                    </div>
                 </div>
-                <div class="risk-list" id="riskListForPlan"></div>
+                <div class="form-section">
+                    <div class="form-section-title">Risques disponibles</div>
+                    <div class="risk-list" id="riskListForPlan"></div>
+                </div>
             </div>
-            <div class="form-actions">
+            <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" onclick="closeRiskSelectorForPlan()">Annuler</button>
                 <button type="button" class="btn btn-primary" onclick="confirmRiskSelectionForPlan()">Confirmer</button>
             </div>
