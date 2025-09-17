@@ -34,7 +34,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 ## Données & persistance
 
 - Toutes les données sont stockées côté navigateur via `localStorage` (`rms_risks`, `rms_controls`, `rms_actionPlans`, `rms_history`, `rms_config`).
-- Une sauvegarde automatique est effectuée toutes les 30 secondes et la date de dernière sauvegarde est affichée dans l'en-tête.
+- Les modifications sont enregistrées immédiatement dans le navigateur et la date de dernière sauvegarde est affichée dans l'en-tête.
 - Les exports sont effectués côté client : `exportRisks()` produit un CSV et `exportDashboard()` télécharge un JSON avec le registre des risques, les contrôles ainsi que des métadonnées (`exportDate`, `exportedBy`).
 - L'import accepte des fichiers CSV (colonnes libres, mappées automatiquement) ou JSON (structure `{ risks, controls, history }`). Chaque import ajoute un événement dans l'historique.
 

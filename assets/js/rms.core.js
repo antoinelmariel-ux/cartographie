@@ -50,9 +50,6 @@ class RiskManagementSystem {
         }
         this.saveData();
         this.updateLastSaveTime();
-
-        // Auto-save every 30 seconds
-        setInterval(() => this.autoSave(), 30000);
     }
 
     renderAll() {
@@ -383,6 +380,7 @@ class RiskManagementSystem {
 
     saveConfig() {
         localStorage.setItem('rms_config', JSON.stringify(this.config));
+        this.updateLastSaveTime();
     }
 
     ensureConfigStructure(defaultConfig = this.getDefaultConfig()) {
@@ -1346,6 +1344,7 @@ class RiskManagementSystem {
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
         localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
         localStorage.setItem('rms_history', JSON.stringify(this.history));
+        this.updateLastSaveTime();
     }
 
     loadData(key) {
@@ -1353,16 +1352,13 @@ class RiskManagementSystem {
         return data ? JSON.parse(data) : null;
     }
 
-    autoSave() {
-        this.saveData();
-        this.updateLastSaveTime();
-        showNotification('info', 'Sauvegarde automatique effectuée');
-    }
-
     updateLastSaveTime() {
         const now = new Date();
         const timeStr = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
-        document.getElementById('lastSaveTime').textContent = timeStr;
+        const lastSaveElement = document.getElementById('lastSaveTime');
+        if (lastSaveElement) {
+            lastSaveElement.textContent = timeStr;
+        }
     }
 
     // Matrix functions
