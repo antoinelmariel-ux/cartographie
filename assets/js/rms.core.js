@@ -81,6 +81,7 @@ class RiskManagementSystem {
         this.history = this.loadData('history') || [];
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
+        this.readOnlyConfigKeys = new Set(['riskStatuses']);
         const configStructureUpdated = this.ensureConfigStructure(defaultConfig);
         if (configStructureUpdated) {
             this.saveConfig();
@@ -775,6 +776,10 @@ class RiskManagementSystem {
             controlStatuses: 'Statuts des contrôles'
         };
 
+        const readOnlyMessages = {
+            riskStatuses: 'Les statuts de risque sont prédéfinis et ne peuvent pas être modifiés.'
+        };
+
         container.innerHTML = '';
 
         const accordion = document.createElement('div');
@@ -807,40 +812,52 @@ class RiskManagementSystem {
 
             this.configureAccordionItem(item, headerButton, body, index === 0);
 
+            const isReadOnly = this.readOnlyConfigKeys.has(key);
+
             const list = document.createElement('ul');
             list.id = `list-${key}`;
             list.className = 'config-list';
 
-            const addContainer = document.createElement('div');
-            addContainer.className = 'config-add';
-
-            const labelInput = document.createElement('input');
-            labelInput.type = 'text';
-            labelInput.id = `input-${key}-label`;
-            labelInput.placeholder = 'Libellé à saisir';
-            labelInput.classList.add('config-input-label');
-
-            const valueInput = document.createElement('input');
-            valueInput.type = 'text';
-            valueInput.id = `input-${key}-value`;
-            valueInput.placeholder = 'Valeur auto-générée';
-            valueInput.classList.add('config-input-value');
-
-            const addButton = document.createElement('button');
-            addButton.type = 'button';
-            addButton.textContent = 'Ajouter';
-            addButton.addEventListener('click', () => {
-                this.addConfigOption(key);
-            });
-
-            addContainer.appendChild(labelInput);
-            addContainer.appendChild(valueInput);
-            addContainer.appendChild(addButton);
+            if (isReadOnly) {
+                const notice = document.createElement('p');
+                notice.className = 'config-readonly-notice';
+                notice.textContent = readOnlyMessages[key] || 'Ces valeurs sont prédéfinies et ne peuvent pas être modifiées.';
+                body.appendChild(notice);
+            }
 
             body.appendChild(list);
-            body.appendChild(addContainer);
 
-            this.setupAutoValueSync(labelInput, valueInput);
+            if (!isReadOnly) {
+                const addContainer = document.createElement('div');
+                addContainer.className = 'config-add';
+
+                const labelInput = document.createElement('input');
+                labelInput.type = 'text';
+                labelInput.id = `input-${key}-label`;
+                labelInput.placeholder = 'Libellé à saisir';
+                labelInput.classList.add('config-input-label');
+
+                const valueInput = document.createElement('input');
+                valueInput.type = 'text';
+                valueInput.id = `input-${key}-value`;
+                valueInput.placeholder = 'Valeur auto-générée';
+                valueInput.classList.add('config-input-value');
+
+                const addButton = document.createElement('button');
+                addButton.type = 'button';
+                addButton.textContent = 'Ajouter';
+                addButton.addEventListener('click', () => {
+                    this.addConfigOption(key);
+                });
+
+                addContainer.appendChild(labelInput);
+                addContainer.appendChild(valueInput);
+                addContainer.appendChild(addButton);
+
+                body.appendChild(addContainer);
+
+                this.setupAutoValueSync(labelInput, valueInput);
+            }
         });
 
         const subItem = document.createElement('div');
@@ -951,6 +968,10 @@ class RiskManagementSystem {
     refreshConfigLists() {
         const createListItem = (key, opt, idx) => {
             const listItem = document.createElement('li');
+            const isReadOnly = this.readOnlyConfigKeys.has(key);
+            if (isReadOnly) {
+                listItem.classList.add('config-item-readonly');
+            }
 
             const renderDisplay = () => {
                 listItem.innerHTML = '';
@@ -960,33 +981,39 @@ class RiskManagementSystem {
                 textSpan.textContent = `${opt.label} (${opt.value})`;
                 listItem.appendChild(textSpan);
 
-                const actions = document.createElement('div');
-                actions.className = 'config-item-actions';
+                if (!isReadOnly) {
+                    const actions = document.createElement('div');
+                    actions.className = 'config-item-actions';
 
-                const editButton = document.createElement('button');
-                editButton.type = 'button';
-                editButton.className = 'btn btn-secondary';
-                editButton.textContent = 'Modifier';
-                editButton.addEventListener('click', () => {
-                    renderEditForm();
-                });
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'btn btn-secondary';
+                    editButton.textContent = 'Modifier';
+                    editButton.addEventListener('click', () => {
+                        renderEditForm();
+                    });
 
-                const removeButton = document.createElement('button');
-                removeButton.type = 'button';
-                removeButton.className = 'btn btn-outline';
-                removeButton.textContent = 'Supprimer';
-                removeButton.addEventListener('click', () => {
-                    this.removeConfigOption(key, idx);
-                });
+                    const removeButton = document.createElement('button');
+                    removeButton.type = 'button';
+                    removeButton.className = 'btn btn-outline';
+                    removeButton.textContent = 'Supprimer';
+                    removeButton.addEventListener('click', () => {
+                        this.removeConfigOption(key, idx);
+                    });
 
-                actions.appendChild(editButton);
-                actions.appendChild(removeButton);
-                listItem.appendChild(actions);
+                    actions.appendChild(editButton);
+                    actions.appendChild(removeButton);
+                    listItem.appendChild(actions);
+                }
 
                 this.adjustOpenAccordionBodies();
             };
 
             const renderEditForm = () => {
+                if (isReadOnly) {
+                    return;
+                }
+
                 listItem.innerHTML = '';
 
                 const form = document.createElement('div');
@@ -1060,6 +1087,9 @@ class RiskManagementSystem {
     }
 
     updateConfigOption(key, index, updated) {
+        if (this.readOnlyConfigKeys.has(key)) {
+            return;
+        }
         if (!this.config[key] || !this.config[key][index]) return;
         const { value, label } = updated;
         if (!value || !label) return;
@@ -1106,6 +1136,9 @@ class RiskManagementSystem {
     }
 
     addConfigOption(key) {
+        if (this.readOnlyConfigKeys.has(key)) {
+            return;
+        }
         const valueInput = document.getElementById(`input-${key}-value`);
         const labelInput = document.getElementById(`input-${key}-label`);
         if (!valueInput || !labelInput) return;
@@ -1128,6 +1161,9 @@ class RiskManagementSystem {
     }
 
     removeConfigOption(key, index) {
+        if (this.readOnlyConfigKeys.has(key)) {
+            return;
+        }
         if (key === 'processes') {
             const removed = this.config.processes.splice(index, 1)[0];
             delete this.config.subProcesses[removed.value];

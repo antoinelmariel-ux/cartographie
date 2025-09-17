@@ -2202,6 +2202,17 @@ tbody tr:hover {
     transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
+.config-item-readonly {
+    background: #f6f8fb;
+    border-style: dashed;
+    border-color: #d0d7de;
+    color: #5f6c7b;
+}
+
+.config-item-readonly .config-item-text {
+    color: inherit;
+}
+
 .config-list li:hover {
     border-color: #d0d7de;
 }
@@ -2308,4 +2319,10 @@ tbody tr:hover {
 .config-add button:focus-visible {
     outline: 3px solid rgba(52, 152, 219, 0.35);
     outline-offset: 2px;
+}
+
+.config-readonly-notice {
+    font-size: 0.85rem;
+    color: #6c7a89;
+    margin: 12px 0;
 }
