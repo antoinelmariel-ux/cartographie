@@ -428,6 +428,58 @@ class RiskManagementSystem {
         fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
     }
 
+    setupAutoValueSync(labelInput, valueInput) {
+        if (!labelInput || !valueInput) {
+            return;
+        }
+
+        const slugifyFn = typeof slugifyLabel === 'function'
+            ? slugifyLabel
+            : (str) => String(str || '')
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/^-+|-+$/g, '');
+
+        const computeAutoValue = () => slugifyFn(labelInput.value || '');
+
+        const updateManualFlag = () => {
+            const currentValue = valueInput.value.trim();
+            const autoValue = valueInput.dataset.autoValue || '';
+            valueInput.dataset.manual = currentValue && currentValue !== autoValue ? 'true' : 'false';
+        };
+
+        const updateAutoValue = () => {
+            const generated = computeAutoValue();
+            const currentValue = valueInput.value.trim();
+            const lastAuto = valueInput.dataset.autoValue || '';
+            const manualOverride = valueInput.dataset.manual === 'true' && currentValue !== lastAuto;
+
+            if (!manualOverride || currentValue === '' || currentValue === lastAuto) {
+                valueInput.value = generated;
+            }
+
+            valueInput.dataset.autoValue = generated;
+            updateManualFlag();
+        };
+
+        const handleValueInput = () => {
+            updateManualFlag();
+        };
+
+        const initialAuto = computeAutoValue();
+        valueInput.dataset.autoValue = initialAuto;
+        if (valueInput.value.trim() === '') {
+            valueInput.value = initialAuto;
+        }
+        updateManualFlag();
+
+        labelInput.addEventListener('input', updateAutoValue);
+        labelInput.addEventListener('change', updateAutoValue);
+        valueInput.addEventListener('input', handleValueInput);
+        valueInput.addEventListener('change', handleValueInput);
+    }
+
     renderConfiguration() {
         const container = document.getElementById('configurationContainer');
         if (!container) return;
@@ -457,6 +509,9 @@ class RiskManagementSystem {
                     <button onclick="rms.addConfigOption('${key}')">Ajouter</button>
                 </div>
             `;
+            const valueInput = section.querySelector(`#input-${key}-value`);
+            const labelInput = section.querySelector(`#input-${key}-label`);
+            this.setupAutoValueSync(labelInput, valueInput);
             container.appendChild(section);
         });
 
@@ -554,6 +609,7 @@ class RiskManagementSystem {
                 form.appendChild(valueInput);
                 form.appendChild(labelInput);
                 form.appendChild(actions);
+                this.setupAutoValueSync(labelInput, valueInput);
                 listItem.appendChild(form);
             };
 
@@ -676,6 +732,9 @@ class RiskManagementSystem {
                     <input type="text" id="input-sub-${procId}-label" placeholder="libellé">
                 </div>
             `;
+            const valueInput = block.querySelector(`#input-sub-${procId}-value`);
+            const labelInput = block.querySelector(`#input-sub-${procId}-label`);
+            this.setupAutoValueSync(labelInput, valueInput);
             container.appendChild(block);
             const addContainer = block.querySelector('.config-add');
             if (addContainer) {
@@ -783,6 +842,7 @@ class RiskManagementSystem {
                     form.appendChild(valueInput);
                     form.appendChild(labelInput);
                     form.appendChild(actions);
+                    this.setupAutoValueSync(labelInput, valueInput);
                     listItem.appendChild(form);
                 };
 
