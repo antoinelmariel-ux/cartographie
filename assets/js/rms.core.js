@@ -644,15 +644,17 @@ class RiskManagementSystem {
             const addContainer = document.createElement('div');
             addContainer.className = 'config-add';
 
-            const valueInput = document.createElement('input');
-            valueInput.type = 'text';
-            valueInput.id = `input-${key}-value`;
-            valueInput.placeholder = 'valeur';
-
             const labelInput = document.createElement('input');
             labelInput.type = 'text';
             labelInput.id = `input-${key}-label`;
-            labelInput.placeholder = 'libellé';
+            labelInput.placeholder = 'Libellé à saisir';
+            labelInput.classList.add('config-input-label');
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.id = `input-${key}-value`;
+            valueInput.placeholder = 'Valeur auto-générée';
+            valueInput.classList.add('config-input-value');
 
             const addButton = document.createElement('button');
             addButton.type = 'button';
@@ -661,8 +663,8 @@ class RiskManagementSystem {
                 this.addConfigOption(key);
             });
 
-            addContainer.appendChild(valueInput);
             addContainer.appendChild(labelInput);
+            addContainer.appendChild(valueInput);
             addContainer.appendChild(addButton);
 
             body.appendChild(list);
@@ -794,17 +796,17 @@ class RiskManagementSystem {
                 const form = document.createElement('div');
                 form.className = 'config-edit-form';
 
-                const valueInput = document.createElement('input');
-                valueInput.type = 'text';
-                valueInput.value = opt.value;
-                valueInput.placeholder = 'valeur';
-                valueInput.className = 'config-edit-input';
-
                 const labelInput = document.createElement('input');
                 labelInput.type = 'text';
                 labelInput.value = opt.label;
-                labelInput.placeholder = 'libellé';
-                labelInput.className = 'config-edit-input';
+                labelInput.placeholder = 'Libellé à saisir';
+                labelInput.className = 'config-edit-input config-input-label';
+
+                const valueInput = document.createElement('input');
+                valueInput.type = 'text';
+                valueInput.value = opt.value;
+                valueInput.placeholder = 'Valeur auto-générée';
+                valueInput.className = 'config-edit-input config-input-value';
 
                 const actions = document.createElement('div');
                 actions.className = 'config-item-actions';
@@ -831,8 +833,8 @@ class RiskManagementSystem {
                 actions.appendChild(saveButton);
                 actions.appendChild(cancelButton);
 
-                form.appendChild(valueInput);
                 form.appendChild(labelInput);
+                form.appendChild(valueInput);
                 form.appendChild(actions);
                 this.setupAutoValueSync(labelInput, valueInput);
                 listItem.appendChild(form);
@@ -992,15 +994,17 @@ class RiskManagementSystem {
             const addContainer = document.createElement('div');
             addContainer.className = 'config-add';
 
-            const valueInput = document.createElement('input');
-            valueInput.type = 'text';
-            valueInput.id = `input-sub-${procId}-value`;
-            valueInput.placeholder = 'valeur';
-
             const labelInput = document.createElement('input');
             labelInput.type = 'text';
             labelInput.id = `input-sub-${procId}-label`;
-            labelInput.placeholder = 'libellé';
+            labelInput.placeholder = 'Libellé à saisir';
+            labelInput.classList.add('config-input-label');
+
+            const valueInput = document.createElement('input');
+            valueInput.type = 'text';
+            valueInput.id = `input-sub-${procId}-value`;
+            valueInput.placeholder = 'Valeur auto-générée';
+            valueInput.classList.add('config-input-value');
 
             const addButton = document.createElement('button');
             addButton.type = 'button';
@@ -1013,8 +1017,8 @@ class RiskManagementSystem {
                 }
             });
 
-            addContainer.appendChild(valueInput);
             addContainer.appendChild(labelInput);
+            addContainer.appendChild(valueInput);
             addContainer.appendChild(addButton);
 
             body.appendChild(list);
@@ -1082,17 +1086,17 @@ class RiskManagementSystem {
                     const form = document.createElement('div');
                     form.className = 'config-edit-form';
 
-                    const valueInput = document.createElement('input');
-                    valueInput.type = 'text';
-                    valueInput.value = sp.value;
-                    valueInput.placeholder = 'valeur';
-                    valueInput.className = 'config-edit-input';
-
                     const labelInput = document.createElement('input');
                     labelInput.type = 'text';
                     labelInput.value = sp.label;
-                    labelInput.placeholder = 'libellé';
-                    labelInput.className = 'config-edit-input';
+                    labelInput.placeholder = 'Libellé à saisir';
+                    labelInput.className = 'config-edit-input config-input-label';
+
+                    const valueInput = document.createElement('input');
+                    valueInput.type = 'text';
+                    valueInput.value = sp.value;
+                    valueInput.placeholder = 'Valeur auto-générée';
+                    valueInput.className = 'config-edit-input config-input-value';
 
                     const actions = document.createElement('div');
                     actions.className = 'config-item-actions';
@@ -1119,8 +1123,8 @@ class RiskManagementSystem {
                     actions.appendChild(saveButton);
                     actions.appendChild(cancelButton);
 
-                    form.appendChild(valueInput);
                     form.appendChild(labelInput);
+                    form.appendChild(valueInput);
                     form.appendChild(actions);
                     this.setupAutoValueSync(labelInput, valueInput);
                     listItem.appendChild(form);

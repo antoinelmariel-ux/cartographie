@@ -2023,6 +2023,41 @@ tbody tr:hover {
     font-size: 0.9em;
 }
 
+.config-input-label {
+    border-color: rgba(52, 152, 219, 0.7);
+    background: #eef6ff;
+    color: #1f2a44;
+    font-weight: 600;
+    box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.12);
+}
+
+.config-input-label::placeholder {
+    color: rgba(31, 42, 68, 0.65);
+    font-weight: 500;
+}
+
+.config-input-label:focus-visible {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.22);
+}
+
+.config-input-value {
+    background: #f6f8fb;
+    color: #5f6c7b;
+    border-color: #c7d1e2;
+}
+
+.config-input-value::placeholder {
+    color: #7b8aa0;
+}
+
+.config-input-value:focus-visible {
+    outline: none;
+    border-color: #a7b4c8;
+    box-shadow: 0 0 0 2px rgba(167, 180, 200, 0.25);
+}
+
 .config-add button {
     background: var(--primary-color);
     color: #fff;
