@@ -237,16 +237,351 @@ function applyPatch() {
               } else {
                 const rows = csvParse(text);
                 if (rows.length){
-                  const mapped = rows.map(r => ({
-                    id: r.id || (Date.now()+Math.random()).toString(36),
-                    titre: r.titre || r.title || r.name || "Sans titre",
-                    description: r.description || "",
-                    typeCorruption: r.typeCorruption || r.type || "autre",
-                    probabilite: Number(r.probabilite ?? r.probability ?? 2),
-                    impact: Number(r.impact ?? 2),
-                    status: r.status || r.statut || "brouillon",
-                    controles: r.controles ? String(r.controles).split("|").filter(Boolean) : []
-                  }));
+                  const generateKeyVariants = (key) => {
+                    if (key === undefined || key === null) return [];
+                    const str = String(key);
+                    const trimmed = str.trim();
+                    if (!trimmed) return [];
+                    const normalized = trimmed.normalize ? trimmed.normalize('NFD').replace(/[\u0300-\u036f]/g, '') : trimmed;
+                    const compactTrimmed = trimmed.replace(/[\s_-]+/g, '');
+                    const compactNormalized = normalized.replace(/[\s_-]+/g, '');
+                    return Array.from(new Set([
+                      str,
+                      trimmed,
+                      trimmed.toLowerCase(),
+                      normalized,
+                      normalized.toLowerCase(),
+                      compactTrimmed,
+                      compactTrimmed.toLowerCase(),
+                      compactNormalized,
+                      compactNormalized.toLowerCase()
+                    ])).filter(Boolean);
+                  };
+
+                  const createRowAccessor = (row) => {
+                    const index = new Map();
+                    Object.entries(row || {}).forEach(([key, value]) => {
+                      if (value === undefined || value === null) return;
+                      if (typeof value === 'string' && value.trim() === '') return;
+                      generateKeyVariants(key).forEach(variant => {
+                        if (variant && !index.has(variant)) {
+                          index.set(variant, value);
+                        }
+                      });
+                    });
+                    return {
+                      get: (...candidates) => {
+                        for (const candidate of candidates) {
+                          if (candidate === undefined || candidate === null) continue;
+                          const variants = generateKeyVariants(candidate);
+                          for (const variant of variants) {
+                            if (index.has(variant)) {
+                              return index.get(variant);
+                            }
+                          }
+                        }
+                        return undefined;
+                      }
+                    };
+                  };
+
+                  const hasMeaningfulValue = (value) => {
+                    if (value === undefined || value === null) return false;
+                    if (Array.isArray(value)) {
+                      return value.some(item => hasMeaningfulValue(item));
+                    }
+                    if (typeof value === 'string') {
+                      return value.trim() !== '';
+                    }
+                    return true;
+                  };
+
+                  const toText = (value, fallback = '') => {
+                    if (value === undefined || value === null) return fallback;
+                    if (typeof value === 'string') {
+                      const trimmed = value.trim();
+                      return trimmed === '' ? fallback : trimmed;
+                    }
+                    if (typeof value === 'number' && Number.isFinite(value)) {
+                      return String(value);
+                    }
+                    if (typeof value === 'boolean') {
+                      return value ? 'true' : 'false';
+                    }
+                    const str = String(value);
+                    return str.trim() || fallback;
+                  };
+
+                  const parseScore = (value, fallback = 2) => {
+                    if (Array.isArray(value)) {
+                      value = value.find(item => item !== undefined && item !== null && String(item).trim() !== '');
+                    }
+                    if (value === undefined || value === null || value === '') return fallback;
+                    const normalizedValue = typeof value === 'string'
+                      ? value.trim().replace(',', '.')
+                      : value;
+                    const numeric = Number(normalizedValue);
+                    if (Number.isFinite(numeric)) {
+                      const rounded = Math.round(numeric);
+                      if (rounded > 0) {
+                        return Math.min(4, Math.max(1, rounded));
+                      }
+                    }
+                    return fallback;
+                  };
+
+                  const splitToList = (value) => {
+                    if (value === undefined || value === null) return [];
+                    if (Array.isArray(value)) {
+                      const acc = [];
+                      value.forEach(item => {
+                        splitToList(item).forEach(v => acc.push(v));
+                      });
+                      return acc;
+                    }
+                    if (typeof value === 'string') {
+                      const trimmed = value.trim();
+                      if (!trimmed) return [];
+                      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))){
+                        try {
+                          const parsed = JSON.parse(trimmed);
+                          if (Array.isArray(parsed)) {
+                            return splitToList(parsed);
+                          }
+                        } catch (err) {
+                          // Ignore JSON parsing errors and fallback to splitting
+                        }
+                      }
+                      return trimmed.split(/[|;,]/).map(part => part.trim()).filter(Boolean);
+                    }
+                    return [String(value).trim()].filter(Boolean);
+                  };
+
+                  const parseTextList = (value) => {
+                    const list = splitToList(value);
+                    const seen = new Set();
+                    const result = [];
+                    list.forEach(item => {
+                      const text = toText(item, '');
+                      if (!text) return;
+                      const key = text.toLowerCase();
+                      if (!seen.has(key)) {
+                        seen.add(key);
+                        result.push(text);
+                      }
+                    });
+                    return result;
+                  };
+
+                  const parseIdList = (value) => {
+                    const list = splitToList(value);
+                    const seen = new Set();
+                    const result = [];
+                    list.forEach(item => {
+                      const raw = toText(item, '');
+                      if (!raw) return;
+                      const normalized = /^-?\d+$/.test(raw) ? Number.parseInt(raw, 10) : raw;
+                      const key = String(normalized);
+                      if (!seen.has(key)) {
+                        seen.add(key);
+                        result.push(normalized);
+                      }
+                    });
+                    return result;
+                  };
+
+                  const mapCsvRowToRisk = (row) => {
+                    if (!row || !Object.values(row).some(value => hasMeaningfulValue(value))) {
+                      return null;
+                    }
+
+                    const accessor = createRowAccessor(row);
+                    const rawId = toText(accessor.get('id', 'identifiant', 'code', 'riskId', 'uid'), '');
+                    const cleanedId = rawId
+                      ? (typeof sanitizeId === 'function' ? sanitizeId(rawId) : rawId)
+                      : '';
+                    const riskId = cleanedId || (Date.now() + Math.random()).toString(36);
+
+                    const titre = toText(accessor.get('titre', 'title', 'name', 'libelle', 'label'), '');
+                    const description = toText(
+                      accessor.get('description', 'riskDescription', 'detail', 'libelle', 'intitule'),
+                      titre || 'Sans description'
+                    );
+
+                    const processus = toText(
+                      accessor.get('processus', 'process', 'processusPrincipal', 'processus_principal', 'processuslibelle', 'processuslibre', 'processname'),
+                      'Non renseigné'
+                    );
+                    const sousProcessus = toText(
+                      accessor.get('sousProcessus', 'sous_processus', 'subprocess', 'subProcessus', 'sousProcess', 'subProcess'),
+                      ''
+                    );
+                    const typeCorruption = toText(
+                      accessor.get('typeCorruption', 'type', 'riskType', 'categorie', 'category', 'corruptionType'),
+                      'autre'
+                    );
+                    const typeTiers = toText(
+                      accessor.get('typeTiers', 'typetiers', 'categorieTiers', 'tiersType', 'type_tiers'),
+                      ''
+                    );
+
+                    const probBrut = parseScore(
+                      accessor.get(
+                        'probBrut',
+                        'probabiliteBrut',
+                        'probabilite_brut',
+                        'probabilite',
+                        'probability',
+                        'probabiliteInherente',
+                        'probabiliteInitiale',
+                        'inherentProbability',
+                        'probabilite brute',
+                        'prob brut'
+                      )
+                    );
+                    const impactBrut = parseScore(
+                      accessor.get(
+                        'impactBrut',
+                        'impact_brut',
+                        'impact',
+                        'impactInherente',
+                        'impactInitial',
+                        'inherentImpact',
+                        'impact brut'
+                      )
+                    );
+                    const probNet = parseScore(
+                      accessor.get(
+                        'probNet',
+                        'probabiliteNet',
+                        'probabilite_residuelle',
+                        'residualProbability',
+                        'probResidual',
+                        'prob net',
+                        'probabilite residuelle'
+                      ),
+                      probBrut
+                    );
+                    const impactNet = parseScore(
+                      accessor.get(
+                        'impactNet',
+                        'impact_residuel',
+                        'impactResidual',
+                        'residualImpact',
+                        'impact net'
+                      ),
+                      impactBrut
+                    );
+                    const probPost = parseScore(
+                      accessor.get(
+                        'probPost',
+                        'probabilitePost',
+                        'probabilite_post',
+                        'probabilitePostMitigation',
+                        'postProbability',
+                        'prob post'
+                      ),
+                      probNet
+                    );
+                    const impactPost = parseScore(
+                      accessor.get(
+                        'impactPost',
+                        'impact_post',
+                        'impactPostMitigation',
+                        'postImpact',
+                        'impact post'
+                      ),
+                      impactNet
+                    );
+
+                    const statut = toText(
+                      accessor.get('statut', 'status', 'etat', 'state', 'riskStatus'),
+                      'brouillon'
+                    );
+                    const tiers = parseTextList(accessor.get('tiers', 'tiersImpliques', 'tiers_associes', 'stakeholders', 'thirdParties', 'partiesPrenantes'));
+                    const controls = parseIdList(accessor.get('controls', 'controles', 'contrôles', 'controlIds', 'control_ids', 'listeControls'));
+                    const actionPlans = parseIdList(accessor.get('actionPlans', 'plans', 'planActions', 'actionPlanIds', 'plan_ids', 'plansActions'));
+
+                    const rawDate = accessor.get('dateCreation', 'date', 'creationDate', 'date_creation', 'createdAt');
+                    const dateText = toText(rawDate, '');
+                    let dateCreation;
+                    if (!dateText) {
+                      dateCreation = new Date().toISOString();
+                    } else {
+                      const parsed = new Date(dateText);
+                      dateCreation = isNaN(parsed) ? dateText : parsed.toISOString();
+                    }
+
+                    const risk = {
+                      id: riskId,
+                      description,
+                      processus,
+                      sousProcessus,
+                      typeCorruption,
+                      probBrut,
+                      impactBrut,
+                      probNet,
+                      impactNet,
+                      probPost,
+                      impactPost,
+                      statut,
+                      controls,
+                      actionPlans,
+                      tiers,
+                      dateCreation
+                    };
+
+                    if (titre) {
+                      risk.titre = titre;
+                    }
+                    if (typeTiers) {
+                      risk.typeTiers = typeTiers;
+                    }
+
+                    if (!Array.isArray(risk.tiers)) {
+                      risk.tiers = [];
+                    }
+                    if (!Array.isArray(risk.controls)) {
+                      risk.controls = [];
+                    }
+                    if (!Array.isArray(risk.actionPlans)) {
+                      risk.actionPlans = [];
+                    }
+
+                    if (!risk.controls.length) {
+                      risk.controls = [];
+                    }
+                    if (!risk.actionPlans.length) {
+                      risk.actionPlans = [];
+                    }
+
+                    return risk;
+                  };
+
+                  const mapped = rows
+                    .map(mapCsvRowToRisk)
+                    .filter(Boolean)
+                    .map(risk => {
+                      const normalizedRisk = { ...risk };
+                      if (!Array.isArray(normalizedRisk.actionPlans)) {
+                        normalizedRisk.actionPlans = [];
+                      }
+                      if (normalizedRisk.actionPlans.length === 0) {
+                        normalizedRisk.probPost = normalizedRisk.probNet;
+                        normalizedRisk.impactPost = normalizedRisk.impactNet;
+                      }
+                      return normalizedRisk;
+                    });
+
+                  if (mapped.length === 0) {
+                    if (typeof toast === 'function') {
+                      toast('Aucune ligne valide trouvée dans le fichier CSV.');
+                    } else {
+                      alert('Aucune ligne valide trouvée dans le fichier CSV.');
+                    }
+                    return;
+                  }
+
                   state.risks = mergeById(state.risks, mapped);
                   const csvImportDescription = `Import du fichier ${file.name} : ${mapped.length} risque${mapped.length > 1 ? 's' : ''} ajouté${mapped.length > 1 ? 's' : ''}.`;
                   addHistoryItem("Import CSV", csvImportDescription, {file: file.name, count: mapped.length});
