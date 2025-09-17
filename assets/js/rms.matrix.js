@@ -239,11 +239,9 @@ function updateScoreCardState() {
 function updatePointsVisualState() {
     Object.entries(editMatrixPoints).forEach(([state, point]) => {
         if (!point) return;
-        if (state === activeRiskEditState) {
-            point.classList.remove('inactive');
-        } else {
-            point.classList.add('inactive');
-        }
+        const isActive = state === activeRiskEditState;
+        point.classList.toggle('inactive', !isActive);
+        point.classList.toggle('active-point', isActive);
     });
 }
 
