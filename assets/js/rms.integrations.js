@@ -205,6 +205,25 @@ function applyPatch() {
       let riskFilterQueryForControl = '';
       let lastControlData = null;
 
+      function populateControlOwnerSuggestions() {
+        const datalist = document.getElementById('controlOwnerSuggestions');
+        if (!datalist) return;
+
+        datalist.innerHTML = '';
+
+        const uniqueOwners = Array.from(new Set(
+          (state.controls || [])
+            .map(ctrl => (ctrl && typeof ctrl.owner === 'string') ? ctrl.owner.trim() : '')
+            .filter(owner => owner)
+        ));
+
+        uniqueOwners.forEach(owner => {
+          const option = document.createElement('option');
+          option.value = owner;
+          datalist.appendChild(option);
+        });
+      }
+
       window.addNewControl = function() {
         currentEditingControlId = null;
         const form = document.getElementById('controlForm');
@@ -226,6 +245,7 @@ function applyPatch() {
 
         document.getElementById('controlModalTitle').textContent = 'Nouveau Contrôle';
         updateSelectedRisksDisplay();
+        populateControlOwnerSuggestions();
         document.getElementById('controlModal').classList.add('show');
       };
 
@@ -250,6 +270,7 @@ function applyPatch() {
 
         document.getElementById('controlModalTitle').textContent = 'Modifier le Contrôle';
         updateSelectedRisksDisplay();
+        populateControlOwnerSuggestions();
         document.getElementById('controlModal').classList.add('show');
       };
 
@@ -417,6 +438,7 @@ function applyPatch() {
 
         state.save("contrôle");
         state.renderAll();
+        populateControlOwnerSuggestions();
         closeControlModal();
       };
 
