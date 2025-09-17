@@ -350,7 +350,6 @@ function saveRisk() {
         impactNet: parseInt(document.getElementById('impactNet').value),
         probPost: parseInt(document.getElementById('probPost').value),
         impactPost: parseInt(document.getElementById('impactPost').value),
-        responsable: 'Marie Dupont',
         controls: [...selectedControlsForRisk],
         actionPlans: [...selectedActionPlansForRisk]
     };
