@@ -1290,81 +1290,54 @@ class RiskManagementSystem {
     updateControlsList() {
         const container = document.getElementById('controlsList');
         if (!container) return;
-        
+
+        if (!this.controls.length) {
+            container.innerHTML = `
+                <div class="controls-empty-state">
+                    <div class="controls-empty-title">Aucun contrôle enregistré</div>
+                    <div class="controls-empty-text">Ajoutez votre premier contrôle pour suivre vos mesures de mitigation.</div>
+                    <button class="btn btn-secondary" onclick="addNewControl()">+ Ajouter un contrôle</button>
+                </div>
+            `;
+            return;
+        }
+
+        const typeMap = {
+            'preventif': 'Préventif',
+            'detectif': 'Détectif'
+        };
+
+        const statusMap = {
+            'actif': 'Actif',
+            'en-mise-en-place': 'En mise en place',
+            'en-revision': 'En cours de révision',
+            'obsolete': 'Obsolète'
+        };
+
         container.innerHTML = this.controls.map(control => {
-            // Récupérer les risques couverts
-            const coveredRisks = control.risks ? this.risks.filter(risk => 
-                control.risks.includes(risk.id)
-            ).map(risk => risk.description.substring(0, 50) + '...').join(', ') : 'Aucun risque associé';
-            
-            // Mapper les valeurs d'efficacité
-            const effectivenessMap = {
-                'forte': 'Forte',
-                'moyenne': 'Moyenne', 
-                'faible': 'Faible',
-                'high': 'Forte',
-                'medium': 'Moyenne',
-                'low': 'Faible'
-            };
-            
-            // Mapper les statuts
-            const statusMap = {
-                'actif': 'Actif',
-                'en-mise-en-place': 'En mise en place',
-                'en-revision': 'En cours de révision',
-                'obsolete': 'Obsolète'
-            };
-            
+            const controlName = control.name || 'Contrôle sans nom';
+            const typeLabel = typeMap[control.type] || (control.type ? control.type : 'Non défini');
+            const typeClass = control.type ? control.type : 'type-undefined';
+            const ownerLabel = control.owner || '';
+            const statusLabel = control.status ? (statusMap[control.status] || control.status) : '';
+
             return `
-                <div class="control-item" data-control-id="${control.id}">
-                    <div class="control-actions">
-                        <button class="control-action-btn edit" data-control-id="${control.id}" title="Modifier">
-                            ✏️
-                        </button>
-                        <button class="control-action-btn delete" onclick="deleteControl(${control.id})" title="Supprimer">
-                            🗑️
-                        </button>
+                <div class="controls-table-row" data-control-id="${control.id}">
+                    <div class="controls-table-cell control-name-cell">
+                        <div class="control-name" title="${controlName}">${controlName}</div>
                     </div>
-                    
-                    <div class="control-header">
-                        <div>
-                            <div class="control-name">${control.name || 'Contrôle sans nom'}</div>
-                            <div class="control-type-badge ${control.type || 'preventif'}">
-                                ${control.type === 'preventif' ? 'Préventif' : 'Détectif'}
-                            </div>
-                        </div>
-                        ${control.status ? `<span class="control-status-badge ${control.status}">${statusMap[control.status] || control.status}</span>` : ''}
+                    <div class="controls-table-cell control-type-cell">
+                        <span class="control-type-badge ${typeClass}">${typeLabel}</span>
                     </div>
-                    
-                    ${control.description ? `<div style="margin: 10px 0; color: #666; font-size: 0.9em;">${control.description}</div>` : ''}
-                    
-                    <div style="margin: 10px 0; font-size: 0.85em; color: #7f8c8d;">
-                        <strong>Risques couverts:</strong> ${coveredRisks}
+                    <div class="controls-table-cell control-owner-cell">
+                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
-                    
-                    <div class="control-meta">
-                        ${control.owner ? `
-                            <div class="control-meta-item">
-                                <div class="control-meta-label">Propriétaire</div>
-                                <div class="control-meta-value">${control.owner}</div>
-                            </div>
-                        ` : ''}
-                        ${control.frequency ? `
-                            <div class="control-meta-item">
-                                <div class="control-meta-label">Fréquence</div>
-                                <div class="control-meta-value">${control.frequency}</div>
-                            </div>
-                        ` : ''}
-                        ${control.mode ? `
-                            <div class="control-meta-item">
-                                <div class="control-meta-label">Mode</div>
-                                <div class="control-meta-value">${control.mode}</div>
-                            </div>
-                        ` : ''}
-                        <div class="control-meta-item">
-                            <div class="control-meta-label">Efficacité</div>
-                            <div class="control-meta-value">${effectivenessMap[control.effectiveness] || 'Non définie'}</div>
-                        </div>
+                    <div class="controls-table-cell control-status-cell">
+                        ${statusLabel ? `<span class="control-status-badge ${control.status}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                    </div>
+                    <div class="controls-table-cell controls-table-actions">
+                        <button class="action-btn" onclick="editControl(${control.id})" title="Modifier">✏️</button>
+                        <button class="action-btn" onclick="deleteControl(${control.id})" title="Supprimer">🗑️</button>
                     </div>
                 </div>
             `;
