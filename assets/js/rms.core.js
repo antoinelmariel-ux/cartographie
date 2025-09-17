@@ -8,33 +8,7 @@ class RiskManagementSystem {
         this.history = this.loadData('history') || [];
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
-        let configStructureUpdated = false;
-        if (!Array.isArray(this.config.actionPlanStatuses)) {
-            const fallbackStatuses = defaultConfig.actionPlanStatuses || [
-                { value: 'brouillon', label: 'Brouillon' },
-                { value: 'a-demarrer', label: 'À démarrer' },
-                { value: 'en-cours', label: 'En cours' },
-                { value: 'termine', label: 'Terminé' }
-            ];
-            this.config.actionPlanStatuses = fallbackStatuses.map(status => ({ ...status }));
-            configStructureUpdated = true;
-        }
-        if (!this.config.subProcesses || typeof this.config.subProcesses !== 'object' || Array.isArray(this.config.subProcesses)) {
-            this.config.subProcesses = {};
-            configStructureUpdated = true;
-        }
-        if (Array.isArray(this.config.processes)) {
-            this.config.processes.forEach(process => {
-                if (!process || !process.value) return;
-                if (!Array.isArray(this.config.subProcesses[process.value])) {
-                    this.config.subProcesses[process.value] = [];
-                    configStructureUpdated = true;
-                }
-            });
-        } else {
-            this.config.processes = [];
-            configStructureUpdated = true;
-        }
+        const configStructureUpdated = this.ensureConfigStructure(defaultConfig);
         if (configStructureUpdated) {
             this.saveConfig();
         }
@@ -417,6 +391,137 @@ class RiskManagementSystem {
 
     saveConfig() {
         localStorage.setItem('rms_config', JSON.stringify(this.config));
+    }
+
+    ensureConfigStructure(defaultConfig = this.getDefaultConfig()) {
+        const fallback = defaultConfig || this.getDefaultConfig();
+        let updated = false;
+
+        const hasValidConfig = this.config && typeof this.config === 'object' && !Array.isArray(this.config);
+        const baseConfig = hasValidConfig ? this.config : {};
+
+        if (!hasValidConfig) {
+            updated = true;
+        }
+
+        this.config = { ...fallback, ...baseConfig };
+
+        const fallbackStatuses = (fallback && Array.isArray(fallback.actionPlanStatuses))
+            ? fallback.actionPlanStatuses
+            : [
+                { value: 'brouillon', label: 'Brouillon' },
+                { value: 'a-demarrer', label: 'À démarrer' },
+                { value: 'en-cours', label: 'En cours' },
+                { value: 'termine', label: 'Terminé' }
+            ];
+
+        if (!Array.isArray(baseConfig.actionPlanStatuses)) {
+            this.config.actionPlanStatuses = fallbackStatuses.map(status => ({ ...status }));
+            if (baseConfig.actionPlanStatuses !== undefined) {
+                updated = true;
+            }
+        } else {
+            this.config.actionPlanStatuses = baseConfig.actionPlanStatuses.map(status => ({ ...status }));
+        }
+
+        if (!baseConfig.subProcesses || typeof baseConfig.subProcesses !== 'object' || Array.isArray(baseConfig.subProcesses)) {
+            this.config.subProcesses = {};
+            if (baseConfig.subProcesses !== undefined) {
+                updated = true;
+            }
+        } else {
+            const normalizedSubProcesses = {};
+            Object.entries(baseConfig.subProcesses).forEach(([key, value]) => {
+                normalizedSubProcesses[key] = Array.isArray(value)
+                    ? value.map(item => ({ ...item }))
+                    : [];
+                if (!Array.isArray(value)) {
+                    updated = true;
+                }
+            });
+            this.config.subProcesses = normalizedSubProcesses;
+        }
+
+        if (Array.isArray(baseConfig.processes)) {
+            this.config.processes = baseConfig.processes.map(process => ({ ...process }));
+        } else {
+            this.config.processes = Array.isArray(fallback.processes)
+                ? fallback.processes.map(process => ({ ...process }))
+                : [];
+            if (baseConfig.processes !== undefined) {
+                updated = true;
+            }
+        }
+
+        this.config.processes.forEach(process => {
+            if (!process || !process.value) return;
+            if (!Array.isArray(this.config.subProcesses[process.value])) {
+                this.config.subProcesses[process.value] = [];
+                updated = true;
+            } else {
+                this.config.subProcesses[process.value] = this.config.subProcesses[process.value].map(item => ({ ...item }));
+            }
+        });
+
+        return updated;
+    }
+
+    getSnapshot() {
+        return JSON.parse(JSON.stringify({
+            risks: this.risks,
+            controls: this.controls,
+            actionPlans: this.actionPlans,
+            history: this.history,
+            config: this.config
+        }));
+    }
+
+    loadSnapshot(snapshot) {
+        if (!snapshot || typeof snapshot !== 'object') {
+            throw new Error('Instantané invalide');
+        }
+
+        const cloneArray = (value) => Array.isArray(value)
+            ? JSON.parse(JSON.stringify(value))
+            : [];
+
+        const cloneObject = (value) => (value && typeof value === 'object' && !Array.isArray(value))
+            ? JSON.parse(JSON.stringify(value))
+            : this.getDefaultConfig();
+
+        this.risks = cloneArray(snapshot.risks);
+        this.controls = cloneArray(snapshot.controls);
+        this.actionPlans = cloneArray(snapshot.actionPlans);
+        this.history = cloneArray(snapshot.history);
+        this.config = cloneObject(snapshot.config);
+
+        this.ensureConfigStructure();
+
+        this.risks.forEach(risk => {
+            if (!risk) return;
+            if (!Array.isArray(risk.actionPlans) || risk.actionPlans.length === 0) {
+                risk.probPost = risk.probNet;
+                risk.impactPost = risk.impactNet;
+            }
+        });
+
+        this.saveData();
+        this.saveConfig();
+
+        this.populateSelects();
+        this.needsConfigStructureRerender = true;
+        this.renderAll();
+        if (this.needsConfigStructureRerender) {
+            this.renderConfiguration();
+            this.needsConfigStructureRerender = false;
+        }
+        this.updateLastSaveTime();
+
+        this.addHistoryItem('Import instantané', 'Sauvegarde importée depuis un fichier');
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Instantané chargé avec succès');
+        }
     }
 
     populateSelects() {
@@ -2011,26 +2116,39 @@ class RiskManagementSystem {
 
     // Export functions
     exportData(format = 'json') {
-        const data = {
-            risks: this.risks,
-            controls: this.controls,
-            exportDate: new Date().toISOString(),
-            exportedBy: 'Marie Dupont'
-        };
-        
         if (format === 'json') {
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const snapshot = this.getSnapshot();
+            snapshot.meta = {
+                exportDate: new Date().toISOString(),
+                exportedBy: 'Marie Dupont'
+            };
+
+            const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `risk_mapping_${new Date().toISOString().split('T')[0]}.json`;
+            a.download = 'rms-sauvegarde.json';
+            document.body.appendChild(a);
             a.click();
-        } else if (format === 'csv') {
-            // CSV export implementation
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+
+            if (typeof showNotification === 'function') {
+                showNotification('success', 'Sauvegarde exportée avec succès');
+            }
+
+            return;
+        }
+
+        if (format === 'csv') {
             const csv = this.convertToCSV(this.risks);
 
             if (!csv) {
-                showNotification('warning', "Aucune donnée disponible pour l'export CSV.");
+                if (typeof showNotification === 'function') {
+                    showNotification('warning', "Aucune donnée disponible pour l'export CSV.");
+                }
                 return;
             }
 
@@ -2039,11 +2157,17 @@ class RiskManagementSystem {
             const a = document.createElement('a');
             a.href = url;
             a.download = `risks_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
-        }
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
 
-        showNotification('success', 'Export réussi!');
+            if (typeof showNotification === 'function') {
+                showNotification('success', 'Export CSV réussi!');
+            }
+        }
     }
 
     convertToCSV(data) {
