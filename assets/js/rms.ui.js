@@ -126,6 +126,64 @@ function searchControls(searchTerm, sourceElement) {
 }
 window.searchControls = searchControls;
 
+function syncActionPlanFilterWidgets(filterKey, value, sourceElement) {
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+    if (!normalizedKey) return;
+
+    const normalizedValue = value == null ? '' : String(value);
+
+    document.querySelectorAll(`[data-action-plan-filter="${normalizedKey}"]`).forEach(element => {
+        if (element === sourceElement) {
+            return;
+        }
+
+        if (!('value' in element)) {
+            return;
+        }
+
+        if (element.value !== normalizedValue) {
+            element.value = normalizedValue;
+        }
+    });
+}
+
+function applyActionPlanFilters(filterKey, value, sourceElement) {
+    if (!window.rms) return;
+
+    const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
+    if (!normalizedKey) return;
+
+    const normalizedValue = value == null ? '' : String(value);
+
+    if (!rms.actionPlanFilters) {
+        rms.actionPlanFilters = { status: '', search: '' };
+    }
+
+    rms.actionPlanFilters[normalizedKey] = normalizedValue;
+
+    syncActionPlanFilterWidgets(normalizedKey, normalizedValue, sourceElement);
+
+    rms.updateActionPlansList();
+}
+window.applyActionPlanFilters = applyActionPlanFilters;
+
+function searchActionPlans(searchTerm, sourceElement) {
+    if (!window.rms) return;
+
+    const normalizedValue = searchTerm == null ? '' : String(searchTerm);
+
+    if (!rms.actionPlanFilters) {
+        rms.actionPlanFilters = { status: '', search: '' };
+    }
+
+    rms.actionPlanFilters.search = normalizedValue;
+
+    syncActionPlanFilterWidgets('search', normalizedValue, sourceElement);
+
+    rms.updateActionPlansList();
+}
+window.searchActionPlans = searchActionPlans;
+
 var lastRiskData = null;
 var selectedControlsForRisk = [];
 var controlFilterQueryForRisk = '';
