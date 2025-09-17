@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 240" role="img" aria-labelledby="title desc">
+  <title id="title">Logo LFB Biomanufacturing</title>
+  <desc id="desc">Trois rectangles colorés suivis du texte LFB au dessus du mot Biomanufacturing.</desc>
+  <rect x="0" y="40" width="140" height="140" fill="#4A4A4C"/>
+  <rect x="160" y="40" width="140" height="140" fill="#D2232A"/>
+  <rect x="320" y="40" width="140" height="140" fill="#7AA4BF"/>
+  <text x="490" y="140" font-family="'Arial Black', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="700" fill="#4A4A4C">LFB</text>
+  <text x="0" y="210" font-family="'Arial Narrow', 'Montserrat', Arial, sans-serif" font-size="40" letter-spacing="6" fill="#4A4A4C">BIOMANUFACTURING</text>
+</svg>
