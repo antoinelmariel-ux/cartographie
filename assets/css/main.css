@@ -469,7 +469,8 @@ body {
 .risk-point.net,
 .risk-point.post-mitigation,
 .risk-point.post {
-    background: #0061af;
+      background: linear-gradient(135deg, #4b91c5, #0061af);
+ 
 }
 
 .risk-point.inactive {
