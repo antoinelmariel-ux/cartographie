@@ -1736,57 +1736,168 @@ class RiskManagementSystem {
     }
 
     updateRecentAlerts() {
-        const tbody = document.getElementById('recentAlertsBody');
-        if (!tbody) return;
+        const risksBody = document.getElementById('recentAlertsRisksBody');
+        const plansBody = document.getElementById('recentAlertsPlansBody');
 
-        const highRisks = this.risks
-            .filter(risk => {
-                const score = (risk.probNet || 0) * (risk.impactNet || 0);
-                const hasPlans = risk.actionPlans && risk.actionPlans.length > 0;
-                return score > 8 && !hasPlans;
-            })
-            .sort((a, b) => {
-                const getTime = (risk) => {
-                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-                    const parsed = dateValue ? new Date(dateValue).getTime() : 0;
-                    return isNaN(parsed) ? 0 : parsed;
-                };
-                return getTime(b) - getTime(a);
-            });
-
-        if (highRisks.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="table-empty">Aucune alerte récente</td>
-                </tr>
-            `;
+        if (!risksBody && !plansBody) {
             return;
         }
 
-        tbody.innerHTML = highRisks.map(risk => {
-            const score = (risk.probNet || 0) * (risk.impactNet || 0);
-            const isCritical = score > 12;
-            const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
-            const levelLabel = isCritical ? 'Critique' : 'Élevé';
-            const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-            const parsedDate = dateValue ? new Date(dateValue) : null;
-            const formattedDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toLocaleDateString('fr-FR') : '-';
-            const description = risk.description || 'Sans description';
-            const process = risk.processus || '-';
+        const formatDate = (value) => {
+            if (!value) {
+                return '-';
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleDateString('fr-FR');
+        };
 
-            return `
-                <tr>
-                    <td>${formattedDate}</td>
-                    <td>${description}</td>
-                    <td>${process}</td>
-                    <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
-                    <td class="table-actions-cell">
-                        <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
-                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        const normalizeValue = (value) => {
+            if (value == null) {
+                return '';
+            }
+            const str = String(value).trim().toLowerCase();
+            if (typeof str.normalize === 'function') {
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return str;
+        };
+
+        const parsePlanDueDate = (value) => {
+            if (value == null) {
+                return null;
+            }
+            const raw = String(value).trim();
+            if (!raw) {
+                return null;
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return new Date(`${raw}T00:00:00`);
+            }
+
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+                const [day, month, year] = raw.split('/');
+                return new Date(`${year}-${month}-${day}T00:00:00`);
+            }
+
+            const parsed = Date.parse(raw);
+            if (Number.isNaN(parsed)) {
+                return null;
+            }
+            const date = new Date(parsed);
+            return Number.isNaN(date.getTime()) ? null : date;
+        };
+
+        if (risksBody) {
+            const severeRisks = this.risks
+                .filter(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
+                    return score >= 9 && !hasPlans;
+                })
+                .sort((a, b) => {
+                    const getTime = (risk) => {
+                        const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                        const parsed = dateValue ? new Date(dateValue).getTime() : 0;
+                        return Number.isNaN(parsed) ? 0 : parsed;
+                    };
+                    return getTime(b) - getTime(a);
+                });
+
+            if (severeRisks.length === 0) {
+                risksBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="table-empty">Aucune alerte récente</td>
+                    </tr>
+                `;
+            } else {
+                risksBody.innerHTML = severeRisks.map(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const isCritical = score > 12;
+                    const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
+                    const levelLabel = isCritical ? 'Critique' : 'Sévère';
+                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                    const description = risk.description || risk.titre || 'Sans description';
+                    const process = risk.processus || risk.process || '-';
+
+                    return `
+                        <tr>
+                            <td>${formatDate(dateValue)}</td>
+                            <td>${description}</td>
+                            <td>${process}</td>
+                            <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
+                            <td class="table-actions-cell">
+                                <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
+                                <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (plansBody) {
+            const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
+                const key = normalizeValue(item?.value);
+                if (key) {
+                    acc[key] = item?.label || item?.value;
+                }
+                return acc;
+            }, {});
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayTime = today.getTime();
+
+            const overduePlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
+                .map(plan => ({
+                    plan,
+                    dueDate: parsePlanDueDate(plan?.dueDate)
+                }))
+                .filter(({ dueDate, plan }) => {
+                    if (!dueDate || Number.isNaN(dueDate.getTime())) {
+                        return false;
+                    }
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    if (statusValue === 'termine') {
+                        return false;
+                    }
+                    return dueDate.getTime() < todayTime;
+                })
+                .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+            if (overduePlans.length === 0) {
+                plansBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-empty">Aucun plan d'action en retard</td>
+                    </tr>
+                `;
+            } else {
+                plansBody.innerHTML = overduePlans.map(({ plan, dueDate }) => {
+                    const title = plan?.title || 'Plan sans titre';
+                    const owner = plan?.owner || '-';
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
+                    const formattedDueDate = dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-');
+
+                    return `
+                        <tr>
+                            <td>${title}</td>
+                            <td>${owner || '-'}</td>
+                            <td>${formattedDueDate}</td>
+                            <td>${statusLabel}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
     }
 
     calculateStats() {
