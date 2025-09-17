@@ -712,6 +712,24 @@ class RiskManagementSystem {
             return { setOpen: () => {} };
         }
 
+        const findDirectChild = (element, selector) => {
+            return Array.from(element.children).find(child => child.matches(selector));
+        };
+
+        const closeAccordionItem = (targetItem) => {
+            const targetHeader = findDirectChild(targetItem, '.config-accordion-header');
+            const targetBody = findDirectChild(targetItem, '.config-accordion-body');
+
+            targetItem.classList.remove('open');
+            if (targetHeader) {
+                targetHeader.setAttribute('aria-expanded', 'false');
+            }
+            if (targetBody) {
+                targetBody.setAttribute('aria-hidden', 'true');
+                targetBody.style.maxHeight = '0px';
+            }
+        };
+
         const setState = (open) => {
             if (open) {
                 item.classList.add('open');
@@ -731,6 +749,14 @@ class RiskManagementSystem {
 
         headerButton.addEventListener('click', () => {
             const willOpen = !item.classList.contains('open');
+            if (willOpen) {
+                const parent = item.parentElement;
+                if (parent instanceof HTMLElement) {
+                    Array.from(parent.children)
+                        .filter(child => child !== item && child instanceof HTMLElement && child.classList.contains('config-accordion-item') && child.classList.contains('open'))
+                        .forEach(openItem => closeAccordionItem(openItem));
+                }
+            }
             setState(willOpen);
         });
 
