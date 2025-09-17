@@ -1434,6 +1434,143 @@ tbody tr:hover {
     gap: 15px;
 }
 
+.controls-table {
+    background: white;
+    border: 1px solid #e1e8ed;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 18px rgba(52, 152, 219, 0.06);
+    margin-top: 15px;
+}
+
+.controls-table-header,
+.controls-table-row {
+    display: grid;
+    grid-template-columns: minmax(220px, 2fr) minmax(110px, 1fr) minmax(180px, 1.2fr) minmax(140px, 1fr) minmax(120px, 0.7fr);
+    gap: 16px;
+    align-items: center;
+    padding: 18px 22px;
+}
+
+.controls-table-header {
+    background: #f4f6fb;
+    color: #2c3e50;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+}
+
+.controls-table-header > div {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.controls-table-body {
+    display: flex;
+    flex-direction: column;
+    background: white;
+}
+
+.controls-table-row {
+    border-top: 1px solid #ecf0f6;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.controls-table-row:first-child {
+    border-top: none;
+}
+
+.controls-table-row:hover {
+    background: #f9fbff;
+    transform: translateX(2px);
+}
+
+.controls-table-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #2c3e50;
+    font-size: 0.9rem;
+}
+
+.control-name-cell .control-name {
+    font-weight: 600;
+    font-size: 1rem;
+    color: #1f2d3d;
+}
+
+.control-type-cell .control-type-badge {
+    min-width: 105px;
+    text-align: center;
+}
+
+.control-owner-cell .control-owner {
+    font-weight: 500;
+    color: #34495e;
+}
+
+.control-status-cell .control-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+}
+
+.controls-table-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.controls-table-header .controls-table-actions {
+    justify-content: flex-end;
+    color: #7f8c8d;
+}
+
+.text-placeholder {
+    color: #95a5a6;
+    font-size: 0.85rem;
+    font-style: italic;
+}
+
+.control-type-badge.type-undefined {
+    background: rgba(149, 165, 166, 0.12);
+    color: #7f8c8d;
+}
+
+.controls-empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    background: white;
+    border: 1px dashed #cfd8e3;
+    border-radius: 12px;
+    color: #546a7b;
+}
+
+.controls-empty-title {
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 1rem;
+}
+
+.controls-empty-text {
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+@media (max-width: 992px) {
+    .controls-table {
+        overflow-x: auto;
+    }
+
+    .controls-table-header,
+    .controls-table-row {
+        min-width: 720px;
+    }
+}
+
 .control-item {
     background: white;
     padding: 15px;
