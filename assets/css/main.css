@@ -948,6 +948,79 @@ body {
     }
 }
 
+.top-risks-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.top-risks-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.top-risks-content.is-empty .top-risks-table {
+    display: none;
+}
+
+.top-risks-content .top-risks-empty {
+    display: none;
+    padding: 18px 12px;
+    text-align: center;
+    border: 1px dashed #d6e2eb;
+    border-radius: 12px;
+    color: #7f8c8d;
+    background: #f9fbfd;
+    font-size: 0.95em;
+}
+
+.top-risks-content.is-empty .top-risks-empty {
+    display: block;
+}
+
+.top-risks-table th:first-child,
+.top-risks-table td:first-child {
+    width: 56px;
+    text-align: center;
+    font-weight: 600;
+    color: #95a5a6;
+}
+
+.top-risks-table th:last-child {
+    text-align: right;
+}
+
+.top-risks-table td {
+    vertical-align: middle;
+}
+
+.top-risk-title {
+    font-weight: 600;
+    color: #2c3e50;
+    display: block;
+}
+
+.top-risk-meta {
+    font-size: 0.85em;
+    color: #7f8c8d;
+}
+
+.top-risk-process {
+    font-weight: 500;
+    color: #34495e;
+}
+
+.top-risk-subprocess {
+    color: #7f8c8d;
+}
+
+.top-risk-score {
+    font-weight: 700;
+    text-align: right;
+    color: var(--primary-color);
+    font-variant-numeric: tabular-nums;
+}
+
 /* Table améliorée */
 .table-container {
     background: white;
