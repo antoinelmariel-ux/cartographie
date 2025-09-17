@@ -1539,21 +1539,72 @@ class RiskManagementSystem {
         });
     }
 
-    getFilteredRisks() {
-        return this.risks.filter(risk => {
-            if (this.filters.process && !risk.processus.toLowerCase().includes(this.filters.process.toLowerCase())) {
+    getFilteredRisks(risks = this.risks) {
+        const sourceRisks = Array.isArray(risks) ? risks : [];
+        const {
+            process = '',
+            type = '',
+            status = '',
+            search = ''
+        } = this.filters || {};
+
+        const processFilter = String(process || '').toLowerCase();
+        const searchFilter = String(search || '').toLowerCase();
+
+        return sourceRisks.filter(risk => {
+            if (processFilter) {
+                const riskProcess = risk?.processus != null ? String(risk.processus).toLowerCase() : '';
+                if (!riskProcess.includes(processFilter)) {
+                    return false;
+                }
+            }
+
+            if (type && risk?.typeCorruption !== type) {
                 return false;
             }
-            if (this.filters.type && risk.typeCorruption !== this.filters.type) {
+
+            if (status && risk?.statut !== status) {
                 return false;
             }
-            if (this.filters.status && risk.statut !== this.filters.status) {
-                return false;
+
+            if (searchFilter) {
+                const description = risk?.description != null ? String(risk.description).toLowerCase() : '';
+                if (!description.includes(searchFilter)) {
+                    return false;
+                }
             }
-            if (this.filters.search && !risk.description.toLowerCase().includes(this.filters.search.toLowerCase())) {
-                return false;
-            }
+
             return true;
+        });
+    }
+
+    getRisksByStatus(status) {
+        const normalize = (value) => {
+            if (value == null) {
+                return '';
+            }
+
+            const str = String(value).trim().toLowerCase();
+            if (typeof str.normalize === 'function') {
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return str;
+        };
+
+        const sourceRisks = Array.isArray(this.risks) ? this.risks : [];
+        if (!status) {
+            return sourceRisks.slice();
+        }
+
+        const targetStatus = normalize(status);
+        if (!targetStatus) {
+            return sourceRisks.slice();
+        }
+
+        const statusKeys = ['statut', 'status', 'statusLabel', 'state'];
+
+        return sourceRisks.filter(risk => {
+            return statusKeys.some(key => normalize(risk?.[key]) === targetStatus);
         });
     }
 
@@ -1664,21 +1715,23 @@ class RiskManagementSystem {
 
     // Dashboard functions
     updateDashboard() {
-        // Update stats
-        const stats = this.calculateStats();
-        const metrics = this.computeDashboardMetrics(stats);
+        const validatedRisks = this.getRisksByStatus('validé');
+        const stats = this.calculateStats(validatedRisks);
+        const metrics = this.computeDashboardMetrics(validatedRisks, stats);
 
         this.updateKpiCards({ ...metrics, previous: this.lastDashboardMetrics });
-        this.updateCharts();
-        this.updateRecentAlerts();
+        this.updateCharts(validatedRisks, stats);
+        this.updateRecentAlerts(validatedRisks);
 
         this.lastDashboardMetrics = metrics;
     }
 
-    computeDashboardMetrics(stats) {
-        const totalRisks = stats?.total || 0;
+    computeDashboardMetrics(risks = this.risks, stats = null) {
+        const sourceRisks = Array.isArray(risks) ? risks : [];
+        const computedStats = stats || this.calculateStats(sourceRisks);
+        const totalRisks = computedStats?.total ?? sourceRisks.length;
 
-        const totals = this.risks.reduce((acc, risk) => {
+        const totals = sourceRisks.reduce((acc, risk) => {
             const brut = (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
             const net = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
             const post = (Number(risk?.probPost) || 0) * (Number(risk?.impactPost) || 0);
@@ -1813,7 +1866,7 @@ class RiskManagementSystem {
         }
 
         return {
-            stats: { ...stats },
+            stats: { ...computedStats },
             activeControls,
             totalControls,
             controlTypeDistribution,
@@ -1947,20 +2000,17 @@ class RiskManagementSystem {
                 formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} pts vs dernière mesure (${reductionLabel})`
             });
         });
-
-        const dashboardBadge = document.querySelector('.tabs-container .tab .tab-badge');
-        if (dashboardBadge) {
-            dashboardBadge.textContent = String(stats.critical + stats.high);
-        }
     }
 
-    updateRecentAlerts() {
+    updateRecentAlerts(risks = this.risks) {
         const risksBody = document.getElementById('recentAlertsRisksBody');
         const plansBody = document.getElementById('recentAlertsPlansBody');
 
         if (!risksBody && !plansBody) {
             return;
         }
+
+        const sourceRisks = Array.isArray(risks) ? risks : [];
 
         const formatDate = (value) => {
             if (!value) {
@@ -2011,7 +2061,7 @@ class RiskManagementSystem {
         };
 
         if (risksBody) {
-            const severeRisks = this.risks
+            const severeRisks = sourceRisks
                 .filter(risk => {
                     const prob = Number(risk.probNet) || 0;
                     const impact = Number(risk.impactNet) || 0;
@@ -2119,27 +2169,30 @@ class RiskManagementSystem {
         }
     }
 
-    calculateStats() {
+    calculateStats(risks = this.risks) {
+        const sourceRisks = Array.isArray(risks) ? risks : [];
         const stats = {
             critical: 0,
             high: 0,
             medium: 0,
             low: 0,
-            total: this.risks.length
+            total: sourceRisks.length
         };
-        
-        this.risks.forEach(risk => {
-            const score = risk.probNet * risk.impactNet;
+
+        sourceRisks.forEach(risk => {
+            const prob = Number(risk?.probNet) || 0;
+            const impact = Number(risk?.impactNet) || 0;
+            const score = prob * impact;
             if (score > 12) stats.critical++;
             else if (score > 8) stats.high++;
             else if (score > 4) stats.medium++;
             else stats.low++;
         });
-        
+
         return stats;
     }
 
-    updateCharts() {
+    updateCharts(risks = this.risks, stats = null) {
         if (typeof Chart === 'undefined') {
             return;
         }
@@ -2150,7 +2203,8 @@ class RiskManagementSystem {
             this.charts = {};
         }
 
-        const filteredRisks = this.getFilteredRisks();
+        const baseRisks = Array.isArray(risks) ? risks : [];
+        const filteredRisks = this.getFilteredRisks(baseRisks);
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
             const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
@@ -2213,7 +2267,7 @@ class RiskManagementSystem {
                 return null;
             };
 
-            this.risks.forEach(risk => {
+            baseRisks.forEach(risk => {
                 const rawDate = risk?.dateCreation || risk?.date || risk?.createdAt;
                 const parsedDate = parseDate(rawDate);
                 if (!parsedDate) return;
@@ -2495,6 +2549,14 @@ class RiskManagementSystem {
                     summaryElement.textContent = `Les processus ${first.label} et ${second.label} concentrent ${share}% des risques filtrés avec des scores nets moyens de ${formatScore(first.average)} et ${formatScore(second.average)}.`;
                 }
             }
+        }
+
+        const badgeStats = stats || this.calculateStats(baseRisks);
+        const dashboardBadge = document.querySelector('.tabs-container .tab .tab-badge');
+        if (dashboardBadge) {
+            const criticalCount = Number(badgeStats?.critical) || 0;
+            const highCount = Number(badgeStats?.high) || 0;
+            dashboardBadge.textContent = String(criticalCount + highCount);
         }
     }
 
