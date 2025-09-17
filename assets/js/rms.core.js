@@ -1672,6 +1672,13 @@ class RiskManagementSystem {
         };
         const { prob: probKey, impact: impactKey } = viewConfig[this.currentView] || viewConfig['brut'];
 
+        const viewLabels = {
+            'brut': 'Vue Brut',
+            'net': 'Vue Net',
+            'post': 'Vue Post-Mitigation',
+            'post-mitigation': 'Vue Post-Mitigation'
+        };
+
         const scoredRisks = filteredRisks.map(risk => {
             const prob = Number(risk[probKey]) || 0;
             const impact = Number(risk[impactKey]) || 0;
@@ -1692,7 +1699,15 @@ class RiskManagementSystem {
             return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
         });
 
-        container.innerHTML = scoredRisks.map(({ risk, score }) => {
+        const topRisks = scoredRisks.slice(0, 10);
+
+        const titleElement = document.getElementById('riskDetailsTitle');
+        if (titleElement) {
+            const viewLabel = viewLabels[this.currentView] || viewLabels['brut'];
+            titleElement.textContent = `Top 10 des risques - ${viewLabel}`;
+        }
+
+        container.innerHTML = topRisks.map(({ risk, score }) => {
             let scoreClass = 'low';
             if (score > 12) scoreClass = 'critical';
             else if (score > 8) scoreClass = 'high';
