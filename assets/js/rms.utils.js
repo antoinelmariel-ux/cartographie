@@ -4,6 +4,20 @@ function sanitizeId(str) {
     return str.replace(/[^a-z0-9_-]/gi, '_');
 }
 
+function slugifyLabel(input) {
+    if (typeof input !== 'string') {
+        return '';
+    }
+
+    return input
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .trim()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+}
+
 function idsEqual(a, b) {
     return String(a) === String(b);
 }
@@ -29,3 +43,4 @@ function getNextSequentialId(items, startAt = 1) {
 window.sanitizeId = sanitizeId;
 window.idsEqual = idsEqual;
 window.getNextSequentialId = getNextSequentialId;
+window.slugifyLabel = slugifyLabel;
