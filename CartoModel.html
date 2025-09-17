@@ -20,14 +20,17 @@
             </div>
             <div class="header-right">
                 <img src="assets/img/lfb-logo.svg" alt="LFB Biomanufacturing" class="header-logo">
-                <div class="user-info">
-                    <div class="user-name">Marie Dupont</div>
-                    <div class="user-role">Responsable Conformité</div>
+                <div class="header-actions">
                     <div class="last-save">Dernière sauvegarde: <span id="lastSaveTime">-</span></div>
+                    <div class="header-buttons">
+                        <button class="btn btn-primary" onclick="downloadRmsData()">
+                            <span class="btn-icon">💾</span> Enregistrer
+                        </button>
+                        <button class="btn btn-secondary" onclick="loadRmsDataFromFile()">
+                            <span class="btn-icon">📂</span> Charger
+                        </button>
+                    </div>
                 </div>
-                <button class="btn btn-primary" onclick="showNotification('info', 'Synchronisation en cours...')">
-                    <span class="btn-icon">🔄</span> Sync
-                </button>
             </div>
         </div>
 
@@ -504,19 +507,19 @@
                 <div class="toolbar">
                     <div class="toolbar-title">Configuration</div>
                     <div class="toolbar-actions">
-                        <button class="btn btn-outline" onclick="saveSnapshotToFile()">
-                            💾 Exporter la sauvegarde
+                        <button class="btn btn-outline" onclick="downloadRmsData()">
+                            💾 Exporter les données
                         </button>
-                        <button class="btn btn-primary" onclick="loadSnapshotFromFile()">
-                            📂 Importer une sauvegarde
+                        <button class="btn btn-primary" onclick="loadRmsDataFromFile()">
+                            📂 Importer des données
                         </button>
                     </div>
                 </div>
                 <div class="content-area">
                     <div class="config-helper" style="margin-bottom: 1.5rem;">
                         <p>
-                            💡 Exportez un instantané pour le transférer manuellement vers un autre navigateur puis
-                            importez le fichier <code>rms-sauvegarde.json</code> afin de restaurer l'état complet de votre
+                            💡 Exportez vos données pour les transférer manuellement vers un autre navigateur puis
+                            importez le fichier <code>cartographie-donnees.json</code> afin de restaurer l'état complet de votre
                             cartographie.
                         </p>
                     </div>

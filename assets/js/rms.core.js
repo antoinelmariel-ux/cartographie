@@ -512,7 +512,7 @@ class RiskManagementSystem {
         this.addHistoryItem('Import instantané', 'Sauvegarde importée depuis un fichier');
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Instantané chargé avec succès');
+            showNotification('success', 'Données importées avec succès');
         }
     }
 
@@ -2352,7 +2352,7 @@ class RiskManagementSystem {
             date: new Date().toISOString(),
             action,
             description,
-            user: 'Marie Dupont'
+            user: 'Système'
         });
         this.saveData();
         this.updateHistory();
@@ -2458,14 +2458,14 @@ class RiskManagementSystem {
             const snapshot = this.getSnapshot();
             snapshot.meta = {
                 exportDate: new Date().toISOString(),
-                exportedBy: 'Marie Dupont'
+                exportedBy: 'Cartographie'
             };
 
             const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = 'rms-sauvegarde.json';
+            a.download = 'cartographie-donnees.json';
             document.body.appendChild(a);
             a.click();
             setTimeout(() => {
@@ -2474,7 +2474,7 @@ class RiskManagementSystem {
             }, 0);
 
             if (typeof showNotification === 'function') {
-                showNotification('success', 'Sauvegarde exportée avec succès');
+                showNotification('success', 'Données exportées avec succès');
             }
 
             return;
