@@ -84,7 +84,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
        "impactNet": 2,
        "probPost": 1,
        "impactPost": 1,
-       "statut": "nouveau",
+       "statut": "brouillon",
        "controls": [],
        "actionPlans": []
      }],
