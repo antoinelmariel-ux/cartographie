@@ -1,58 +1,100 @@
 # cartographie
 
-Application de cartographie des risques corruption.
+Application monopage de cartographie des risques de corruption. Elle fournit un tableau de bord interactif, un registre des risques et des contrôles ainsi qu'un moteur d'export/import autonome fonctionnant entièrement côté navigateur.
 
-## Fonctionnalités
+## Fonctionnalités principales
 
-- **Tableau de bord** : indicateurs clés, graphiques d'évolution et alertes récentes.
-- **Matrice des risques** : visualisation interactive des niveaux brut, net et post-mitigations.
-- **Liste des risques** : création, édition, suppression et filtrage des risques.
-- **Contrôles et mesures** : gestion des contrôles, association aux risques et suivi de l'efficacité.
-- **Plans d'actions** : suivi des plans associés aux risques et rappels sur les échéances.
-- **Import/Export** : export JSON/CSV, capture de la matrice, export PDF du tableau de bord et import depuis des fichiers externes.
-- **Historique** : suivi chronologique des actions effectuées.
-- **Configuration** : administration des options des listes déroulantes.
+- **Tableau de bord temps réel** : synthèse des KPIs clés (risques critiques, contrôles actifs, score global) et graphiques alimentés par Chart.js pour suivre l'évolution des risques et leur répartition par processus.
+- **Matrice des risques** : vue interactive des expositions brut, net et post-mitigation avec légende dynamique, filtres et édition visuelle des probabilités/impacts.
+- **Registre des risques** : création, édition et suppression des risques avec liens vers les contrôles et plans d'actions associés, filtres texte/processus/statut et export CSV.
+- **Gestion des contrôles & plans** : fiches détaillées, modales d'édition, suivi des responsabilités et de l'efficacité des mesures.
+- **Historique & alertes** : timeline chronologique des actions, notifications utilisateur et badges d'alerte sur le tableau de bord.
+- **Import / Export autonome** : export JSON/CSV, capture de la matrice, export PDF du tableau de bord et import depuis fichiers CSV ou JSON sans dépendance serveur.
+- **Configuration fonctionnelle** : administration des listes déroulantes (processus, types, statuts, tiers, etc.) avec persistance automatique dans le navigateur.
 
-### Domaines fonctionnels du script `assets/js/rms.js`
+## Structure du projet
 
-Le fichier `assets/js/rms.js` concentre l'ensemble de la logique applicative. En vue d'un futur découpage, voici les blocs principaux à isoler :
+### Fichiers clés
+- `CartoModel.html` : point d'entrée de l'application, intègre la mise en page, les onglets et charge les modules JavaScript/CSS.
+- `assets/css/main.css` : styles de l'interface (tableau de bord, matrice, modales, formulaires).
+- `assets/libs/` : placez-y les bibliothèques tierces nécessaires en mode hors-ligne (`chart.umd.min.js`, `html2canvas.min.js`, `jspdf.umd.min.js`).
 
-1. **Utilitaires et constantes** : fonctions d'aide (`sanitizeId`, égalité d'identifiants, incréments séquentiels) et définitions des libellés probabilité/impact ou des états de risque.
-2. **Données de référence** : jeux de données par défaut pour les risques et les contrôles ainsi que la configuration initiale (processus, sous-processus, listes de sélection).
-3. **Persistance locale** : chargement/sauvegarde via `localStorage`, sauvegarde automatique et horodatage de la dernière sauvegarde.
-4. **Configuration dynamique** : rendu des écrans d'administration des listes, gestion des sous-processus et synchronisation avec les formulaires.
-5. **Rendu de l'interface** : orchestration globale via `renderAll`, génération de la matrice, des détails risques, des listes (risques, contrôles, plans d'action) et de la frise historique.
-6. **Tableau de bord et analytics** : calcul des statistiques, alimentation des cartes KPI, mise à jour des graphiques et des alertes récentes.
-7. **Gestion du registre des risques** : formulaires de création/édition, calcul des scores, interaction avec la matrice d'édition, filtres et sélection d'éléments liés.
-8. **Contrôles et plans d'action** : rendu des cartes, modales d'édition, sélecteurs de risques/contrôles et synchronisation bidirectionnelle avec les risques.
-9. **Historisation et notifications** : timeline des événements, enregistrement des actions significatives et système d'alertes utilisateur.
-10. **Import/Export avancés** : conversion CSV, génération de blobs, exports (JSON, CSV, PNG, PDF) et import des risques depuis CSV/JSON.
-11. **Événements globaux** : gestion des onglets, du changement de vue de la matrice, du binding d'événements clavier/souris et correctifs appliqués au chargement (`bindEvents`, `applyPatch`).
-12. **Point d'entrée** : initialisation depuis `assets/js/main.js` avec instanciation de `RiskManagementSystem`, attachement global (`setRms`) et lancement des rendus.
+### Modules JavaScript
 
-Ces regroupements peuvent servir de base à un découpage en modules (`utils.js`, `data.js`, `storage.js`, `matrix.js`, `risks.js`, `controls.js`, etc.) pour alléger le fichier principal sans perdre la vue d'ensemble.
+| Fichier | Responsabilités principales |
+| --- | --- |
+| `assets/js/main.js` | Initialisation : instancie `RiskManagementSystem`, attache les événements globaux et déclenche le rendu initial. |
+| `assets/js/rms.constants.js` | Définitions communes (libellés de probabilité/impact, configuration des états de risque). Exposées sur `window`. |
+| `assets/js/rms.utils.js` | Fonctions utilitaires partagées (sanitisation des identifiants, comparaison, incréments séquentiels). |
+| `assets/js/rms.core.js` | Cœur applicatif : jeux de données par défaut, persistance `localStorage`, calculs, rendus du tableau de bord, du registre, des plans et de l'historique, gestion de la configuration dynamique. |
+| `assets/js/rms.matrix.js` | Logique de la matrice : changement de vue, calculs de score, positionnement des points, interactions drag & drop et synchronisation avec les formulaires. |
+| `assets/js/rms.ui.js` | Interactions UI : navigation entre onglets, filtres, recherche, modales d'édition des risques/contrôles/plans, notifications et synchronisation avec la matrice. |
+| `assets/js/rms.integrations.js` | Fonctions d'import/export, correctifs de compatibilité, génération de fichiers, parsing CSV/JSON, timeline de sauvegarde et helpers toast. |
 
-## Utilisation hors-ligne
+## Données & persistance
 
-Pour ouvrir l'application sans serveur local ni connexion Internet :
+- Toutes les données sont stockées côté navigateur via `localStorage` (`rms_risks`, `rms_controls`, `rms_actionPlans`, `rms_history`, `rms_config`).
+- Une sauvegarde automatique est effectuée toutes les 30 secondes et la date de dernière sauvegarde est affichée dans l'en-tête.
+- Les exports sont effectués côté client : `exportRisks()` produit un CSV et `exportDashboard()` télécharge un JSON avec le registre des risques, les contrôles ainsi que des métadonnées (`exportDate`, `exportedBy`).
+- L'import accepte des fichiers CSV (colonnes libres, mappées automatiquement) ou JSON (structure `{ risks, controls, history }`). Chaque import ajoute un événement dans l'historique.
 
+## Démarrage rapide
+
+### Utilisation hors-ligne
 1. Téléchargez les bibliothèques suivantes et placez-les dans `assets/libs/` :
    - `chart.umd.min.js` (Chart.js)
    - `html2canvas.min.js`
    - `jspdf.umd.min.js`
-2. Ouvrez directement le fichier `CartoModel.html` dans votre navigateur.
+2. Ouvrez le fichier `CartoModel.html` dans votre navigateur (double-clic ou `Ctrl+O`).
+3. Les dépendances étant locales, l'application fonctionne entièrement via `file://` sans serveur.
 
-Toutes les dépendances sont chargées localement, l'application peut donc fonctionner via `file://`.
+### Via un serveur local (optionnel)
+1. Dans un terminal, placez-vous à la racine du projet : `cd cartographie`.
+2. Lancez un serveur statique, par exemple : `python -m http.server 8000`.
+3. Ouvrez `http://localhost:8000/CartoModel.html` dans votre navigateur pour bénéficier d'un rechargement plus fluide lors du développement.
 
-## Configuration
+## Configuration fonctionnelle
 
-L'onglet **Configuration** permet d'ajouter ou de supprimer les valeurs utilisées dans les listes déroulantes des formulaires (processus, types de risque, statuts, etc.). Les modifications sont conservées dans le navigateur grâce au stockage local.
+- L'onglet **Configuration** permet d'ajouter, modifier ou supprimer les valeurs utilisées dans les listes déroulantes (processus, statuts, types de corruption, tiers, etc.).
+- Les sous-processus sont rattachés à chaque processus ; le module met automatiquement à jour les formulaires et filtres lorsque la structure évolue.
+- Les modifications sont persistées via `saveConfig()` et répercutées dans toute l'interface grâce à `populateSelects()`.
 
 ## Tests manuels
 
 ### Export CSV avec un registre vide
-
-1. Ouvrez `CartoModel.html` dans votre navigateur.
-2. Accédez à l'onglet **Registre des Risques** et supprimez tous les risques afin que la table soit vide.
+1. Ouvrez `CartoModel.html` et accédez à l'onglet **📋 Liste des Risques**.
+2. Supprimez tous les risques (icône corbeille sur chaque ligne) jusqu'à ce que le tableau soit vide.
 3. Cliquez sur le bouton "📤 Exporter" du registre.
 4. Vérifiez qu'une notification "Aucune donnée disponible pour l'export CSV." s'affiche, qu'aucun fichier n'est téléchargé et qu'aucune erreur n'apparaît dans la console du navigateur.
+
+### Import JSON/CSV
+1. Préparez un fichier `import_risks.json` contenant par exemple :
+   ```json
+   {
+     "risks": [{
+       "id": "demo-1",
+       "description": "Test import",
+       "processus": "Achats",
+       "sousProcessus": "Appels d'offres",
+       "typeCorruption": "favoritisme",
+       "tiers": ["Acheteurs"],
+       "probBrut": 2,
+       "impactBrut": 3,
+       "probNet": 2,
+       "impactNet": 2,
+       "probPost": 1,
+       "impactPost": 1,
+       "statut": "nouveau",
+       "controls": [],
+       "actionPlans": []
+     }],
+     "history": []
+   }
+   ```
+2. Depuis l'onglet **📋 Liste des Risques**, cliquez sur "📥 Importer" et sélectionnez le fichier.
+3. Contrôlez qu'un toast "Import réussi" apparaît, que le risque est ajouté au tableau, qu'une entrée "Import JSON" est visible dans l'onglet **📜 Historique** et qu'aucune erreur n'est levée dans la console.
+
+## Ressources
+
+- La matrice et les graphiques utilisent des bibliothèques embarquées pour rester fonctionnels hors connexion.
+- Pour purger les données locales et revenir à l'état initial, videz le stockage local du navigateur pour le domaine courant (`localStorage.clear()` ou outils de développement).
