@@ -456,6 +456,7 @@ body {
     color: #fff;
     line-height: 1;
     user-select: none;
+    background: #0061af;
 }
 
 .risk-point:hover {
@@ -464,18 +465,11 @@ body {
     z-index: 20;
 }
 
-.risk-point.brut { 
-    background: linear-gradient(135deg, #e74c3c, #c0392b); 
-}
-.risk-point.net { 
-    background: linear-gradient(135deg, #f39c12, #d68910); 
-}
-.risk-point.post-mitigation {
-    background: linear-gradient(135deg, #27ae60, #229954);
-}
-
+.risk-point.brut,
+.risk-point.net,
+.risk-point.post-mitigation,
 .risk-point.post {
-    background: linear-gradient(135deg, #27ae60, #229954);
+    background: #0061af;
 }
 
 .risk-point.inactive {
