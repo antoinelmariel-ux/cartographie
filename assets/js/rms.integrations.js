@@ -9,6 +9,109 @@ function exportRisks() {
     if (window.rms) rms.exportData('csv');
 }
 window.exportRisks = exportRisks;
+
+function saveSnapshotToFile() {
+    if (!window.rms) {
+        console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Sauvegarde impossible: instance non initialisée");
+        }
+        return;
+    }
+
+    try {
+        const snapshot = rms.getSnapshot();
+        snapshot.meta = {
+            exportDate: new Date().toISOString(),
+            exportedBy: 'Marie Dupont'
+        };
+
+        const blob = new Blob([JSON.stringify(snapshot, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement('a');
+        anchor.href = url;
+        anchor.download = 'rms-sauvegarde.json';
+        document.body.appendChild(anchor);
+        anchor.click();
+        setTimeout(() => {
+            document.body.removeChild(anchor);
+            URL.revokeObjectURL(url);
+        }, 0);
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Sauvegarde téléchargée');
+        }
+    } catch (error) {
+        console.error('Erreur lors de la sauvegarde', error);
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Erreur lors de l'export de la sauvegarde");
+        } else {
+            alert("Erreur lors de l'export de la sauvegarde: " + error.message);
+        }
+    }
+}
+window.saveSnapshotToFile = saveSnapshotToFile;
+
+function loadSnapshotFromFile() {
+    if (!window.rms) {
+        console.warn('RiskManagementSystem indisponible pour le chargement.');
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Chargement impossible: instance non initialisée");
+        }
+        return;
+    }
+
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.style.display = 'none';
+
+    const handleError = (message, error) => {
+        if (error) {
+            console.error(message, error);
+        }
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(message);
+        }
+    };
+
+    input.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            input.remove();
+            return;
+        }
+
+        const reader = new FileReader();
+
+        reader.onload = () => {
+            try {
+                const text = reader.result ? String(reader.result) : '';
+                const snapshot = JSON.parse(text);
+                rms.loadSnapshot(snapshot);
+            } catch (error) {
+                handleError("Impossible de charger la sauvegarde sélectionnée", error);
+            } finally {
+                input.value = '';
+                input.remove();
+            }
+        };
+
+        reader.onerror = () => {
+            handleError("Lecture du fichier de sauvegarde impossible", reader.error);
+            input.value = '';
+            input.remove();
+        };
+
+        reader.readAsText(file, 'utf-8');
+    });
+
+    document.body.appendChild(input);
+    input.click();
+}
+window.loadSnapshotFromFile = loadSnapshotFromFile;
 function applyPatch() {
     (function(){
       const RMS = window.rms || window.RMS || window.RiskSystem || {};

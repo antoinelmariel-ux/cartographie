@@ -504,8 +504,25 @@
             <div class="main-content">
                 <div class="toolbar">
                     <div class="toolbar-title">Configuration</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-outline" onclick="saveSnapshotToFile()">
+                            💾 Exporter la sauvegarde
+                        </button>
+                        <button class="btn btn-primary" onclick="loadSnapshotFromFile()">
+                            📂 Importer une sauvegarde
+                        </button>
+                    </div>
                 </div>
-                <div class="content-area" id="configurationContainer"></div>
+                <div class="content-area">
+                    <div class="config-helper" style="margin-bottom: 1.5rem;">
+                        <p>
+                            💡 Exportez un instantané pour le transférer manuellement vers un autre navigateur puis
+                            importez le fichier <code>rms-sauvegarde.json</code> afin de restaurer l'état complet de votre
+                            cartographie.
+                        </p>
+                    </div>
+                    <div id="configurationContainer"></div>
+                </div>
             </div>
     </div>
     </div>
