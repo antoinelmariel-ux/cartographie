@@ -36,6 +36,11 @@ class RiskManagementSystem {
             status: '',
             search: ''
         };
+        this.controlFilters = {
+            type: '',
+            status: '',
+            search: ''
+        };
         this.risks.forEach(r => {
             if (!r.actionPlans || r.actionPlans.length === 0) {
                 r.probPost = r.probNet;
@@ -428,6 +433,38 @@ class RiskManagementSystem {
         fill('controlMode', this.config.controlModes, 'Sélectionner...');
         fill('controlEffectiveness', this.config.controlEffectiveness, 'Sélectionner...');
         fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
+        fill('controlsTypeFilter', this.config.controlTypes, 'Tous les types de contrôle');
+        fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
+
+        const syncFilterValue = (filterKey, value) => {
+            if (typeof document === 'undefined') return;
+            const normalizedKey = typeof filterKey === 'string' ? filterKey : '';
+            if (!normalizedKey) return;
+            const normalizedValue = value == null ? '' : String(value);
+
+            document.querySelectorAll(`[data-filter-key="${normalizedKey}"]`).forEach(element => {
+                if (!('value' in element)) {
+                    return;
+                }
+
+                if (element.tagName === 'SELECT') {
+                    if (normalizedValue && !Array.from(element.options).some(opt => opt.value === normalizedValue)) {
+                        const opt = document.createElement('option');
+                        opt.value = normalizedValue;
+                        opt.textContent = normalizedValue;
+                        element.appendChild(opt);
+                    }
+                }
+
+                if (element.value !== normalizedValue) {
+                    element.value = normalizedValue;
+                }
+            });
+        };
+
+        syncFilterValue('type', this.controlFilters?.type || '');
+        syncFilterValue('status', this.controlFilters?.status || '');
+        syncFilterValue('search', this.controlFilters?.search || '');
     }
 
     setupAutoValueSync(labelInput, valueInput) {
@@ -1287,11 +1324,48 @@ class RiskManagementSystem {
     }
 
     // Controls functions
+    getFilteredControls() {
+        const controls = Array.isArray(this.controls) ? this.controls : [];
+        const { type = '', status = '', search = '' } = this.controlFilters || {};
+
+        const typeFilter = String(type || '').toLowerCase();
+        const statusFilter = String(status || '').toLowerCase();
+        const searchTerm = String(search || '').trim().toLowerCase();
+
+        if (!typeFilter && !statusFilter && !searchTerm) {
+            return controls.slice();
+        }
+
+        return controls.filter(control => {
+            const controlType = String(control?.type || '').toLowerCase();
+            const controlStatus = String(control?.status || '').toLowerCase();
+            const controlName = String(control?.name || '').toLowerCase();
+            const controlOwner = String(control?.owner || '').toLowerCase();
+
+            if (typeFilter && controlType !== typeFilter) {
+                return false;
+            }
+
+            if (statusFilter && controlStatus !== statusFilter) {
+                return false;
+            }
+
+            if (searchTerm && !controlName.includes(searchTerm) && !controlOwner.includes(searchTerm)) {
+                return false;
+            }
+
+            return true;
+        });
+    }
+
     updateControlsList() {
         const container = document.getElementById('controlsList');
         if (!container) return;
 
-        if (!this.controls.length) {
+        const allControls = Array.isArray(this.controls) ? this.controls : [];
+        const filteredControls = this.getFilteredControls();
+
+        if (!allControls.length) {
             container.innerHTML = `
                 <div class="controls-empty-state">
                     <div class="controls-empty-title">Aucun contrôle enregistré</div>
@@ -1302,24 +1376,41 @@ class RiskManagementSystem {
             return;
         }
 
-        const typeMap = {
-            'preventif': 'Préventif',
-            'detectif': 'Détectif'
-        };
+        if (!filteredControls.length) {
+            container.innerHTML = `
+                <div class="controls-empty-state">
+                    <div class="controls-empty-title">Aucun contrôle ne correspond aux filtres</div>
+                    <div class="controls-empty-text">Modifiez vos filtres ou réinitialisez-les pour afficher les contrôles disponibles.</div>
+                </div>
+            `;
+            return;
+        }
 
-        const statusMap = {
-            'actif': 'Actif',
-            'en-mise-en-place': 'En mise en place',
-            'en-revision': 'En cours de révision',
-            'obsolete': 'Obsolète'
-        };
+        const typeMap = (this.config.controlTypes || []).reduce((acc, item) => {
+            if (item && item.value !== undefined && item.value !== null) {
+                acc[String(item.value).toLowerCase()] = item.label || item.value;
+            }
+            return acc;
+        }, {});
 
-        container.innerHTML = this.controls.map(control => {
-            const controlName = control.name || 'Contrôle sans nom';
-            const typeLabel = typeMap[control.type] || (control.type ? control.type : 'Non défini');
-            const typeClass = control.type ? control.type : 'type-undefined';
-            const ownerLabel = control.owner || '';
-            const statusLabel = control.status ? (statusMap[control.status] || control.status) : '';
+        const statusMap = (this.config.controlStatuses || []).reduce((acc, item) => {
+            if (item && item.value !== undefined && item.value !== null) {
+                acc[String(item.value).toLowerCase()] = item.label || item.value;
+            }
+            return acc;
+        }, {});
+
+        container.innerHTML = filteredControls.map(control => {
+            const controlName = control?.name || 'Contrôle sans nom';
+            const rawType = control?.type ?? '';
+            const normalizedType = rawType ? String(rawType).toLowerCase() : '';
+            const typeLabel = normalizedType ? (typeMap[normalizedType] || rawType) : 'Non défini';
+            const typeClass = normalizedType ? normalizedType.replace(/[^a-z0-9-]+/g, '-') : 'type-undefined';
+            const ownerLabel = control?.owner || '';
+            const rawStatus = control?.status ?? '';
+            const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
+            const statusLabel = normalizedStatus ? (statusMap[normalizedStatus] || rawStatus) : '';
+            const statusClass = normalizedStatus ? normalizedStatus.replace(/[^a-z0-9-]+/g, '-') : '';
 
             return `
                 <div class="controls-table-row" data-control-id="${control.id}">
@@ -1333,7 +1424,7 @@ class RiskManagementSystem {
                         ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
                     <div class="controls-table-cell control-status-cell">
-                        ${statusLabel ? `<span class="control-status-badge ${control.status}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
                     <div class="controls-table-cell controls-table-actions">
                         <button class="action-btn" onclick="editControl(${control.id})" title="Modifier">✏️</button>

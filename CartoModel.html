@@ -315,6 +315,24 @@
                 </div>
 
                 <div class="content-area">
+                    <div class="filters-bar">
+                        <div class="filter-group">
+                            <label class="filter-label" for="controlsTypeFilter">Type de contrôle</label>
+                            <select id="controlsTypeFilter" class="filter-select" data-filter-key="type" onchange="applyControlFilters('type', this.value, this)">
+                                <option value="">Tous les types de contrôle</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="controlsStatusFilter">Statut</label>
+                            <select id="controlsStatusFilter" class="filter-select" data-filter-key="status" onchange="applyControlFilters('status', this.value, this)">
+                                <option value="">Tous les statuts</option>
+                            </select>
+                        </div>
+                        <div class="search-box">
+                            <label class="filter-label" for="controlsSearchInput">Recherche</label>
+                            <input type="search" id="controlsSearchInput" class="search-input" placeholder="Rechercher par propriétaire ou libellé" data-filter-key="search" oninput="searchControls(this.value, this)">
+                        </div>
+                    </div>
                     <div class="controls-section">
                         <div class="form-section-title">Contrôles Actifs</div>
                         <div class="controls-table">
