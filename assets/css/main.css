@@ -938,6 +938,32 @@ body {
     gap: 10px;
 }
 
+.alerts-sections {
+    display: flex;
+    flex-direction: column;
+}
+
+.alerts-section {
+    padding: 20px;
+}
+
+.alerts-section + .alerts-section {
+    border-top: 1px solid #ecf0f1;
+}
+
+.alerts-section-title {
+    font-size: 1em;
+    font-weight: 600;
+    color: #2c3e50;
+    margin-bottom: 12px;
+}
+
+.alerts-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 5px;
+}
+
 table {
     width: 100%;
     border-collapse: collapse;

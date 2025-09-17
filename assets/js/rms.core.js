@@ -1615,15 +1615,121 @@ class RiskManagementSystem {
             ? Math.max((totals.brut - totals.net) / totalRisks, 0)
             : 0;
 
-        const activeControls = Array.isArray(this.controls)
-            ? this.controls.filter(control => String(control?.status || '').toLowerCase() === 'actif').length
-            : 0;
-        const totalControls = Array.isArray(this.controls) ? this.controls.length : 0;
+        const allControls = Array.isArray(this.controls) ? this.controls : [];
+        const activeControlsList = allControls.filter(control => String(control?.status || '').toLowerCase() === 'actif');
+        const activeControls = activeControlsList.length;
+        const totalControls = allControls.length;
+
+        const controlTypeOptions = Array.isArray(this.config?.controlTypes)
+            ? this.config.controlTypes.filter(option => option && option.value !== undefined && option.value !== null)
+            : [];
+        const controlTypeOrder = controlTypeOptions.map(option => String(option.value).toLowerCase());
+        const controlTypeLabelMap = controlTypeOptions.reduce((acc, option) => {
+            const key = String(option.value).toLowerCase();
+            acc[key] = option.label || option.value;
+            return acc;
+        }, {});
+
+        const controlTypeCounts = activeControlsList.reduce((acc, control) => {
+            const rawType = control?.type ?? '';
+            const normalizedType = rawType ? String(rawType).toLowerCase() : '';
+            const key = normalizedType || '__undefined__';
+
+            if (!acc[key]) {
+                acc[key] = { count: 0, value: normalizedType, rawValue: rawType };
+            }
+
+            acc[key].count += 1;
+            return acc;
+        }, {});
+
+        const computeDistributionLabel = (entry) => {
+            if (!entry) {
+                return 'Non défini';
+            }
+
+            const normalizedValue = entry.value;
+            if (normalizedValue) {
+                return controlTypeLabelMap[normalizedValue] || entry.rawValue || normalizedValue;
+            }
+
+            return 'Non défini';
+        };
+
+        const controlTypeDistribution = [];
+        const pushDistributionEntry = (key) => {
+            const entry = controlTypeCounts[key];
+            if (!entry) return;
+
+            controlTypeDistribution.push({
+                value: entry.value,
+                label: computeDistributionLabel(entry),
+                count: entry.count,
+                percentage: 0
+            });
+
+            delete controlTypeCounts[key];
+        };
+
+        controlTypeOrder.forEach(pushDistributionEntry);
+
+        Object.keys(controlTypeCounts).forEach((key) => {
+            pushDistributionEntry(key);
+        });
+
+        if (activeControls > 0 && controlTypeDistribution.length > 0) {
+            const distributionWithRemainder = controlTypeDistribution.map((item) => {
+                const rawShare = (item.count / activeControls) * 100;
+                const baseShare = Math.floor(rawShare);
+
+                return {
+                    item,
+                    baseShare,
+                    remainder: rawShare - baseShare
+                };
+            });
+
+            let assigned = 0;
+            distributionWithRemainder.forEach(({ item, baseShare }) => {
+                item.percentage = baseShare;
+                assigned += baseShare;
+            });
+
+            let remaining = Math.max(0, 100 - assigned);
+
+            if (remaining > 0) {
+                distributionWithRemainder
+                    .slice()
+                    .sort((a, b) => {
+                        if (b.remainder === a.remainder) {
+                            return (b.item.count || 0) - (a.item.count || 0);
+                        }
+
+                        return b.remainder - a.remainder;
+                    })
+                    .forEach(({ item }) => {
+                        if (remaining <= 0) {
+                            return;
+                        }
+
+                        item.percentage += 1;
+                        remaining -= 1;
+                    });
+            }
+
+            let index = 0;
+            while (remaining > 0 && controlTypeDistribution.length > 0) {
+                controlTypeDistribution[index % controlTypeDistribution.length].percentage += 1;
+                remaining -= 1;
+                index += 1;
+            }
+        }
 
         return {
             stats: { ...stats },
             activeControls,
             totalControls,
+            controlTypeDistribution,
             globalScore,
             averageReduction
         };
@@ -1632,7 +1738,7 @@ class RiskManagementSystem {
     updateKpiCards(metrics) {
         if (!metrics || !metrics.stats) return;
 
-        const { stats, activeControls, totalControls, globalScore, averageReduction, previous } = metrics;
+        const { stats, activeControls, controlTypeDistribution, globalScore, averageReduction, previous } = metrics;
         const previousStats = previous?.stats || null;
         const previousActiveControls = previous?.activeControls ?? activeControls;
         const previousGlobalScore = previous?.globalScore ?? globalScore;
@@ -1663,6 +1769,29 @@ class RiskManagementSystem {
             const card = document.querySelector(selector);
             if (!card) return;
             updateFn(card);
+        };
+
+        const formatControlTypeDistribution = (distribution, total) => {
+            if (!total) {
+                return 'Aucun contrôle actif';
+            }
+
+            if (!Array.isArray(distribution) || distribution.length === 0) {
+                const plural = total > 1 ? 's' : '';
+                return `${total} contrôle${plural} actif${plural}`;
+            }
+
+            return distribution.map((item) => {
+                if (!item) {
+                    return '0% de contrôles "Non défini"';
+                }
+
+                const percent = Number.isFinite(item.percentage)
+                    ? item.percentage
+                    : (total > 0 ? Math.round((Number(item.count) || 0) / total * 100) : 0);
+                const label = item.label || item.value || 'Non défini';
+                return `${percent}% de contrôles "${label}"`;
+            }).join(' ; ');
         };
 
         updateCard('.stat-card.danger', (card) => {
@@ -1703,13 +1832,16 @@ class RiskManagementSystem {
                 valueEl.textContent = activeControls;
             }
 
-            const ratio = totalControls > 0 ? Math.round((activeControls / totalControls) * 100) : 0;
             const delta = activeControls - previousActiveControls;
             const changeEl = card.querySelector('.stat-change');
+            const distributionLabel = formatControlTypeDistribution(controlTypeDistribution, activeControls);
             applyTrend(changeEl, delta, {
                 inverted: false,
-                stableLabel: () => `${ratio}% des contrôles actifs`,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} vs dernière mesure (${ratio}% actifs)`
+                stableLabel: () => distributionLabel,
+                formatter: ({ arrow, signedValue }) => {
+                    const base = `${arrow} ${signedValue} vs dernière mesure`;
+                    return distributionLabel ? `${base} (${distributionLabel})` : base;
+                }
             });
         });
 
@@ -1736,57 +1868,168 @@ class RiskManagementSystem {
     }
 
     updateRecentAlerts() {
-        const tbody = document.getElementById('recentAlertsBody');
-        if (!tbody) return;
+        const risksBody = document.getElementById('recentAlertsRisksBody');
+        const plansBody = document.getElementById('recentAlertsPlansBody');
 
-        const highRisks = this.risks
-            .filter(risk => {
-                const score = (risk.probNet || 0) * (risk.impactNet || 0);
-                const hasPlans = risk.actionPlans && risk.actionPlans.length > 0;
-                return score > 8 && !hasPlans;
-            })
-            .sort((a, b) => {
-                const getTime = (risk) => {
-                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-                    const parsed = dateValue ? new Date(dateValue).getTime() : 0;
-                    return isNaN(parsed) ? 0 : parsed;
-                };
-                return getTime(b) - getTime(a);
-            });
-
-        if (highRisks.length === 0) {
-            tbody.innerHTML = `
-                <tr>
-                    <td colspan="5" class="table-empty">Aucune alerte récente</td>
-                </tr>
-            `;
+        if (!risksBody && !plansBody) {
             return;
         }
 
-        tbody.innerHTML = highRisks.map(risk => {
-            const score = (risk.probNet || 0) * (risk.impactNet || 0);
-            const isCritical = score > 12;
-            const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
-            const levelLabel = isCritical ? 'Critique' : 'Élevé';
-            const dateValue = risk.dateCreation || risk.date || risk.createdAt;
-            const parsedDate = dateValue ? new Date(dateValue) : null;
-            const formattedDate = parsedDate && !isNaN(parsedDate) ? parsedDate.toLocaleDateString('fr-FR') : '-';
-            const description = risk.description || 'Sans description';
-            const process = risk.processus || '-';
+        const formatDate = (value) => {
+            if (!value) {
+                return '-';
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleDateString('fr-FR');
+        };
 
-            return `
-                <tr>
-                    <td>${formattedDate}</td>
-                    <td>${description}</td>
-                    <td>${process}</td>
-                    <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
-                    <td class="table-actions-cell">
-                        <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
-                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                    </td>
-                </tr>
-            `;
-        }).join('');
+        const normalizeValue = (value) => {
+            if (value == null) {
+                return '';
+            }
+            const str = String(value).trim().toLowerCase();
+            if (typeof str.normalize === 'function') {
+                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+            return str;
+        };
+
+        const parsePlanDueDate = (value) => {
+            if (value == null) {
+                return null;
+            }
+            const raw = String(value).trim();
+            if (!raw) {
+                return null;
+            }
+
+            if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+                return new Date(`${raw}T00:00:00`);
+            }
+
+            if (/^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+                const [day, month, year] = raw.split('/');
+                return new Date(`${year}-${month}-${day}T00:00:00`);
+            }
+
+            const parsed = Date.parse(raw);
+            if (Number.isNaN(parsed)) {
+                return null;
+            }
+            const date = new Date(parsed);
+            return Number.isNaN(date.getTime()) ? null : date;
+        };
+
+        if (risksBody) {
+            const severeRisks = this.risks
+                .filter(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
+                    return score >= 9 && !hasPlans;
+                })
+                .sort((a, b) => {
+                    const getTime = (risk) => {
+                        const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                        const parsed = dateValue ? new Date(dateValue).getTime() : 0;
+                        return Number.isNaN(parsed) ? 0 : parsed;
+                    };
+                    return getTime(b) - getTime(a);
+                });
+
+            if (severeRisks.length === 0) {
+                risksBody.innerHTML = `
+                    <tr>
+                        <td colspan="5" class="table-empty">Aucune alerte récente</td>
+                    </tr>
+                `;
+            } else {
+                risksBody.innerHTML = severeRisks.map(risk => {
+                    const prob = Number(risk.probNet) || 0;
+                    const impact = Number(risk.impactNet) || 0;
+                    const score = prob * impact;
+                    const isCritical = score > 12;
+                    const badgeClass = isCritical ? 'badge-danger' : 'badge-warning';
+                    const levelLabel = isCritical ? 'Critique' : 'Sévère';
+                    const dateValue = risk.dateCreation || risk.date || risk.createdAt;
+                    const description = risk.description || risk.titre || 'Sans description';
+                    const process = risk.processus || risk.process || '-';
+
+                    return `
+                        <tr>
+                            <td>${formatDate(dateValue)}</td>
+                            <td>${description}</td>
+                            <td>${process}</td>
+                            <td><span class="table-badge ${badgeClass}">${levelLabel}</span></td>
+                            <td class="table-actions-cell">
+                                <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
+                                <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
+
+        if (plansBody) {
+            const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
+                const key = normalizeValue(item?.value);
+                if (key) {
+                    acc[key] = item?.label || item?.value;
+                }
+                return acc;
+            }, {});
+
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const todayTime = today.getTime();
+
+            const overduePlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
+                .map(plan => ({
+                    plan,
+                    dueDate: parsePlanDueDate(plan?.dueDate)
+                }))
+                .filter(({ dueDate, plan }) => {
+                    if (!dueDate || Number.isNaN(dueDate.getTime())) {
+                        return false;
+                    }
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    if (statusValue === 'termine') {
+                        return false;
+                    }
+                    return dueDate.getTime() < todayTime;
+                })
+                .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime());
+
+            if (overduePlans.length === 0) {
+                plansBody.innerHTML = `
+                    <tr>
+                        <td colspan="4" class="table-empty">Aucun plan d'action en retard</td>
+                    </tr>
+                `;
+            } else {
+                plansBody.innerHTML = overduePlans.map(({ plan, dueDate }) => {
+                    const title = plan?.title || 'Plan sans titre';
+                    const owner = plan?.owner || '-';
+                    const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
+                    const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
+                    const formattedDueDate = dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-');
+
+                    return `
+                        <tr>
+                            <td>${title}</td>
+                            <td>${owner || '-'}</td>
+                            <td>${formattedDueDate}</td>
+                            <td>${statusLabel}</td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+        }
     }
 
     calculateStats() {
