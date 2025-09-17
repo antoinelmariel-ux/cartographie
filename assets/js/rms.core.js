@@ -1629,15 +1629,121 @@ class RiskManagementSystem {
             ? Math.max((totals.brut - totals.net) / totalRisks, 0)
             : 0;
 
-        const activeControls = Array.isArray(this.controls)
-            ? this.controls.filter(control => String(control?.status || '').toLowerCase() === 'actif').length
-            : 0;
-        const totalControls = Array.isArray(this.controls) ? this.controls.length : 0;
+        const allControls = Array.isArray(this.controls) ? this.controls : [];
+        const activeControlsList = allControls.filter(control => String(control?.status || '').toLowerCase() === 'actif');
+        const activeControls = activeControlsList.length;
+        const totalControls = allControls.length;
+
+        const controlTypeOptions = Array.isArray(this.config?.controlTypes)
+            ? this.config.controlTypes.filter(option => option && option.value !== undefined && option.value !== null)
+            : [];
+        const controlTypeOrder = controlTypeOptions.map(option => String(option.value).toLowerCase());
+        const controlTypeLabelMap = controlTypeOptions.reduce((acc, option) => {
+            const key = String(option.value).toLowerCase();
+            acc[key] = option.label || option.value;
+            return acc;
+        }, {});
+
+        const controlTypeCounts = activeControlsList.reduce((acc, control) => {
+            const rawType = control?.type ?? '';
+            const normalizedType = rawType ? String(rawType).toLowerCase() : '';
+            const key = normalizedType || '__undefined__';
+
+            if (!acc[key]) {
+                acc[key] = { count: 0, value: normalizedType, rawValue: rawType };
+            }
+
+            acc[key].count += 1;
+            return acc;
+        }, {});
+
+        const computeDistributionLabel = (entry) => {
+            if (!entry) {
+                return 'Non défini';
+            }
+
+            const normalizedValue = entry.value;
+            if (normalizedValue) {
+                return controlTypeLabelMap[normalizedValue] || entry.rawValue || normalizedValue;
+            }
+
+            return 'Non défini';
+        };
+
+        const controlTypeDistribution = [];
+        const pushDistributionEntry = (key) => {
+            const entry = controlTypeCounts[key];
+            if (!entry) return;
+
+            controlTypeDistribution.push({
+                value: entry.value,
+                label: computeDistributionLabel(entry),
+                count: entry.count,
+                percentage: 0
+            });
+
+            delete controlTypeCounts[key];
+        };
+
+        controlTypeOrder.forEach(pushDistributionEntry);
+
+        Object.keys(controlTypeCounts).forEach((key) => {
+            pushDistributionEntry(key);
+        });
+
+        if (activeControls > 0 && controlTypeDistribution.length > 0) {
+            const distributionWithRemainder = controlTypeDistribution.map((item) => {
+                const rawShare = (item.count / activeControls) * 100;
+                const baseShare = Math.floor(rawShare);
+
+                return {
+                    item,
+                    baseShare,
+                    remainder: rawShare - baseShare
+                };
+            });
+
+            let assigned = 0;
+            distributionWithRemainder.forEach(({ item, baseShare }) => {
+                item.percentage = baseShare;
+                assigned += baseShare;
+            });
+
+            let remaining = Math.max(0, 100 - assigned);
+
+            if (remaining > 0) {
+                distributionWithRemainder
+                    .slice()
+                    .sort((a, b) => {
+                        if (b.remainder === a.remainder) {
+                            return (b.item.count || 0) - (a.item.count || 0);
+                        }
+
+                        return b.remainder - a.remainder;
+                    })
+                    .forEach(({ item }) => {
+                        if (remaining <= 0) {
+                            return;
+                        }
+
+                        item.percentage += 1;
+                        remaining -= 1;
+                    });
+            }
+
+            let index = 0;
+            while (remaining > 0 && controlTypeDistribution.length > 0) {
+                controlTypeDistribution[index % controlTypeDistribution.length].percentage += 1;
+                remaining -= 1;
+                index += 1;
+            }
+        }
 
         return {
             stats: { ...stats },
             activeControls,
             totalControls,
+            controlTypeDistribution,
             globalScore,
             averageReduction
         };
@@ -1646,7 +1752,7 @@ class RiskManagementSystem {
     updateKpiCards(metrics) {
         if (!metrics || !metrics.stats) return;
 
-        const { stats, activeControls, totalControls, globalScore, averageReduction, previous } = metrics;
+        const { stats, activeControls, controlTypeDistribution, globalScore, averageReduction, previous } = metrics;
         const previousStats = previous?.stats || null;
         const previousActiveControls = previous?.activeControls ?? activeControls;
         const previousGlobalScore = previous?.globalScore ?? globalScore;
@@ -1677,6 +1783,29 @@ class RiskManagementSystem {
             const card = document.querySelector(selector);
             if (!card) return;
             updateFn(card);
+        };
+
+        const formatControlTypeDistribution = (distribution, total) => {
+            if (!total) {
+                return 'Aucun contrôle actif';
+            }
+
+            if (!Array.isArray(distribution) || distribution.length === 0) {
+                const plural = total > 1 ? 's' : '';
+                return `${total} contrôle${plural} actif${plural}`;
+            }
+
+            return distribution.map((item) => {
+                if (!item) {
+                    return '0% de contrôles "Non défini"';
+                }
+
+                const percent = Number.isFinite(item.percentage)
+                    ? item.percentage
+                    : (total > 0 ? Math.round((Number(item.count) || 0) / total * 100) : 0);
+                const label = item.label || item.value || 'Non défini';
+                return `${percent}% de contrôles "${label}"`;
+            }).join(' ; ');
         };
 
         updateCard('.stat-card.danger', (card) => {
@@ -1717,13 +1846,16 @@ class RiskManagementSystem {
                 valueEl.textContent = activeControls;
             }
 
-            const ratio = totalControls > 0 ? Math.round((activeControls / totalControls) * 100) : 0;
             const delta = activeControls - previousActiveControls;
             const changeEl = card.querySelector('.stat-change');
+            const distributionLabel = formatControlTypeDistribution(controlTypeDistribution, activeControls);
             applyTrend(changeEl, delta, {
                 inverted: false,
-                stableLabel: () => `${ratio}% des contrôles actifs`,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} vs dernière mesure (${ratio}% actifs)`
+                stableLabel: () => distributionLabel,
+                formatter: ({ arrow, signedValue }) => {
+                    const base = `${arrow} ${signedValue} vs dernière mesure`;
+                    return distributionLabel ? `${base} (${distributionLabel})` : base;
+                }
             });
         });
 
