@@ -1880,23 +1880,102 @@ class RiskManagementSystem {
             }
         }
 
+        const actionPlans = Array.isArray(this.actionPlans) ? this.actionPlans : [];
+        const totalActionPlans = actionPlans.length;
+
+        const statusOptions = Array.isArray(this.config?.actionPlanStatuses)
+            ? this.config.actionPlanStatuses.filter(option => option && option.value !== undefined && option.value !== null)
+            : [];
+        const statusOrder = statusOptions.map(option => String(option.value).toLowerCase());
+        const statusLabelMap = statusOptions.reduce((acc, option) => {
+            const key = String(option.value).toLowerCase();
+            acc[key] = option.label || option.value;
+            return acc;
+        }, {});
+
+        const statusCounts = actionPlans.reduce((acc, plan) => {
+            const rawStatus = plan?.status ?? '';
+            const rawString = rawStatus != null ? String(rawStatus).trim() : '';
+            const normalizedStatus = rawString ? rawString.toLowerCase() : '';
+            const key = normalizedStatus || '__undefined__';
+
+            if (!acc[key]) {
+                acc[key] = { count: 0, value: normalizedStatus, rawValue: rawString };
+            }
+
+            acc[key].count += 1;
+            return acc;
+        }, {});
+
+        const actionPlanStatusDistribution = [];
+
+        statusOrder.forEach((statusValue) => {
+            const key = statusValue || '__undefined__';
+            const entry = statusCounts[key];
+            const label = statusLabelMap[statusValue] || entry?.rawValue || statusValue || 'Non défini';
+
+            actionPlanStatusDistribution.push({
+                value: statusValue,
+                label,
+                count: entry?.count || 0
+            });
+
+            if (entry) {
+                delete statusCounts[key];
+            }
+        });
+
+        Object.keys(statusCounts).forEach((key) => {
+            const entry = statusCounts[key];
+            if (!entry) {
+                return;
+            }
+
+            const normalizedValue = entry.value || '';
+            const label = normalizedValue
+                ? (statusLabelMap[normalizedValue] || entry.rawValue || normalizedValue)
+                : (entry.rawValue || 'Non défini');
+
+            actionPlanStatusDistribution.push({
+                value: normalizedValue,
+                label,
+                count: entry.count || 0
+            });
+
+            delete statusCounts[key];
+        });
+
+        const actionPlanStatusMetrics = {
+            total: totalActionPlans,
+            distribution: actionPlanStatusDistribution
+        };
+
         return {
             stats: { ...computedStats },
             activeControls,
             totalControls,
             controlTypeDistribution,
             globalScore,
-            averageReduction
+            averageReduction,
+            actionPlanStatusMetrics
         };
     }
 
     updateKpiCards(metrics) {
         if (!metrics || !metrics.stats) return;
 
-        const { stats, activeControls, controlTypeDistribution, globalScore, averageReduction, previous } = metrics;
+        const {
+            stats,
+            activeControls,
+            controlTypeDistribution,
+            previous,
+            actionPlanStatusMetrics
+        } = metrics;
         const previousStats = previous?.stats || null;
         const previousActiveControls = previous?.activeControls ?? activeControls;
-        const previousGlobalScore = previous?.globalScore ?? globalScore;
+        const actionPlanMetrics = actionPlanStatusMetrics && typeof actionPlanStatusMetrics === 'object'
+            ? actionPlanStatusMetrics
+            : { total: 0, distribution: [] };
 
         const applyTrend = (element, delta, { inverted = false, stableLabel = '→ Stable', formatter } = {}) => {
             if (!element) return;
@@ -2000,20 +2079,136 @@ class RiskManagementSystem {
             });
         });
 
-        updateCard('.stat-card.primary', (card) => {
-            const valueEl = card.querySelector('.stat-value');
-            if (valueEl) {
-                valueEl.textContent = `${globalScore}%`;
+        updateCard('.stat-card.plan-status-card', (card) => {
+            const totalElement = card.querySelector('#actionPlanStatusTotal');
+            const summaryElement = card.querySelector('#actionPlanStatusSummary');
+            const chartCanvas = card.querySelector('#actionPlanStatusChart');
+
+            const totalPlans = Number(actionPlanMetrics.total) || 0;
+            const distribution = Array.isArray(actionPlanMetrics.distribution)
+                ? actionPlanMetrics.distribution
+                : [];
+
+            if (totalElement) {
+                totalElement.textContent = totalPlans > 0
+                    ? `${totalPlans} plan${totalPlans > 1 ? 's' : ''} d'action`
+                    : "Aucun plan d'action";
             }
 
-            const delta = globalScore - previousGlobalScore;
-            const changeEl = card.querySelector('.stat-change');
-            const reductionLabel = `${averageReduction.toFixed(1)} pts de réduction moyenne`;
-            applyTrend(changeEl, delta, {
-                inverted: false,
-                stableLabel: () => reductionLabel,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} pts vs dernière mesure (${reductionLabel})`
-            });
+            const palette = [
+                { background: 'rgba(52, 152, 219, 0.85)', border: 'rgba(52, 152, 219, 1)' },
+                { background: 'rgba(46, 204, 113, 0.85)', border: 'rgba(46, 204, 113, 1)' },
+                { background: 'rgba(241, 196, 15, 0.85)', border: 'rgba(241, 196, 15, 1)' },
+                { background: 'rgba(231, 76, 60, 0.85)', border: 'rgba(231, 76, 60, 1)' },
+                { background: 'rgba(155, 89, 182, 0.85)', border: 'rgba(155, 89, 182, 1)' },
+                { background: 'rgba(26, 188, 156, 0.85)', border: 'rgba(26, 188, 156, 1)' },
+                { background: 'rgba(230, 126, 34, 0.85)', border: 'rgba(230, 126, 34, 1)' },
+                { background: 'rgba(149, 165, 166, 0.85)', border: 'rgba(149, 165, 166, 1)' }
+            ];
+
+            const getColor = (index, type = 'background') => {
+                const fallback = type === 'border' ? '#bdc3c7' : 'rgba(189, 195, 199, 0.6)';
+                const entry = palette[index % palette.length];
+                if (!entry) {
+                    return fallback;
+                }
+
+                if (typeof entry === 'string') {
+                    return entry;
+                }
+
+                return entry[type] || entry.background || fallback;
+            };
+
+            if (summaryElement) {
+                if (totalPlans === 0 || distribution.length === 0) {
+                    summaryElement.innerHTML = '<div class="plan-status-empty">Aucun plan d\'action enregistré</div>';
+                } else {
+                    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (match) => {
+                        const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+                        return entities[match] || match;
+                    });
+
+                    const summaryContent = distribution.map((item, index) => {
+                        const label = escapeHtml(item?.label || 'Non défini');
+                        const count = Number(item?.count) || 0;
+                        const plural = count > 1 ? 'plans' : 'plan';
+                        const color = getColor(index, 'border');
+
+                        return `
+                            <div class="plan-status-item">
+                                <div class="plan-status-info">
+                                    <span class="plan-status-color" style="background-color: ${color};"></span>
+                                    <span class="plan-status-label">${label}</span>
+                                </div>
+                                <span class="plan-status-count">${count} ${plural} d'action</span>
+                            </div>
+                        `;
+                    }).join('');
+
+                    summaryElement.innerHTML = summaryContent;
+                }
+            }
+
+            if (chartCanvas && typeof Chart !== 'undefined') {
+                ensureEmptyChartMessagePlugin();
+
+                if (!this.charts) {
+                    this.charts = {};
+                }
+
+                const hasData = totalPlans > 0 && distribution.some(item => (Number(item?.count) || 0) > 0);
+                const chartData = {
+                    labels: distribution.map(item => item?.label || 'Non défini'),
+                    datasets: [
+                        {
+                            data: distribution.map(item => Number(item?.count) || 0),
+                            backgroundColor: distribution.map((_, index) => getColor(index, 'background')),
+                            borderColor: distribution.map((_, index) => getColor(index, 'border')),
+                            borderWidth: hasData ? 1 : 0,
+                            hoverOffset: hasData ? 6 : 0
+                        }
+                    ]
+                };
+
+                const chartOptions = {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            enabled: hasData,
+                            callbacks: {
+                                label: (context) => {
+                                    const value = Number(context.raw) || 0;
+                                    const plural = value > 1 ? 'plans' : 'plan';
+                                    const label = context.label || 'Non défini';
+                                    return `${label}: ${value} ${plural} d'action`;
+                                }
+                            }
+                        },
+                        emptyChartMessage: {
+                            display: !hasData,
+                            message: "Aucun plan d'action"
+                        }
+                    }
+                };
+
+                if (this.charts.actionPlanStatus) {
+                    const chart = this.charts.actionPlanStatus;
+                    chart.data.labels = chartData.labels;
+                    chart.data.datasets = chartData.datasets;
+                    chart.options = chartOptions;
+                    chart.update();
+                } else {
+                    this.charts.actionPlanStatus = new Chart(chartCanvas, {
+                        type: 'doughnut',
+                        data: chartData,
+                        options: chartOptions
+                    });
+                }
+            }
         });
     }
 
