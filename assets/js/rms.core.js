@@ -273,7 +273,7 @@ class RiskManagementSystem {
                 name: "Procédure de validation des dépenses",
                 description: "Double validation pour toute dépense > 1000€",
                 effectiveness: "forte",
-                type: "preventif",
+                type: "a-priori",
                 owner: "Directeur Financier",
                 frequency: "quotidienne",
                 mode: "manuel",
@@ -286,7 +286,7 @@ class RiskManagementSystem {
                 name: "Due diligence tiers",
                 description: "Vérification approfondie de tous les nouveaux partenaires",
                 effectiveness: "forte",
-                type: "preventif",
+                type: "a-priori",
                 owner: "Service Juridique",
                 frequency: "ad-hoc",
                 mode: "manuel",
@@ -299,7 +299,7 @@ class RiskManagementSystem {
                 name: "Audit interne trimestriel",
                 description: "Revue complète des processus à risque",
                 effectiveness: "moyenne",
-                type: "detectif",
+                type: "a-posteriori",
                 owner: "Audit Interne",
                 frequency: "mensuelle",
                 mode: "manuel",
@@ -312,7 +312,7 @@ class RiskManagementSystem {
                 name: "Formation anti-corruption",
                 description: "Formation obligatoire annuelle pour tous les employés",
                 effectiveness: "moyenne",
-                type: "preventif",
+                type: "a-priori",
                 owner: "Ressources Humaines",
                 frequency: "annuelle",
                 mode: "manuel",
@@ -422,8 +422,8 @@ class RiskManagementSystem {
                 { value: 'termine', label: 'Terminé' }
             ],
             controlTypes: [
-                { value: 'preventif', label: 'Préventif' },
-                { value: 'detectif', label: 'Détectif' }
+                { value: 'a-priori', label: 'A priori' },
+                { value: 'a-posteriori', label: 'A posteriori' }
             ],
             controlFrequencies: [
                 { value: 'quotidienne', label: 'Quotidienne' },
