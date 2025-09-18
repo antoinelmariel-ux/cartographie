@@ -149,16 +149,18 @@
                             </div>
                         </div>
                         <div class="chart-container process-charts">
-                            <div class="chart-title">Répartition par Processus</div>
-                            <div class="process-chart-grid">
-                                <div class="process-chart-card">
-                                    <div class="chart-subtitle">Volume des risques</div>
-                                    <canvas id="processChart" height="220"></canvas>
+                            <div class="chart-title-row">
+                                <div class="chart-title">Répartition par Processus</div>
+                                <div class="process-chart-controls">
+                                    <label for="processScoreMode">Score analysé :</label>
+                                    <select id="processScoreMode" class="process-score-select">
+                                        <option value="net">Scores nets</option>
+                                        <option value="brut">Scores bruts</option>
+                                    </select>
                                 </div>
-                                <div class="process-chart-card">
-                                    <div class="chart-subtitle">Gravité moyenne (score net)</div>
-                                    <canvas id="processSeverityChart" height="220"></canvas>
-                                </div>
+                            </div>
+                            <div class="process-chart-wrapper">
+                                <canvas id="processCombinedChart" height="320"></canvas>
                             </div>
                             <div class="chart-comment" id="processChartSummary"></div>
                         </div>
