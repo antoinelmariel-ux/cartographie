@@ -2477,11 +2477,13 @@ class RiskManagementSystem {
         const risksBody = document.getElementById('recentAlertsRisksBody');
         const plansBody = document.getElementById('recentAlertsPlansBody');
 
+        const { severeRisks, overdueActionPlans } = this.getRecentAlertsData(risks);
+
+        this.updateDashboardBadge(severeRisks.length + overdueActionPlans.length);
+
         if (!risksBody && !plansBody) {
             return;
         }
-
-        const { severeRisks, overdueActionPlans } = this.getRecentAlertsData(risks);
 
         if (risksBody) {
             if (severeRisks.length === 0) {
@@ -2528,6 +2530,17 @@ class RiskManagementSystem {
                     `).join('');
             }
         }
+    }
+
+    updateDashboardBadge(count = 0) {
+        const dashboardBadge = document.querySelector('.tabs-container .tab .tab-badge');
+        if (!dashboardBadge) {
+            return;
+        }
+
+        const numericCount = Number(count);
+        const safeCount = Number.isFinite(numericCount) ? Math.max(0, Math.trunc(numericCount)) : 0;
+        dashboardBadge.textContent = String(safeCount);
     }
 
     calculateStats(risks = this.risks) {
@@ -2847,13 +2860,6 @@ class RiskManagementSystem {
             }
         }
 
-        const badgeStats = stats || this.calculateStats(baseRisks);
-        const dashboardBadge = document.querySelector('.tabs-container .tab .tab-badge');
-        if (dashboardBadge) {
-            const criticalCount = Number(badgeStats?.critical) || 0;
-            const highCount = Number(badgeStats?.high) || 0;
-            dashboardBadge.textContent = String(criticalCount + highCount);
-        }
     }
 
     // Risk list functions
