@@ -1427,12 +1427,12 @@ tbody tr:hover {
     text-transform: uppercase;
 }
 
-.control-type-badge.preventif {
+.control-type-badge.a-priori {
     background: #e8f5e8;
     color: #27ae60;
 }
 
-.control-type-badge.detectif {
+.control-type-badge.a-posteriori {
     background: #fff3cd;
     color: #856404;
 }
