@@ -9,7 +9,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 - **Registre des risques** : création, édition et suppression des risques avec liens vers les contrôles et plans d'actions associés, filtres texte/processus/statut et export CSV.
 - **Gestion des contrôles & plans** : fiches détaillées, modales d'édition, suivi des responsabilités et de l'efficacité des mesures.
 - **Historique & alertes** : timeline chronologique des actions, notifications utilisateur et badges d'alerte sur le tableau de bord.
-- **Import / Export autonome** : export JSON/CSV (boutons 💾 Enregistrer / 📂 Charger dans l'en-tête), capture de la matrice, export PDF du tableau de bord et import depuis fichiers CSV ou JSON sans dépendance serveur.
+- **Import / Export autonome** : export JSON/CSV (boutons 💾 Enregistrer / 📂 Charger dans l'en-tête), capture de la matrice, export PDF du tableau de bord (avec ou sans jsPDF) et import depuis fichiers CSV ou JSON sans dépendance serveur.
 - **Configuration fonctionnelle** : administration des listes déroulantes (processus, types, statuts, tiers, etc.) avec persistance automatique dans le navigateur.
 
 ## Structure du projet
@@ -35,7 +35,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 
 - Toutes les données sont stockées côté navigateur via `localStorage` (`rms_risks`, `rms_controls`, `rms_actionPlans`, `rms_history`, `rms_config`).
 - Les modifications sont enregistrées immédiatement dans le navigateur et la date de dernière sauvegarde est affichée dans l'en-tête.
-- Les exports sont effectués côté client : `exportRisks()` produit un CSV et `exportDashboard()` télécharge un JSON avec le registre des risques, les contrôles ainsi que des métadonnées (`exportDate`, `exportedBy`).
+- Les exports sont effectués côté client : `exportRisks()` produit un CSV et `exportDashboard()` génère un PDF de synthèse du tableau de bord (avec un moteur jsPDF si présent, sinon via un générateur minimaliste intégré).
 - L'import accepte des fichiers CSV (colonnes libres, mappées automatiquement) ou JSON (structure `{ risks, controls, history }`). Chaque import ajoute un événement dans l'historique.
 
 ## Démarrage rapide
@@ -44,7 +44,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 1. Téléchargez les bibliothèques suivantes et placez-les dans `assets/libs/` :
    - `chart.umd.min.js` (Chart.js)
    - `html2canvas.min.js`
-   - `jspdf.umd.min.js`
+   - `jspdf.umd.min.js` *(optionnel : sans ce fichier, l'export PDF utilise un moteur simplifié intégré)*
 2. Ouvrez le fichier `CartoModel.html` dans votre navigateur (double-clic ou `Ctrl+O`).
 3. Les dépendances étant locales, l'application fonctionne entièrement via `file://` sans serveur.
 

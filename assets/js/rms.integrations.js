@@ -12,11 +12,8 @@ function exportDashboard() {
         return;
     }
 
-    const jsPdfNamespace = window.jspdf || window.jsPDF || window.jsPdf;
-    const jsPDFConstructor = jsPdfNamespace && (jsPdfNamespace.jsPDF || jsPdfNamespace);
-
-    if (typeof jsPDFConstructor !== 'function') {
-        const message = 'Bibliothèque jsPDF introuvable : impossible de générer le PDF';
+    if (typeof rms.getDashboardExportData !== 'function') {
+        const message = 'Export du tableau de bord indisponible avec la version actuelle';
         console.error(message);
         if (typeof showNotification === 'function') {
             showNotification('error', message);
@@ -26,8 +23,9 @@ function exportDashboard() {
         return;
     }
 
-    if (typeof rms.getDashboardExportData !== 'function') {
-        const message = 'Export du tableau de bord indisponible avec la version actuelle';
+    const writer = createDashboardPdfWriter();
+    if (!writer) {
+        const message = 'Génération du PDF impossible : aucun moteur disponible';
         console.error(message);
         if (typeof showNotification === 'function') {
             showNotification('error', message);
@@ -51,193 +49,14 @@ function exportDashboard() {
             return;
         }
 
-        const doc = new jsPDFConstructor({ orientation: 'portrait', unit: 'pt', format: 'a4' });
-        const margin = 40;
-        const pageWidth = doc.internal.pageSize.getWidth();
-        const pageHeight = doc.internal.pageSize.getHeight();
-        const lineHeight = 14;
-        let cursorY = margin;
-
-        const ensureSpace = (height = lineHeight) => {
-            if (cursorY + height > pageHeight - margin) {
-                doc.addPage();
-                cursorY = margin;
-                doc.setFont('helvetica', 'normal');
-                doc.setFontSize(11);
-            }
-        };
-
-        const splitText = (text, widthOffset = 0) => {
-            return doc.splitTextToSize(String(text ?? ''), pageWidth - (2 * margin) - widthOffset);
-        };
-
-        const addParagraph = (text) => {
-            const lines = splitText(text);
-            lines.forEach((line) => {
-                ensureSpace();
-                doc.text(line, margin, cursorY);
-                cursorY += lineHeight;
-            });
-        };
-
-        const addSectionTitle = (title) => {
-            ensureSpace(24);
-            doc.setFont('helvetica', 'bold');
-            doc.setFontSize(14);
-            doc.text(String(title || ''), margin, cursorY);
-            cursorY += 18;
-            doc.setFont('helvetica', 'normal');
-            doc.setFontSize(11);
-        };
-
-        const addBullet = (text) => {
-            const lines = splitText(text, 16);
-            lines.forEach((line, index) => {
-                ensureSpace();
-                if (index === 0) {
-                    doc.text('•', margin, cursorY);
-                    doc.text(line, margin + 12, cursorY);
-                } else {
-                    doc.text(line, margin + 12, cursorY);
-                }
-                cursorY += lineHeight;
-            });
-        };
-
-        const formatNumber = (value, { decimals = 0 } = {}) => {
-            if (!Number.isFinite(value)) {
-                return '-';
-            }
-            return Number(value).toLocaleString('fr-FR', {
-                minimumFractionDigits: decimals,
-                maximumFractionDigits: decimals
-            });
-        };
-
-        const formatDateTime = (isoString) => {
-            if (!isoString) {
-                return '-';
-            }
-            const date = new Date(isoString);
-            if (Number.isNaN(date.getTime())) {
-                return '-';
-            }
-            return date.toLocaleString('fr-FR');
-        };
-
-        doc.setFont('helvetica', 'bold');
-        doc.setFontSize(18);
-        doc.text('Tableau de bord - Synthèse', margin, cursorY);
-        cursorY += 26;
-        doc.setFont('helvetica', 'normal');
-        doc.setFontSize(11);
-        addParagraph(`Généré le ${formatDateTime(data.generatedAt)}`);
-
-        const { metrics, topRisks = [], processOverview = {}, alerts = {} } = data;
-        const stats = metrics.stats || {};
-
-        addSectionTitle('Indicateurs clés');
-        addParagraph(`Total des risques validés : ${formatNumber(stats.total)}`);
-        const criticalShare = stats.total ? Math.round((stats.critical / stats.total) * 100) : 0;
-        const highShare = stats.total ? Math.round((stats.high / stats.total) * 100) : 0;
-        addParagraph(`Risques critiques : ${formatNumber(stats.critical)} (${criticalShare}% du total)`);
-        addParagraph(`Risques élevés : ${formatNumber(stats.high)} (${highShare}% du total)`);
-        addParagraph(`Score global de maîtrise : ${formatNumber(metrics.globalScore)} %`);
-        addParagraph(`Réduction moyenne du score net : ${formatNumber(metrics.averageReduction, { decimals: 1 })}`);
-        addParagraph(`Contrôles actifs : ${formatNumber(metrics.activeControls)} sur ${formatNumber(metrics.totalControls)}`);
-
-        const actionPlanMetrics = metrics.actionPlanStatusMetrics || { total: 0, distribution: [] };
-        if (!actionPlanMetrics.total) {
-            addParagraph("Plans d'actions : aucun plan enregistré.");
-        } else {
-            addParagraph(`Plans d'actions suivis : ${formatNumber(actionPlanMetrics.total)}`);
-            const filledDistribution = Array.isArray(actionPlanMetrics.distribution)
-                ? actionPlanMetrics.distribution.filter(item => (Number(item?.count) || 0) > 0)
-                : [];
-            if (filledDistribution.length) {
-                addParagraph('Répartition par statut :');
-                filledDistribution.forEach((item) => {
-                    const label = item?.label || item?.value || 'Non défini';
-                    addBullet(`${label} : ${formatNumber(item.count)} plan${item.count > 1 ? 's' : ''}`);
-                });
-            }
-        }
-
-        addSectionTitle('Processus surveillés');
-        const distribution = Array.isArray(processOverview.distribution) ? processOverview.distribution : [];
-        if (!distribution.length) {
-            addParagraph('Aucun risque à analyser sur les processus.');
-        } else {
-            const maxProcess = 5;
-            distribution.slice(0, maxProcess).forEach((entry) => {
-                addBullet(`${entry.label} : ${formatNumber(entry.count)} risque${entry.count > 1 ? 's' : ''}`);
-            });
-            if (distribution.length > maxProcess) {
-                addParagraph(`... et ${distribution.length - maxProcess} processus supplémentaires.`);
-            }
-        }
-
-        const severity = Array.isArray(processOverview.severity)
-            ? processOverview.severity.filter(item => Number.isFinite(item?.average) && item.count > 0)
-            : [];
-        if (severity.length) {
-            addParagraph('Scores nets moyens par processus :');
-            const maxSeverity = 5;
-            severity.slice(0, maxSeverity).forEach((entry) => {
-                addBullet(`${entry.label} : score moyen ${formatNumber(entry.average, { decimals: 1 })} (max ${formatNumber(entry.maxScore, { decimals: 1 })})`);
-            });
-            if (severity.length > maxSeverity) {
-                addParagraph(`... et ${severity.length - maxSeverity} autres processus suivis.`);
-            }
-        }
-
-        addSectionTitle('Top risques nets');
-        if (!topRisks.length) {
-            addParagraph('Aucun risque validé disponible.');
-        } else {
-            const maxRisks = 5;
-            topRisks.slice(0, maxRisks).forEach((risk) => {
-                const processLabel = risk.sousProcessus
-                    ? `${risk.processus} / ${risk.sousProcessus}`
-                    : risk.processus;
-                addBullet(`${risk.rank}. ${risk.titre} — ${processLabel} (Score ${formatNumber(risk.score)}, P${risk.probNet} × I${risk.impactNet})`);
-            });
-            if (topRisks.length > maxRisks) {
-                addParagraph(`... et ${topRisks.length - maxRisks} risques supplémentaires dans l'application.`);
-            }
-        }
-
-        addSectionTitle('Alertes et éléments de vigilance');
-        const severeRisks = Array.isArray(alerts.severeRisks) ? alerts.severeRisks : [];
-        if (!severeRisks.length) {
-            addParagraph("Aucun risque sévère ou critique sans plan d'action.");
-        } else {
-            addParagraph('Risques sévères ou critiques sans plan d\'actions :');
-            severeRisks.slice(0, 5).forEach((risk) => {
-                addBullet(`${risk.description} — ${risk.process} (${risk.level}) • Score ${formatNumber(risk.score)} • ${risk.formattedDate}`);
-            });
-            if (severeRisks.length > 5) {
-                addParagraph(`... et ${severeRisks.length - 5} alertes supplémentaires.`);
-            }
-        }
-
-        const overduePlans = Array.isArray(alerts.overdueActionPlans) ? alerts.overdueActionPlans : [];
-        if (!overduePlans.length) {
-            addParagraph("Plans d'actions : aucun retard détecté.");
-        } else {
-            addParagraph("Plans d'actions en retard :");
-            overduePlans.slice(0, 5).forEach((plan) => {
-                addBullet(`${plan.title} — ${plan.owner || 'Responsable non défini'} • Échéance ${plan.formattedDueDate} • Statut ${plan.statusLabel}`);
-            });
-            if (overduePlans.length > 5) {
-                addParagraph(`... et ${overduePlans.length - 5} plans supplémentaires en retard.`);
-            }
-        }
-
-        doc.save('tableau-de-bord.pdf');
+        writeDashboardPdfContent(writer, data);
+        writer.save('tableau-de-bord.pdf');
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Export PDF du tableau de bord généré');
+            const successMessage = writer.isFallback
+                ? 'Export PDF généré (mode simplifié)'
+                : 'Export PDF du tableau de bord généré';
+            showNotification('success', successMessage);
         }
     } catch (error) {
         console.error('Erreur lors de la génération du PDF du tableau de bord', error);
@@ -251,6 +70,569 @@ function exportDashboard() {
 }
 window.exportDashboard = exportDashboard;
 
+
+function createDashboardPdfWriter() {
+    const jsPdfNamespace = window.jspdf || window.jsPDF || window.jsPdf;
+    const jsPDFConstructor = jsPdfNamespace && (jsPdfNamespace.jsPDF || jsPdfNamespace);
+
+    if (typeof jsPDFConstructor === 'function') {
+        try {
+            return new JsPdfDashboardWriter(jsPDFConstructor);
+        } catch (error) {
+            console.warn('Initialisation de jsPDF impossible, utilisation du mode simplifié', error);
+        }
+    } else {
+        console.info('jsPDF non disponible : utilisation du générateur PDF simplifié.');
+    }
+
+    return new SimpleDashboardPdfWriter();
+}
+
+function writeDashboardPdfContent(writer, data) {
+    if (!writer || !data) {
+        return;
+    }
+
+    const { metrics = {}, topRisks = [], processOverview = {}, alerts = {} } = data;
+    const stats = metrics.stats || {};
+
+    const formatNumber = (value, { decimals = 0 } = {}) => {
+        if (!Number.isFinite(value)) {
+            return '-';
+        }
+        return Number(value).toLocaleString('fr-FR', {
+            minimumFractionDigits: decimals,
+            maximumFractionDigits: decimals
+        });
+    };
+
+    const formatDateTime = (isoString) => {
+        if (!isoString) {
+            return '-';
+        }
+        const date = new Date(isoString);
+        if (Number.isNaN(date.getTime())) {
+            return '-';
+        }
+        return date.toLocaleString('fr-FR');
+    };
+
+    writer.setTitle('Tableau de bord - Synthèse');
+    writer.addParagraph(`Généré le ${formatDateTime(data.generatedAt)}`);
+    writer.addSpacing(6);
+
+    writer.addSectionTitle('Indicateurs clés');
+    writer.addParagraph(`Total des risques validés : ${formatNumber(stats.total)}`);
+    const criticalShare = stats.total ? Math.round((stats.critical / stats.total) * 100) : 0;
+    const highShare = stats.total ? Math.round((stats.high / stats.total) * 100) : 0;
+    writer.addParagraph(`Risques critiques : ${formatNumber(stats.critical)} (${criticalShare}% du total)`);
+    writer.addParagraph(`Risques élevés : ${formatNumber(stats.high)} (${highShare}% du total)`);
+    writer.addParagraph(`Score global de maîtrise : ${formatNumber(metrics.globalScore)} %`);
+    writer.addParagraph(`Réduction moyenne du score net : ${formatNumber(metrics.averageReduction, { decimals: 1 })}`);
+    writer.addParagraph(`Contrôles actifs : ${formatNumber(metrics.activeControls)} sur ${formatNumber(metrics.totalControls)}`);
+
+    const actionPlanMetrics = metrics.actionPlanStatusMetrics || { total: 0, distribution: [] };
+    if (!actionPlanMetrics.total) {
+        writer.addParagraph("Plans d'actions : aucun plan enregistré.");
+    } else {
+        writer.addParagraph(`Plans d'actions suivis : ${formatNumber(actionPlanMetrics.total)}`);
+        const filledDistribution = Array.isArray(actionPlanMetrics.distribution)
+            ? actionPlanMetrics.distribution.filter((item) => (Number(item?.count) || 0) > 0)
+            : [];
+        if (filledDistribution.length) {
+            writer.addParagraph('Répartition par statut :');
+            filledDistribution.forEach((item) => {
+                const label = item?.label || item?.value || 'Non défini';
+                writer.addBullet(`${label} : ${formatNumber(item.count)} plan${item.count > 1 ? 's' : ''}`);
+            });
+        }
+    }
+
+    writer.addSectionTitle('Processus surveillés');
+    const distribution = Array.isArray(processOverview.distribution) ? processOverview.distribution : [];
+    if (!distribution.length) {
+        writer.addParagraph('Aucun risque à analyser sur les processus.');
+    } else {
+        const maxProcess = 5;
+        distribution.slice(0, maxProcess).forEach((entry) => {
+            writer.addBullet(`${entry.label} : ${formatNumber(entry.count)} risque${entry.count > 1 ? 's' : ''}`);
+        });
+        if (distribution.length > maxProcess) {
+            writer.addParagraph(`... et ${distribution.length - maxProcess} processus supplémentaires.`);
+        }
+    }
+
+    const severity = Array.isArray(processOverview.severity)
+        ? processOverview.severity.filter((item) => Number.isFinite(item?.average) && item.count > 0)
+        : [];
+    if (severity.length) {
+        writer.addParagraph('Scores nets moyens par processus :');
+        const maxSeverity = 5;
+        severity.slice(0, maxSeverity).forEach((entry) => {
+            writer.addBullet(`${entry.label} : score moyen ${formatNumber(entry.average, { decimals: 1 })} (max ${formatNumber(entry.maxScore, { decimals: 1 })})`);
+        });
+        if (severity.length > maxSeverity) {
+            writer.addParagraph(`... et ${severity.length - maxSeverity} autres processus suivis.`);
+        }
+    }
+
+    writer.addSectionTitle('Top risques nets');
+    if (!topRisks.length) {
+        writer.addParagraph('Aucun risque validé disponible.');
+    } else {
+        const maxRisks = 5;
+        topRisks.slice(0, maxRisks).forEach((risk) => {
+            const processLabel = risk.sousProcessus
+                ? `${risk.processus} / ${risk.sousProcessus}`
+                : risk.processus;
+            writer.addBullet(`${risk.rank}. ${risk.titre} - ${processLabel} (Score ${formatNumber(risk.score)}, P${risk.probNet} x I${risk.impactNet})`);
+        });
+        if (topRisks.length > maxRisks) {
+            writer.addParagraph(`... et ${topRisks.length - maxRisks} risques supplémentaires dans l'application.`);
+        }
+    }
+
+    writer.addSectionTitle('Alertes et éléments de vigilance');
+    const severeRisks = Array.isArray(alerts.severeRisks) ? alerts.severeRisks : [];
+    if (!severeRisks.length) {
+        writer.addParagraph("Aucun risque sévère ou critique sans plan d'action.");
+    } else {
+        writer.addParagraph("Risques sévères ou critiques sans plan d'actions :");
+        severeRisks.slice(0, 5).forEach((risk) => {
+            writer.addBullet(`${risk.description} - ${risk.process} (${risk.level}) - Score ${formatNumber(risk.score)} - ${risk.formattedDate}`);
+        });
+        if (severeRisks.length > 5) {
+            writer.addParagraph(`... et ${severeRisks.length - 5} alertes supplémentaires.`);
+        }
+    }
+
+    const overduePlans = Array.isArray(alerts.overdueActionPlans) ? alerts.overdueActionPlans : [];
+    if (!overduePlans.length) {
+        writer.addParagraph("Plans d'actions : aucun retard détecté.");
+    } else {
+        writer.addParagraph("Plans d'actions en retard :");
+        overduePlans.slice(0, 5).forEach((plan) => {
+            writer.addBullet(`${plan.title} - ${plan.owner || 'Responsable non défini'} - Échéance ${plan.formattedDueDate} - Statut ${plan.statusLabel}`);
+        });
+        if (overduePlans.length > 5) {
+            writer.addParagraph(`... et ${overduePlans.length - 5} plans supplémentaires en retard.`);
+        }
+    }
+}
+
+class JsPdfDashboardWriter {
+    constructor(jsPDFConstructor) {
+        this.doc = new jsPDFConstructor({ orientation: 'portrait', unit: 'pt', format: 'a4' });
+        this.margin = 40;
+        this.pageWidth = this.doc.internal.pageSize.getWidth();
+        this.pageHeight = this.doc.internal.pageSize.getHeight();
+        this.cursorY = this.margin;
+        this.lineHeight = 14;
+        this.isFallback = false;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+    }
+
+    ensureSpace(height = this.lineHeight) {
+        if (this.cursorY + height > this.pageHeight - this.margin) {
+            this.doc.addPage();
+            this.cursorY = this.margin;
+            this.doc.setFont('helvetica', 'normal');
+            this.doc.setFontSize(11);
+        }
+    }
+
+    splitText(text, widthOffset = 0) {
+        return this.doc.splitTextToSize(String(text ?? ''), this.pageWidth - (2 * this.margin) - widthOffset);
+    }
+
+    addSpacing(height = 8) {
+        this.ensureSpace(height);
+        this.cursorY += height;
+    }
+
+    setTitle(text) {
+        const lines = this.splitText(text);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(18);
+        lines.forEach((line) => {
+            this.ensureSpace(24);
+            this.doc.text(line, this.margin, this.cursorY);
+            this.cursorY += 22;
+        });
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+        this.addSpacing(6);
+    }
+
+    addSectionTitle(title) {
+        this.ensureSpace(24);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(14);
+        this.doc.text(String(title || ''), this.margin, this.cursorY);
+        this.cursorY += 18;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+    }
+
+    addParagraph(text) {
+        const lines = this.splitText(text);
+        lines.forEach((line) => {
+            this.ensureSpace();
+            this.doc.text(line, this.margin, this.cursorY);
+            this.cursorY += this.lineHeight;
+        });
+    }
+
+    addBullet(text) {
+        const lines = this.splitText(text, 16);
+        lines.forEach((line, index) => {
+            this.ensureSpace();
+            if (index === 0) {
+                this.doc.text('•', this.margin, this.cursorY);
+                this.doc.text(line, this.margin + 12, this.cursorY);
+            } else {
+                this.doc.text(line, this.margin + 12, this.cursorY);
+            }
+            this.cursorY += this.lineHeight;
+        });
+    }
+
+    save(filename) {
+        this.doc.save(filename);
+    }
+}
+
+class SimpleDashboardPdfWriter {
+    constructor() {
+        this.margin = 40;
+        this.pageWidth = 595.28;
+        this.pageHeight = 841.89;
+        this.defaultFontSize = 11;
+        this.defaultLineHeight = 16;
+        this.maxCharsPerLine = Math.max(60, Math.floor((this.pageWidth - this.margin * 2) / 6));
+        this.lines = [];
+        this.isFallback = true;
+    }
+
+    setTitle(text) {
+        const sanitized = this.sanitizeText(text);
+        if (!sanitized) {
+            return;
+        }
+        if (this.lines.length) {
+            this.addSpacing(6);
+        }
+        this.lines.push({
+            text: sanitized,
+            indent: 0,
+            fontSize: 16,
+            lineHeight: 26
+        });
+        this.addSpacing(6);
+    }
+
+    addSpacing(height = 8) {
+        this.lines.push({
+            text: '',
+            indent: 0,
+            fontSize: this.defaultFontSize,
+            lineHeight: height
+        });
+    }
+
+    addSectionTitle(title) {
+        const sanitized = this.sanitizeText(title);
+        if (!sanitized) {
+            return;
+        }
+        this.addSpacing(10);
+        this.lines.push({
+            text: sanitized,
+            indent: 0,
+            fontSize: 13,
+            lineHeight: 20
+        });
+        this.addSpacing(4);
+    }
+
+    addParagraph(text) {
+        const parts = String(text ?? '').split(/\n+/);
+        parts.forEach((part, index) => {
+            const sanitized = this.sanitizeText(part);
+            if (!sanitized) {
+                if (index < parts.length - 1) {
+                    this.addSpacing(this.defaultLineHeight);
+                }
+                return;
+            }
+            const wrapped = this.wrapText(sanitized, this.maxCharsPerLine);
+            wrapped.forEach((line) => {
+                this.lines.push({
+                    text: line,
+                    indent: 0,
+                    fontSize: this.defaultFontSize,
+                    lineHeight: this.defaultLineHeight
+                });
+            });
+            if (index < parts.length - 1) {
+                this.addSpacing(this.defaultLineHeight);
+            }
+        });
+    }
+
+    addBullet(text) {
+        const sanitized = this.sanitizeText(text);
+        if (!sanitized) {
+            return;
+        }
+        const wrapped = this.wrapText(sanitized, this.maxCharsPerLine - 4);
+        if (!wrapped.length) {
+            return;
+        }
+        wrapped.forEach((line, index) => {
+            this.lines.push({
+                text: `${index === 0 ? '- ' : '  '}${line}`,
+                indent: 0,
+                fontSize: this.defaultFontSize,
+                lineHeight: this.defaultLineHeight
+            });
+        });
+    }
+
+    save(filename) {
+        const pages = paginateLines(this.lines, {
+            pageHeight: this.pageHeight,
+            margin: this.margin,
+            defaultLineHeight: this.defaultLineHeight,
+            defaultFontSize: this.defaultFontSize
+        });
+        const effectivePages = pages.length ? pages : [[{
+            text: '',
+            indent: 0,
+            fontSize: this.defaultFontSize,
+            lineHeight: this.defaultLineHeight
+        }]];
+        const pdfBytes = buildSimplePdfDocument(effectivePages, {
+            pageWidth: this.pageWidth,
+            pageHeight: this.pageHeight,
+            margin: this.margin,
+            defaultFontSize: this.defaultFontSize
+        });
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        triggerBlobDownload(blob, filename);
+    }
+
+    sanitizeText(value) {
+        if (value === undefined || value === null) {
+            return '';
+        }
+        return String(value)
+            .replace(/\r\n/g, '\n')
+            .replace(/\r/g, '\n')
+            .normalize('NFD')
+            .replace(/[\u0300-\u036f]/g, '')
+            .replace(/[^\x20-\x7E]/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    wrapText(text, maxChars) {
+        const limit = Math.max(20, Math.floor(maxChars));
+        const words = text.split(' ').filter(Boolean);
+        const lines = [];
+        let current = '';
+
+        words.forEach((word) => {
+            if (word.length > limit) {
+                if (current) {
+                    lines.push(current);
+                    current = '';
+                }
+                for (let index = 0; index < word.length; index += limit) {
+                    lines.push(word.slice(index, index + limit));
+                }
+                return;
+            }
+
+            const candidate = current ? `${current} ${word}` : word;
+            if (candidate.length > limit && current) {
+                lines.push(current);
+                current = word;
+            } else if (candidate.length > limit) {
+                lines.push(candidate);
+                current = '';
+            } else {
+                current = candidate;
+            }
+        });
+
+        if (current) {
+            lines.push(current);
+        }
+
+        return lines;
+    }
+}
+
+function paginateLines(lines, { pageHeight, margin, defaultLineHeight, defaultFontSize }) {
+    const availableHeight = pageHeight - margin * 2;
+    const pages = [];
+    let currentPage = [];
+    let usedHeight = 0;
+
+    lines.forEach((line) => {
+        const lineHeight = Number.isFinite(line.lineHeight) ? line.lineHeight : defaultLineHeight;
+        if (lineHeight <= 0) {
+            return;
+        }
+        if (usedHeight + lineHeight > availableHeight && currentPage.length) {
+            pages.push(currentPage);
+            currentPage = [];
+            usedHeight = 0;
+        }
+        currentPage.push({
+            text: line.text || '',
+            indent: Number.isFinite(line.indent) ? line.indent : 0,
+            fontSize: Number.isFinite(line.fontSize) ? line.fontSize : defaultFontSize,
+            lineHeight
+        });
+        usedHeight += lineHeight;
+    });
+
+    if (currentPage.length) {
+        pages.push(currentPage);
+    }
+
+    return pages;
+}
+
+function buildSimplePdfDocument(pages, { pageWidth, pageHeight, margin, defaultFontSize }) {
+    const totalPages = Math.max(1, pages.length);
+    const segments = [];
+    let offset = 0;
+
+    const append = (value) => {
+        const bytes = encodePdfString(value);
+        segments.push(bytes);
+        offset += bytes.length;
+    };
+
+    append('%PDF-1.4\n');
+    append('%âãÏÓ\n');
+
+    const totalObjects = 3 + totalPages * 2;
+    const objectOffsets = new Array(totalObjects + 1).fill(0);
+
+    const addObject = (id, content) => {
+        objectOffsets[id] = offset;
+        append(`${id} 0 obj\n`);
+        append(content);
+        append('\nendobj\n');
+    };
+
+    const pageObjectIds = [];
+    const contentObjectIds = [];
+    for (let index = 0; index < totalPages; index += 1) {
+        pageObjectIds.push(4 + index);
+        contentObjectIds.push(4 + totalPages + index);
+    }
+
+    addObject(1, '<< /Type /Catalog /Pages 2 0 R >>');
+    addObject(2, `<< /Type /Pages /Count ${totalPages} /Kids [${pageObjectIds.map((id) => `${id} 0 R`).join(' ')}] >>`);
+    addObject(3, '<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>');
+
+    for (let index = 0; index < totalPages; index += 1) {
+        const pageId = pageObjectIds[index];
+        const contentId = contentObjectIds[index];
+        const lines = pages[index] || [];
+        const { stream, length } = createPageContentStream(lines, {
+            pageHeight,
+            margin,
+            defaultFontSize
+        });
+
+        addObject(pageId, `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Resources << /Font << /F1 3 0 R >> >> /Contents ${contentId} 0 R >>`);
+        addObject(contentId, `<< /Length ${length} >>\nstream\n${stream}\nendstream`);
+    }
+
+    const xrefOffset = offset;
+    append(`xref\n0 ${totalObjects + 1}\n`);
+    append('0000000000 65535 f \n');
+    for (let index = 1; index <= totalObjects; index += 1) {
+        append(`${String(objectOffsets[index]).padStart(10, '0')} 00000 n \n`);
+    }
+    append(`trailer\n<< /Size ${totalObjects + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+    const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+    const result = new Uint8Array(totalLength);
+    let position = 0;
+    segments.forEach((segment) => {
+        result.set(segment, position);
+        position += segment.length;
+    });
+
+    return result;
+}
+
+function createPageContentStream(lines, { pageHeight, margin, defaultFontSize }) {
+    if (!Array.isArray(lines) || !lines.length) {
+        return { stream: '', length: 0 };
+    }
+
+    const commands = [];
+    let cursorY = pageHeight - margin;
+
+    lines.forEach((line) => {
+        const lineHeight = Number.isFinite(line.lineHeight) ? line.lineHeight : 16;
+        cursorY -= lineHeight;
+        if (!line.text) {
+            return;
+        }
+        const fontSize = Number.isFinite(line.fontSize) ? line.fontSize : defaultFontSize;
+        const indent = Number.isFinite(line.indent) ? line.indent : 0;
+        const safeText = escapePdfText(line.text);
+        commands.push(`BT /F1 ${fontSize} Tf 1 0 0 1 ${(margin + indent).toFixed(2)} ${cursorY.toFixed(2)} Tm (${safeText}) Tj ET`);
+    });
+
+    const stream = commands.join('\n');
+    const length = encodePdfString(stream).length;
+    return { stream, length };
+}
+
+function escapePdfText(value) {
+    return String(value ?? '')
+        .replace(/\\/g, '\\\\')
+        .replace(/\(/g, '\\(')
+        .replace(/\)/g, '\\)');
+}
+
+const pdfStringEncoder = typeof TextEncoder !== 'undefined' ? new TextEncoder() : null;
+
+function encodePdfString(value) {
+    const stringValue = String(value ?? '');
+    if (pdfStringEncoder) {
+        return pdfStringEncoder.encode(stringValue);
+    }
+    const buffer = new Uint8Array(stringValue.length);
+    for (let index = 0; index < stringValue.length; index += 1) {
+        buffer[index] = stringValue.charCodeAt(index) & 0xFF;
+    }
+    return buffer;
+}
+
+function triggerBlobDownload(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = filename;
+    document.body.appendChild(anchor);
+    anchor.click();
+    setTimeout(() => {
+        document.body.removeChild(anchor);
+        URL.revokeObjectURL(url);
+    }, 0);
+}
 function exportRisks() {
     if (window.rms) rms.exportData('csv');
 }
