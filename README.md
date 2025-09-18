@@ -2,6 +2,28 @@
 
 Application monopage de cartographie des risques de corruption. Elle fournit un tableau de bord interactif, un registre des risques et des contrôles ainsi qu'un moteur d'export/import autonome fonctionnant entièrement côté navigateur.
 
+## Table des matières
+
+- [Fonctionnalités principales](#fonctionnalités-principales)
+- [Structure du projet](#structure-du-projet)
+  - [Fichiers clés](#fichiers-clés)
+  - [Modules JavaScript](#modules-javascript)
+- [Technologies utilisées](#technologies-utilisées)
+- [Données & persistance](#données--persistance)
+- [Démarrage rapide](#démarrage-rapide)
+  - [Utilisation hors-ligne](#utilisation-hors-ligne)
+  - [Via un serveur local (optionnel)](#via-un-serveur-local-optionnel)
+- [Configuration fonctionnelle](#configuration-fonctionnelle)
+- [Développement & bonnes pratiques](#développement--bonnes-pratiques)
+  - [Workflow recommandé](#workflow-recommandé)
+  - [Qualité du code](#qualité-du-code)
+- [Tests manuels](#tests-manuels)
+  - [Export CSV avec un registre vide](#export-csv-avec-un-registre-vide)
+  - [Import JSON/CSV](#import-jsoncsv)
+- [Limitations connues & pistes d'amélioration](#limitations-connues--pistes-damélioration)
+- [Support & contributions](#support--contributions)
+- [Ressources](#ressources)
+
 ## Fonctionnalités principales
 
 - **Tableau de bord temps réel** : synthèse des KPIs clés (risques critiques, contrôles actifs, score global) et graphiques alimentés par Chart.js pour suivre l'évolution des risques et leur répartition par processus.
@@ -31,6 +53,14 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 | `assets/js/rms.ui.js` | Interactions UI : navigation entre onglets, filtres, recherche, modales d'édition des risques/contrôles/plans, notifications et synchronisation avec la matrice. |
 | `assets/js/rms.integrations.js` | Fonctions d'import/export, correctifs de compatibilité, génération de fichiers, parsing CSV/JSON, timeline de sauvegarde et helpers toast. |
 
+## Technologies utilisées
+
+- **HTML/CSS/JavaScript vanilla** pour garantir une compatibilité maximale et éviter la dépendance à un framework front-end.
+- **Chart.js** pour la visualisation des indicateurs du tableau de bord.
+- **html2canvas** pour la capture de la matrice et la génération de visuels hors ligne.
+- **jsPDF** (optionnel) pour enrichir l'export PDF avec un moteur éprouvé lorsque la librairie est disponible.
+- **LocalStorage** comme couche de persistance, assurant le fonctionnement hors connexion.
+
 ## Données & persistance
 
 - Toutes les données sont stockées côté navigateur via `localStorage` (`rms_risks`, `rms_controls`, `rms_actionPlans`, `rms_history`, `rms_config`).
@@ -58,6 +88,21 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 - L'onglet **Configuration** permet d'ajouter, modifier ou supprimer les valeurs utilisées dans les listes déroulantes (processus, statuts, types de corruption, tiers, etc.).
 - Les sous-processus sont rattachés à chaque processus ; le module met automatiquement à jour les formulaires et filtres lorsque la structure évolue.
 - Les modifications sont persistées via `saveConfig()` et répercutées dans toute l'interface grâce à `populateSelects()`.
+
+## Développement & bonnes pratiques
+
+### Workflow recommandé
+1. Cloner ou télécharger le dépôt puis créer une copie locale des fichiers HTML/CSS/JS.
+2. Démarrer un serveur local (voir section précédente) pour profiter du rechargement automatique du navigateur.
+3. Modifier les modules JavaScript ciblés en respectant la structure existante (pas d'imports circulaires, privilégier les fonctions pures).
+4. Tester chaque fonctionnalité métier (création de risque, modification d'un contrôle, exports) avant de valider les modifications.
+5. Versionner les changements significatifs afin de faciliter le suivi et le retour arrière.
+
+### Qualité du code
+- Respecter la séparation des responsabilités décrite dans la section [Modules JavaScript](#modules-javascript).
+- Éviter l'utilisation de bibliothèques supplémentaires non nécessaires pour conserver la légèreté de l'application.
+- Privilégier les messages d'erreur utilisateur explicites et l'utilisation du module de notifications déjà présent.
+- Penser aux scénarios hors-ligne : les appels réseau doivent toujours être optionnels ou disposer d'une alternative locale.
 
 ## Tests manuels
 
@@ -93,6 +138,20 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
    ```
 2. Depuis l'onglet **📋 Liste des Risques**, cliquez sur "📥 Importer" et sélectionnez le fichier.
 3. Contrôlez qu'un toast "Import réussi" apparaît, que le risque est ajouté au tableau, qu'une entrée "Import JSON" est visible dans l'onglet **📜 Historique** et qu'aucune erreur n'est levée dans la console.
+
+## Limitations connues & pistes d'amélioration
+
+- Le moteur repose sur `localStorage`; un changement de navigateur ou de poste entraîne la perte des données si aucun export n'a été réalisé.
+- Les exports volumineux peuvent être limités par les capacités mémoire du navigateur. Prévoir une segmentation des exports si nécessaire.
+- L'application n'intègre pas de mécanisme d'authentification : elle doit être servie dans un environnement sécurisé si des données sensibles sont manipulées.
+- Les tests automatisés ne sont pas fournis. La mise en place d'une suite de tests end-to-end (ex. Playwright) faciliterait la non-régression.
+
+## Support & contributions
+
+Les issues et suggestions d'amélioration peuvent être déposées via le gestionnaire de tickets du dépôt. Pour proposer un correctif :
+1. Créez une branche dédiée ou un fork.
+2. Implémentez et testez votre modification.
+3. Documentez brièvement vos changements dans la description de la demande de fusion.
 
 ## Ressources
 
