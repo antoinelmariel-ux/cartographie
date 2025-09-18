@@ -143,185 +143,11 @@ class RiskManagementSystem {
     }
 
     getDefaultRisks() {
-        return [
-            {
-                id: 1,
-                processus: "R&D",
-                sousProcessus: "Études cliniques",
-                description: "Corruption d'investigateurs pour favoriser inclusion patients",
-                typeCorruption: "active",
-                typeTiers: "Médecins",
-                tiers: ["Professionnels de santé"],
-                probBrut: 3, impactBrut: 4,
-                probNet: 2, impactNet: 3,
-                probPost: 1, impactPost: 2,
-                statut: "a-valider",
-                dateCreation: "2024-01-15",
-                controls: [1, 2]
-            },
-            {
-                id: 2,
-                processus: "Achats",
-                sousProcessus: "Appels d'offres",
-                description: "Favoritisme dans attribution marchés",
-                typeCorruption: "favoritisme",
-                typeTiers: "Fournisseurs",
-                tiers: ["Acheteurs"],
-                probBrut: 3, impactBrut: 4,  // Même position que risque 1
-                probNet: 2, impactNet: 2,
-                probPost: 1, impactPost: 2,
-                statut: "validé",
-                dateCreation: "2024-01-20",
-                controls: [3]
-            },
-            {
-                id: 3,
-                processus: "Marketing",
-                sousProcessus: "Événements",
-                description: "Avantages indus lors d'événements médicaux",
-                typeCorruption: "cadeaux",
-                typeTiers: "Médecins",
-                tiers: ["Professionnels de santé"],
-                probBrut: 4, impactBrut: 3,
-                probNet: 2, impactNet: 3,  // Même position que risque 1
-                probPost: 1, impactPost: 2,
-                statut: "brouillon",
-                dateCreation: "2024-02-01",
-                controls: [1, 4]
-            },
-            {
-                id: 4,
-                processus: "Ventes",
-                sousProcessus: "Négociation",
-                description: "Corruption d'acheteurs hospitaliers",
-                typeCorruption: "active",
-                typeTiers: "Hôpitaux publics",
-                tiers: ["Acheteurs"],
-                probBrut: 3, impactBrut: 4,  // Même position que risques 1 et 2
-                probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
-                probPost: 1, impactPost: 1,
-                statut: "a-valider",
-                dateCreation: "2024-01-10",
-                controls: [2, 3]
-            },
-            {
-                id: 5,
-                processus: "RH",
-                sousProcessus: "Recrutement",
-                description: "Embauche famille/proches décideurs publics",
-                typeCorruption: "trafic",
-                typeTiers: "Administrations",
-                tiers: ["Politiques"],
-                probBrut: 2, impactBrut: 3,
-                probNet: 1, impactNet: 2,
-                probPost: 1, impactPost: 1,  // Même position que risque 4
-                statut: "validé",
-                dateCreation: "2024-01-25",
-                controls: [1]
-            },
-            {
-                id: 6,
-                processus: "Production",
-                sousProcessus: "Contrôle qualité",
-                description: "Falsification certificats pour accélérer mise sur marché",
-                typeCorruption: "passive",
-                typeTiers: "Organismes certificateurs",
-                tiers: ["Institutionnels"],
-                probBrut: 2, impactBrut: 4,
-                probNet: 1, impactNet: 3,
-                probPost: 1, impactPost: 2,
-                statut: "brouillon",
-                dateCreation: "2024-02-05",
-                controls: [2, 3, 4]
-            },
-            {
-                id: 7,
-                processus: "Finance",
-                sousProcessus: "Paiements",
-                description: "Facilitation payments pour déblocage douane",
-                typeCorruption: "active",
-                typeTiers: "Douanes",
-                tiers: ["Institutionnels"],
-                probBrut: 3, impactBrut: 3,
-                probNet: 2, impactNet: 2,
-                probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
-                statut: "a-valider",
-                dateCreation: "2024-02-10",
-                controls: [1, 2]
-            },
-            {
-                id: 8,
-                processus: "Juridique",
-                sousProcessus: "Contrats",
-                description: "Clauses secrètes avantageant certains partenaires",
-                typeCorruption: "favoritisme",
-                typeTiers: "Partenaires commerciaux",
-                tiers: ["Collaborateurs"],
-                probBrut: 2, impactBrut: 3,
-                probNet: 1, impactNet: 2,
-                probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
-                statut: "archive",
-                dateCreation: "2024-01-30",
-                controls: [3, 4]
-            }
-        ];
+        return [];
     }
 
     getDefaultControls() {
-        return [
-            {
-                id: 1,
-                name: "Procédure de validation des dépenses",
-                description: "Double validation pour toute dépense > 1000€",
-                effectiveness: "forte",
-                type: "a-priori",
-                owner: "Directeur Financier",
-                frequency: "quotidienne",
-                mode: "manuel",
-                status: "actif",
-                risks: [1, 2],
-                dateCreation: "2024-01-01"
-            },
-            {
-                id: 2,
-                name: "Due diligence tiers",
-                description: "Vérification approfondie de tous les nouveaux partenaires",
-                effectiveness: "forte",
-                type: "a-priori",
-                owner: "Service Juridique",
-                frequency: "ad-hoc",
-                mode: "manuel",
-                status: "actif",
-                risks: [3, 4],
-                dateCreation: "2024-01-01"
-            },
-            {
-                id: 3,
-                name: "Audit interne trimestriel",
-                description: "Revue complète des processus à risque",
-                effectiveness: "moyenne",
-                type: "a-posteriori",
-                owner: "Audit Interne",
-                frequency: "mensuelle",
-                mode: "manuel",
-                status: "actif",
-                risks: [5, 6],
-                dateCreation: "2024-01-01"
-            },
-            {
-                id: 4,
-                name: "Formation anti-corruption",
-                description: "Formation obligatoire annuelle pour tous les employés",
-                effectiveness: "moyenne",
-                type: "a-priori",
-                owner: "Ressources Humaines",
-                frequency: "annuelle",
-                mode: "manuel",
-                status: "actif",
-                risks: [7, 8],
-                dateCreation: "2024-01-01"
-            }
-        ];
+        return [];
     }
 
     getDefaultConfig() {
@@ -1508,7 +1334,8 @@ class RiskManagementSystem {
         const grid = document.getElementById('matrixGrid');
         if (!grid) return;
         
-        const filteredRisks = this.getFilteredRisks();
+        const baseRisks = Array.isArray(this.risks) ? this.risks : [];
+        const filteredRisks = this.getFilteredRisks(baseRisks);
 
         // Track how many risks are placed in each cell to offset duplicates
         const cellCounts = {};
@@ -1700,7 +1527,8 @@ class RiskManagementSystem {
         const container = document.getElementById('riskDetailsList');
         if (!container) return;
         
-        const filteredRisks = this.getFilteredRisks();
+        const baseRisks = Array.isArray(this.risks) ? this.risks : [];
+        const filteredRisks = this.getFilteredRisks(baseRisks);
         const viewConfig = {
             'brut': { prob: 'probBrut', impact: 'impactBrut' },
             'net': { prob: 'probNet', impact: 'impactNet' },
@@ -1740,6 +1568,19 @@ class RiskManagementSystem {
         if (titleElement) {
             const viewLabel = viewLabels[this.currentView] || viewLabels['brut'];
             titleElement.textContent = `Risques triés par score - ${viewLabel}`;
+        }
+
+        if (!scoredRisks.length) {
+            const message = baseRisks.length
+                ? 'Aucun risque ne correspond aux filtres appliqués.'
+                : 'Aucun risque enregistré. Ajoutez un risque pour visualiser les détails ici.';
+
+            container.innerHTML = `
+                <div class="matrix-description-empty" style="text-align: center; padding: 16px 12px;">
+                    ${message}
+                </div>
+            `;
+            return;
         }
 
         container.innerHTML = scoredRisks.map(({ risk, score }) => {
@@ -2880,9 +2721,28 @@ class RiskManagementSystem {
     updateRisksList() {
         const tbody = document.getElementById('risksTableBody');
         if (!tbody) return;
-        
-        const filteredRisks = this.getFilteredRisks();
-        
+
+        const allRisks = Array.isArray(this.risks) ? this.risks : [];
+        const filteredRisks = this.getFilteredRisks(allRisks);
+
+        if (!allRisks.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="table-empty">Aucun risque enregistré</td>
+                </tr>
+            `;
+            return;
+        }
+
+        if (!filteredRisks.length) {
+            tbody.innerHTML = `
+                <tr>
+                    <td colspan="11" class="table-empty">Aucun risque ne correspond aux filtres</td>
+                </tr>
+            `;
+            return;
+        }
+
         tbody.innerHTML = filteredRisks.map(risk => `
             <tr>
                 <td>#${risk.id}</td>
