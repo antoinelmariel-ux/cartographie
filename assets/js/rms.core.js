@@ -1735,15 +1735,13 @@ class RiskManagementSystem {
             return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
         });
 
-        const topRisks = scoredRisks.slice(0, 10);
-
         const titleElement = document.getElementById('riskDetailsTitle');
         if (titleElement) {
             const viewLabel = viewLabels[this.currentView] || viewLabels['brut'];
-            titleElement.textContent = `Top 10 des risques - ${viewLabel}`;
+            titleElement.textContent = `Risques triés par score - ${viewLabel}`;
         }
 
-        container.innerHTML = topRisks.map(({ risk, score }) => {
+        container.innerHTML = scoredRisks.map(({ risk, score }) => {
             let scoreClass = 'low';
             if (score > 12) scoreClass = 'critical';
             else if (score > 8) scoreClass = 'high';
