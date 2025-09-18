@@ -88,6 +88,7 @@ class RiskManagementSystem {
         }
         this.needsConfigStructureRerender = configStructureUpdated;
         this.currentView = 'brut';
+        this.processScoreMode = 'net';
         this.currentTab = 'dashboard';
         this.filters = {
             process: '',
@@ -2642,218 +2643,233 @@ class RiskManagementSystem {
             this.charts = {};
         }
 
+        const scoreMode = this.processScoreMode === 'brut' ? 'brut' : 'net';
+        const scoreKeyMap = {
+            brut: { prob: 'probBrut', impact: 'impactBrut' },
+            net: { prob: 'probNet', impact: 'impactNet' }
+        };
+        const { prob: probKey, impact: impactKey } = scoreKeyMap[scoreMode] || scoreKeyMap.net;
+
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
             const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
             if (!acc[label]) {
-                acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
+                acc[label] = { count: 0, scores: [], maxScore: 0 };
             }
 
-            const probNet = Number(risk?.probNet) || 0;
-            const impactNet = Number(risk?.impactNet) || 0;
-            const score = probNet * impactNet;
-
             acc[label].count += 1;
-            acc[label].totalScore += score;
-            acc[label].maxScore = Math.max(acc[label].maxScore, score);
+
+            const prob = Number(risk?.[probKey]) || 0;
+            const impact = Number(risk?.[impactKey]) || 0;
+            const score = prob * impact;
+
+            if (Number.isFinite(score)) {
+                acc[label].scores.push(score);
+                acc[label].maxScore = Math.max(acc[label].maxScore, score);
+            }
+
             return acc;
         }, {});
 
-        if (Object.keys(processMetrics).length === 0) {
-            processMetrics['Aucun risque'] = { count: 0, totalScore: 0, maxScore: 0 };
-        }
-
-        const processCanvas = document.getElementById('processChart');
-        if (processCanvas) {
-            const processLabels = Object.keys(processMetrics);
-            const dataValues = processLabels.map(label => processMetrics[label].count);
-            const totalProcessRisks = dataValues.reduce((sum, value) => sum + value, 0);
-            const hasProcessData = totalProcessRisks > 0;
-            const palette = [
-                'rgba(52, 152, 219, 0.8)',
-                'rgba(46, 204, 113, 0.8)',
-                'rgba(241, 196, 15, 0.8)',
-                'rgba(231, 76, 60, 0.8)',
-                'rgba(155, 89, 182, 0.8)',
-                'rgba(26, 188, 156, 0.8)',
-                'rgba(230, 126, 34, 0.8)',
-                'rgba(149, 165, 166, 0.8)'
-            ];
-
-            const neutralColor = 'rgba(189, 195, 199, 0.6)';
-            const colors = processLabels.map((_, index) => hasProcessData ? palette[index % palette.length] : neutralColor);
-            const toOpaqueColor = (color) => {
-                if (typeof color !== 'string') {
-                    return color;
-                }
-                if (color.startsWith('rgba')) {
-                    return color.replace(/rgba\(([^)]+),\s*([0-9]*\.?[0-9]+)\)/, 'rgba($1, 1)');
-                }
-                return color;
-            };
-            const borderColors = colors.map(toOpaqueColor);
-
-            const processData = {
-                labels: processLabels,
-                datasets: [
-                    {
-                        data: dataValues,
-                        backgroundColor: colors,
-                        borderColor: borderColors,
-                        borderWidth: hasProcessData ? 1 : 0,
-                        hoverOffset: hasProcessData ? 8 : 0
-                    }
-                ]
-            };
-
-            const processOptions = {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        display: hasProcessData
-                    },
-                    tooltip: {
-                        enabled: hasProcessData
-                    },
-                    emptyChartMessage: {
-                        display: !hasProcessData,
-                        message: 'Aucun risque à afficher'
-                    }
-                }
-            };
-
-            if (this.charts.process) {
-                const chart = this.charts.process;
-                chart.data.labels = processData.labels;
-                chart.data.datasets = processData.datasets;
-                chart.options = processOptions;
-                chart.update();
-            } else {
-                this.charts.process = new Chart(processCanvas, {
-                    type: 'doughnut',
-                    data: processData,
-                    options: processOptions
-                });
+        const computeMedian = (values) => {
+            if (!Array.isArray(values) || values.length === 0) {
+                return 0;
             }
+
+            const sorted = values
+                .filter(value => Number.isFinite(value))
+                .sort((a, b) => a - b);
+
+            if (!sorted.length) {
+                return 0;
+            }
+
+            const middle = Math.floor(sorted.length / 2);
+            if (sorted.length % 2 === 0) {
+                return (sorted[middle - 1] + sorted[middle]) / 2;
+            }
+            return sorted[middle];
+        };
+
+        const combinedCanvas = document.getElementById('processCombinedChart');
+        const summaryElement = document.getElementById('processChartSummary');
+        const scoreModeSelect = document.getElementById('processScoreMode');
+        if (scoreModeSelect && scoreModeSelect.value !== scoreMode) {
+            scoreModeSelect.value = scoreMode;
         }
 
-        const severityCanvas = document.getElementById('processSeverityChart');
-        const summaryElement = document.getElementById('processChartSummary');
-        if (severityCanvas || summaryElement) {
-            const severityEntries = Object.entries(processMetrics).map(([label, metrics]) => {
-                const count = metrics.count || 0;
-                const average = count > 0 ? metrics.totalScore / count : 0;
-                const maxScore = metrics.maxScore || 0;
-                return { label, count, average, maxScore };
+        if (combinedCanvas || summaryElement) {
+            const entries = Object.entries(processMetrics).map(([label, metrics]) => {
+                const median = computeMedian(metrics.scores);
+                return {
+                    label,
+                    count: metrics.count || 0,
+                    median,
+                    maxScore: metrics.maxScore || 0
+                };
             });
 
-            const sortedSeverityEntries = severityEntries.slice().sort((a, b) => {
-                if (b.average !== a.average) return b.average - a.average;
-                if (b.maxScore !== a.maxScore) return b.maxScore - a.maxScore;
+            const sortedEntries = entries.slice().sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                if (b.median !== a.median) return b.median - a.median;
                 return a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' });
             });
 
-            if (severityCanvas) {
-                const maxTheoreticalScore = 16;
-                const colorScale = sortedSeverityEntries.map(entry => {
-                    const ratio = Math.min(Math.max(entry.average / maxTheoreticalScore, 0), 1);
-                    const r = Math.round(241 + (192 - 241) * ratio);
-                    const g = Math.round(196 + (57 - 196) * ratio);
-                    const b = Math.round(15 + (43 - 15) * ratio);
-                    return {
-                        background: `rgba(${r}, ${g}, ${b}, 0.85)`,
-                        border: `rgba(${r}, ${g}, ${b}, 1)`
-                    };
-                });
+            if (combinedCanvas) {
+                const totalCount = sortedEntries.reduce((sum, entry) => sum + entry.count, 0);
+                const hasProcessData = sortedEntries.some(entry => entry.count > 0);
+                const labels = sortedEntries.map(entry => entry.label);
+                const counts = sortedEntries.map(entry => entry.count);
+                const medians = sortedEntries.map(entry => Number(entry.median.toFixed(2)));
 
-                const severityData = {
-                    labels: sortedSeverityEntries.map(entry => entry.label),
+                const metadata = sortedEntries.map(entry => ({
+                    ...entry,
+                    share: totalCount > 0 ? entry.count / totalCount : 0
+                }));
+
+                const scoreLabel = scoreMode === 'brut' ? 'Score médian brut' : 'Score médian net';
+                const maxTheoreticalScore = 16;
+
+                const combinedData = {
+                    labels,
                     datasets: [
                         {
-                            data: sortedSeverityEntries.map(entry => Number(entry.average.toFixed(2))),
-                            backgroundColor: colorScale.map(color => color.background),
-                            borderColor: colorScale.map(color => color.border),
-                            borderWidth: 1,
-                            metadata: sortedSeverityEntries
+                            type: 'bar',
+                            label: 'Nombre de risques',
+                            data: counts,
+                            backgroundColor: counts.map(() => 'rgba(52, 152, 219, 0.6)'),
+                            borderColor: counts.map(() => 'rgba(52, 152, 219, 1)'),
+                            borderWidth: hasProcessData ? 1.5 : 0,
+                            borderRadius: 6,
+                            maxBarThickness: 48,
+                            minBarLength: 2,
+                            yAxisID: 'y',
+                            metadata
+                        },
+                        {
+                            type: 'line',
+                            label: scoreLabel,
+                            data: medians,
+                            borderColor: 'rgba(231, 76, 60, 1)',
+                            backgroundColor: 'rgba(231, 76, 60, 0.15)',
+                            yAxisID: 'y1',
+                            fill: false,
+                            tension: 0.25,
+                            pointRadius: 4,
+                            pointHoverRadius: 6,
+                            pointBackgroundColor: 'rgba(231, 76, 60, 1)',
+                            pointBorderColor: '#ffffff',
+                            borderWidth: 2,
+                            metadata
                         }
                     ]
                 };
 
-                const severityOptions = {
-                    indexAxis: 'y',
+                const combinedOptions = {
                     responsive: true,
                     maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false
+                    },
                     scales: {
-                        x: {
+                        y: {
                             beginAtZero: true,
-                            suggestedMax: maxTheoreticalScore,
-                            ticks: {
-                                stepSize: 2
-                            },
                             title: {
                                 display: true,
-                                text: 'Score net moyen'
+                                text: 'Nombre de risques'
+                            },
+                            ticks: {
+                                precision: 0
+                            }
+                        },
+                        y1: {
+                            beginAtZero: true,
+                            position: 'right',
+                            grid: {
+                                drawOnChartArea: false
+                            },
+                            suggestedMax: maxTheoreticalScore,
+                            title: {
+                                display: true,
+                                text: scoreLabel
                             }
                         }
                     },
                     plugins: {
                         legend: {
-                            display: false
+                            display: true,
+                            position: 'bottom'
                         },
                         tooltip: {
+                            mode: 'index',
+                            intersect: false,
                             callbacks: {
                                 label: (context) => {
                                     const entry = context?.dataset?.metadata?.[context.dataIndex];
-                                    if (!entry) {
-                                        return context.formattedValue || '';
+                                    if (context.dataset.type === 'line') {
+                                        const value = entry ? entry.median : context.parsed.y;
+                                        const formatted = Number(value || 0).toFixed(1).replace('.', ',');
+                                        return `${scoreLabel} : ${formatted}`;
                                     }
-                                    const average = entry.average.toFixed(1).replace('.', ',');
-                                    const maxScore = entry.maxScore.toFixed(1).replace('.', ',');
-                                    const risksLabel = entry.count > 1 ? 'risques' : 'risque';
-                                    return `${average} • ${entry.count} ${risksLabel} • Max ${maxScore}`;
+                                    if (context.dataset.type === 'bar') {
+                                        const value = Number(context.raw) || 0;
+                                        const plural = value > 1 ? 'risques' : 'risque';
+                                        const share = entry ? Math.round(entry.share * 100) : (totalCount > 0 ? Math.round((value / totalCount) * 100) : 0);
+                                        return `${value} ${plural} (${share}%)`;
+                                    }
+                                    return `${context.dataset.label}: ${context.formattedValue}`;
                                 }
                             }
+                        },
+                        emptyChartMessage: {
+                            display: !hasProcessData,
+                            message: 'Aucun risque à afficher'
                         }
                     }
                 };
 
-                const computedHeight = Math.max(200, sortedSeverityEntries.length * 48);
-                if (severityCanvas.height !== computedHeight) {
-                    severityCanvas.height = computedHeight;
+                if (this.charts.processSeverity) {
+                    try {
+                        if (typeof this.charts.processSeverity.destroy === 'function') {
+                            this.charts.processSeverity.destroy();
+                        }
+                    } catch (error) {
+                        console.warn('Erreur lors de la destruction du graphique de sévérité :', error);
+                    }
+                    delete this.charts.processSeverity;
                 }
 
-                if (this.charts.processSeverity) {
-                    const chart = this.charts.processSeverity;
-                    chart.data.labels = severityData.labels;
-                    chart.data.datasets = severityData.datasets;
-                    chart.options = severityOptions;
+                if (this.charts.process) {
+                    const chart = this.charts.process;
+                    chart.data.labels = combinedData.labels;
+                    chart.data.datasets = combinedData.datasets;
+                    chart.options = combinedOptions;
                     chart.update();
                 } else {
-                    this.charts.processSeverity = new Chart(severityCanvas, {
+                    this.charts.process = new Chart(combinedCanvas, {
                         type: 'bar',
-                        data: severityData,
-                        options: severityOptions
+                        data: combinedData,
+                        options: combinedOptions
                     });
                 }
             }
 
             if (summaryElement) {
-                const totalCount = sortedSeverityEntries.reduce((sum, entry) => sum + entry.count, 0);
-                const nonZeroEntries = sortedSeverityEntries.filter(entry => entry.count > 0);
-                const formatScore = (value) => value.toFixed(1).replace('.', ',');
+                const totalCount = sortedEntries.reduce((sum, entry) => sum + entry.count, 0);
+                const nonZeroEntries = sortedEntries.filter(entry => entry.count > 0);
+                const formatScore = (value) => Number(value || 0).toFixed(1).replace('.', ',');
+                const scoreDescriptor = scoreMode === 'brut' ? 'brut' : 'net';
 
                 if (!totalCount || nonZeroEntries.length === 0) {
                     summaryElement.textContent = 'Aucun risque filtré à analyser.';
                 } else if (nonZeroEntries.length === 1) {
                     const [top] = nonZeroEntries;
-                    summaryElement.textContent = `Le processus ${top.label} concentre 100 % des risques filtrés avec un score net moyen de ${formatScore(top.average)}.`;
+                    summaryElement.textContent = `Le processus ${top.label} concentre 100 % des risques filtrés avec un score médian (${scoreDescriptor}) de ${formatScore(top.median)}.`;
                 } else {
                     const [first, second] = nonZeroEntries;
-                    const shareCount = nonZeroEntries.slice(0, 2).reduce((sum, entry) => sum + entry.count, 0);
-                    const share = Math.round((shareCount / totalCount) * 100);
-                    summaryElement.textContent = `Les processus ${first.label} et ${second.label} concentrent ${share}% des risques filtrés avec des scores nets moyens de ${formatScore(first.average)} et ${formatScore(second.average)}.`;
+                    const share = Math.round(((first.count + second.count) / totalCount) * 100);
+                    summaryElement.textContent = `Les processus ${first.label} et ${second.label} regroupent ${share}% des risques filtrés avec des scores médians (${scoreDescriptor}) de ${formatScore(first.median)} et ${formatScore(second.median)}.`;
                 }
             }
         }

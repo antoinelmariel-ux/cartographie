@@ -908,6 +908,21 @@ function bindEvents() {
         enforceNetLimits();
     }
 
+    const processScoreModeSelect = document.getElementById('processScoreMode');
+    if (processScoreModeSelect) {
+        processScoreModeSelect.addEventListener('change', (event) => {
+            if (!window.rms) {
+                return;
+            }
+
+            const selected = event.target.value === 'brut' ? 'brut' : 'net';
+            if (rms.processScoreMode !== selected) {
+                rms.processScoreMode = selected;
+                rms.updateDashboard();
+            }
+        });
+    }
+
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.control-action-btn.edit');
         if (editBtn) {
