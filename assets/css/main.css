@@ -719,6 +719,19 @@ body {
     transform-origin: center;
 }
 
+.app-footer {
+    margin-top: 40px;
+    padding: 20px 10px;
+    text-align: center;
+    color: #7f8c8d;
+    font-size: 0.9em;
+}
+
+.app-footer .app-version {
+    font-weight: 600;
+    color: #2c3e50;
+}
+
 /* Risk Details Panel */
 .risk-details-panel {
     flex: 1;

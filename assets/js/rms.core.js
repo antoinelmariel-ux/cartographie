@@ -1306,14 +1306,14 @@ class RiskManagementSystem {
         
         grid.innerHTML = '';
         
-        for (let row = 4; row >= 1; row--) {
-            for (let col = 1; col <= 4; col++) {
+        for (let impact = 4; impact >= 1; impact--) {
+            for (let prob = 1; prob <= 4; prob++) {
                 const cell = document.createElement('div');
                 cell.className = 'matrix-cell';
-                cell.dataset.probability = row;
-                cell.dataset.impact = col;
-                
-                const riskLevel = row * col;
+                cell.dataset.probability = prob;
+                cell.dataset.impact = impact;
+
+                const riskLevel = prob * impact;
                 if (riskLevel <= 4) cell.classList.add('level-1');
                 else if (riskLevel <= 8) cell.classList.add('level-2');
                 else if (riskLevel <= 12) cell.classList.add('level-3');
@@ -1365,8 +1365,8 @@ class RiskManagementSystem {
                 impact = risk.impactPost;
             }
 
-            const leftPercent = ((impact - 0.5) / 4) * 100;
-            const bottomPercent = ((prob - 0.5) / 4) * 100;
+            const leftPercent = ((prob - 0.5) / 4) * 100;
+            const bottomPercent = ((impact - 0.5) / 4) * 100;
 
             // Calculate offset so that points do not overlap
             const key = `${prob}-${impact}`;
