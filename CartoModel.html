@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -276,8 +276,8 @@
                         <div class="matrix-wrapper">
                             <div class="matrix">
                                 <div class="matrix-grid" id="matrixGrid"></div>
-                                <div class="axis-label x-axis">Impact →</div>
-                                <div class="axis-label y-axis">Probabilité →</div>
+                                <div class="axis-label x-axis">Probabilité →</div>
+                                <div class="axis-label y-axis">Impact ↑</div>
                             </div>
                             
                             <div class="risk-details-panel">
@@ -576,7 +576,10 @@
                     <div id="configurationContainer"></div>
                 </div>
             </div>
-    </div>
+        </div>
+        <footer class="app-footer">
+            <span class="app-version">Version 2.1.0</span>
+        </footer>
     </div>
 
     <!-- Control Form Modal -->
@@ -893,8 +896,8 @@
                                 <div class="edit-matrix-container">
                                     <div class="matrix edit-matrix" id="riskMatrixEdit">
                                         <div class="matrix-grid" id="riskMatrixEditGrid"></div>
-                                        <div class="axis-label x-axis">Impact →</div>
-                                        <div class="axis-label y-axis">Probabilité →</div>
+                                        <div class="axis-label x-axis">Probabilité →</div>
+                                        <div class="axis-label y-axis">Impact ↑</div>
                                     </div>
                                 </div>
                                 <div id="matrixDescription" class="matrix-description">

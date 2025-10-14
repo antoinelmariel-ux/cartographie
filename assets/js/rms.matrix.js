@@ -152,8 +152,8 @@ function positionRiskPoint(state, prob, impact) {
 
     const cellWidth = rect.width / 4;
     const cellHeight = rect.height / 4;
-    const left = (impact - 0.5) * cellWidth;
-    const top = (4 - prob + 0.5) * cellHeight;
+    const left = (prob - 0.5) * cellWidth;
+    const top = (4 - impact + 0.5) * cellHeight;
 
     point.style.left = `${left}px`;
     point.style.top = `${top}px`;
@@ -269,10 +269,10 @@ function getCellFromEvent(event, matrix) {
         return null;
     }
 
-    const col = Math.min(4, Math.max(1, Math.ceil(x / (rect.width / 4))));
+    const prob = Math.min(4, Math.max(1, Math.ceil(x / (rect.width / 4))));
     const rowIndex = Math.min(3, Math.max(0, Math.floor(y / (rect.height / 4))));
-    const prob = 4 - rowIndex;
-    return { prob, impact: col };
+    const impact = 4 - rowIndex;
+    return { prob, impact };
 }
 
 function startPointDrag(event) {
@@ -325,8 +325,8 @@ function initRiskEditMatrix() {
 
     grid.innerHTML = '';
 
-    for (let prob = 4; prob >= 1; prob--) {
-        for (let impact = 1; impact <= 4; impact++) {
+    for (let impact = 4; impact >= 1; impact--) {
+        for (let prob = 1; prob <= 4; prob++) {
             const cell = document.createElement('div');
             cell.className = 'matrix-cell';
             cell.dataset.probability = prob;
