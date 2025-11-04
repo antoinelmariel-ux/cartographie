@@ -714,9 +714,18 @@ body {
 
 .axis-label.y-axis {
     top: 50%;
-    left: -3rem;
+    left: -4.5rem;
     transform: translateY(-50%) rotate(-90deg);
     transform-origin: center;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.axis-label.y-axis .axis-arrow {
+    display: inline-block;
+    transform: rotate(90deg);
 }
 
 .app-footer {
