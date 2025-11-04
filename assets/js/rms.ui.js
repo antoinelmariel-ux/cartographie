@@ -172,11 +172,16 @@ function applyControlFilters(filterKey, value, sourceElement) {
 
     const normalizedValue = value == null ? '' : String(value);
 
+    const defaultFilters = { type: '', origin: '', status: '', search: '' };
     if (!rms.controlFilters) {
-        rms.controlFilters = { type: '', status: '', search: '' };
+        rms.controlFilters = { ...defaultFilters };
+    } else {
+        rms.controlFilters = { ...defaultFilters, ...rms.controlFilters };
     }
 
-    rms.controlFilters[normalizedKey] = normalizedValue;
+    if (normalizedKey in rms.controlFilters) {
+        rms.controlFilters[normalizedKey] = normalizedValue;
+    }
 
     syncControlFilterWidgets(normalizedKey, normalizedValue, sourceElement);
 
@@ -189,8 +194,11 @@ function searchControls(searchTerm, sourceElement) {
 
     const normalizedValue = searchTerm == null ? '' : String(searchTerm);
 
+    const defaultFilters = { type: '', origin: '', status: '', search: '' };
     if (!rms.controlFilters) {
-        rms.controlFilters = { type: '', status: '', search: '' };
+        rms.controlFilters = { ...defaultFilters };
+    } else {
+        rms.controlFilters = { ...defaultFilters, ...rms.controlFilters };
     }
 
     rms.controlFilters.search = normalizedValue;
@@ -456,17 +464,37 @@ function renderControlSelectionList() {
     const list = document.getElementById('controlList');
     if (!list || !rms) return;
     const query = controlFilterQueryForRisk.toLowerCase();
+    const typeMap = Array.isArray(rms.config?.controlTypes)
+        ? rms.config.controlTypes.reduce((acc, item) => {
+            if (!item || item.value == null) return acc;
+            acc[String(item.value).toLowerCase()] = item.label || item.value;
+            return acc;
+        }, {})
+        : {};
+    const originMap = Array.isArray(rms.config?.controlOrigins)
+        ? rms.config.controlOrigins.reduce((acc, item) => {
+            if (!item || item.value == null) return acc;
+            acc[String(item.value).toLowerCase()] = item.label || item.value;
+            return acc;
+        }, {})
+        : {};
     list.innerHTML = rms.controls.filter(ctrl => {
         const name = (ctrl.name || '').toLowerCase();
         return String(ctrl.id).includes(query) || name.includes(query);
     }).map(ctrl => {
         const isSelected = selectedControlsForRisk.includes(ctrl.id);
+        const typeKey = ctrl?.type != null ? String(ctrl.type).toLowerCase() : '';
+        const typeLabel = typeKey ? (typeMap[typeKey] || ctrl.type || '') : '';
+        const originKey = ctrl?.origin != null ? String(ctrl.origin).toLowerCase() : '';
+        const originLabel = originKey ? (originMap[originKey] || ctrl.origin || '') : '';
+        const ownerLabel = ctrl?.owner || '';
+        const controlName = ctrl?.name || 'Sans nom';
         return `
             <div class="risk-list-item">
               <input type="checkbox" id="control-${ctrl.id}" ${isSelected ? 'checked' : ''} onchange="toggleControlSelection(${ctrl.id})">
               <div class="risk-item-info">
-                <div class="risk-item-title">#${ctrl.id} - ${ctrl.name}</div>
-                <div class="risk-item-meta">Type: ${ctrl.type || ''} | Propriétaire: ${ctrl.owner || ''}</div>
+                <div class="risk-item-title">#${ctrl.id} - ${controlName}</div>
+                <div class="risk-item-meta">Type: ${typeLabel || 'Non défini'} | Origine: ${originLabel || 'Non définie'} | Propriétaire: ${ownerLabel || 'Non défini'}</div>
               </div>
             </div>`;
     }).join('');

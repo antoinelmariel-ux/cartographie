@@ -98,6 +98,7 @@ class RiskManagementSystem {
         };
         this.controlFilters = {
             type: '',
+            origin: '',
             status: '',
             search: ''
         };
@@ -252,6 +253,10 @@ class RiskManagementSystem {
                 { value: 'a-priori', label: 'A priori' },
                 { value: 'a-posteriori', label: 'A posteriori' }
             ],
+            controlOrigins: [
+                { value: 'interne', label: 'Interne' },
+                { value: 'externe', label: 'Externe' }
+            ],
             controlFrequencies: [
                 { value: 'quotidienne', label: 'Quotidienne' },
                 { value: 'mensuelle', label: 'Mensuelle' },
@@ -354,6 +359,31 @@ class RiskManagementSystem {
             } else {
                 this.config.subProcesses[process.value] = this.config.subProcesses[process.value].map(item => ({ ...item }));
             }
+        });
+
+        const simpleArrayKeys = [
+            'riskTypes',
+            'tiers',
+            'controlTypes',
+            'controlOrigins',
+            'controlFrequencies',
+            'controlModes',
+            'controlEffectiveness',
+            'controlStatuses'
+        ];
+
+        simpleArrayKeys.forEach(key => {
+            const baseArray = Array.isArray(baseConfig[key])
+                ? baseConfig[key]
+                : Array.isArray(fallback[key])
+                    ? fallback[key]
+                    : [];
+
+            if (!Array.isArray(baseConfig[key]) && baseConfig[key] !== undefined) {
+                updated = true;
+            }
+
+            this.config[key] = baseArray.map(item => item && typeof item === 'object' ? { ...item } : item);
         });
 
         return updated;
@@ -459,11 +489,13 @@ class RiskManagementSystem {
         fill('statut', this.config.riskStatuses, 'Sélectionner...');
         fill('tiers', this.config.tiers);
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
+        fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
         fill('controlMode', this.config.controlModes, 'Sélectionner...');
         fill('controlEffectiveness', this.config.controlEffectiveness, 'Sélectionner...');
         fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
         fill('controlsTypeFilter', this.config.controlTypes, 'Tous les types de contrôle');
+        fill('controlsOriginFilter', this.config.controlOrigins, 'Toutes les origines');
         fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
         fill('planStatus', this.config.actionPlanStatuses, 'Sélectionner...');
         fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'Tous les statuts');
@@ -498,6 +530,7 @@ class RiskManagementSystem {
         };
 
         syncFilterValue('type', this.controlFilters?.type || '');
+        syncFilterValue('origin', this.controlFilters?.origin || '');
         syncFilterValue('status', this.controlFilters?.status || '');
         syncFilterValue('search', this.controlFilters?.search || '');
         syncFilterValue('name', this.actionPlanFilters?.name || '', { attribute: 'data-action-plan-filter' });
@@ -597,6 +630,7 @@ class RiskManagementSystem {
             tiers: 'Tiers',
             riskStatuses: 'Statuts des risques',
             controlTypes: 'Types de contrôle',
+            controlOrigins: 'Origine des contrôles',
             controlFrequencies: 'Fréquences des contrôles',
             controlModes: "Modes d'exécution",
             controlEffectiveness: 'Efficacités',
@@ -2766,23 +2800,29 @@ class RiskManagementSystem {
     // Controls functions
     getFilteredControls() {
         const controls = Array.isArray(this.controls) ? this.controls : [];
-        const { type = '', status = '', search = '' } = this.controlFilters || {};
+        const { type = '', origin = '', status = '', search = '' } = this.controlFilters || {};
 
         const typeFilter = String(type || '').toLowerCase();
+        const originFilter = String(origin || '').toLowerCase();
         const statusFilter = String(status || '').toLowerCase();
         const searchTerm = String(search || '').trim().toLowerCase();
 
-        if (!typeFilter && !statusFilter && !searchTerm) {
+        if (!typeFilter && !originFilter && !statusFilter && !searchTerm) {
             return controls.slice();
         }
 
         return controls.filter(control => {
             const controlType = String(control?.type || '').toLowerCase();
+            const controlOrigin = String(control?.origin || '').toLowerCase();
             const controlStatus = String(control?.status || '').toLowerCase();
             const controlName = String(control?.name || '').toLowerCase();
             const controlOwner = String(control?.owner || '').toLowerCase();
 
             if (typeFilter && controlType !== typeFilter) {
+                return false;
+            }
+
+            if (originFilter && controlOrigin !== originFilter) {
                 return false;
             }
 
@@ -2833,6 +2873,13 @@ class RiskManagementSystem {
             return acc;
         }, {});
 
+        const originMap = (this.config.controlOrigins || []).reduce((acc, item) => {
+            if (item && item.value !== undefined && item.value !== null) {
+                acc[String(item.value).toLowerCase()] = item.label || item.value;
+            }
+            return acc;
+        }, {});
+
         const statusMap = (this.config.controlStatuses || []).reduce((acc, item) => {
             if (item && item.value !== undefined && item.value !== null) {
                 acc[String(item.value).toLowerCase()] = item.label || item.value;
@@ -2846,6 +2893,10 @@ class RiskManagementSystem {
             const normalizedType = rawType ? String(rawType).toLowerCase() : '';
             const typeLabel = normalizedType ? (typeMap[normalizedType] || rawType) : 'Non défini';
             const typeClass = normalizedType ? normalizedType.replace(/[^a-z0-9-]+/g, '-') : 'type-undefined';
+            const rawOrigin = control?.origin ?? '';
+            const normalizedOrigin = rawOrigin ? String(rawOrigin).toLowerCase() : '';
+            const originLabel = normalizedOrigin ? (originMap[normalizedOrigin] || rawOrigin) : '';
+            const originClass = normalizedOrigin ? normalizedOrigin.replace(/[^a-z0-9-]+/g, '-') : 'origin-undefined';
             const ownerLabel = control?.owner || '';
             const rawStatus = control?.status ?? '';
             const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
@@ -2859,6 +2910,9 @@ class RiskManagementSystem {
                     </div>
                     <div class="controls-table-cell control-type-cell">
                         <span class="control-type-badge ${typeClass}">${typeLabel}</span>
+                    </div>
+                    <div class="controls-table-cell control-origin-cell">
+                        ${originLabel ? `<span class="control-origin-badge ${originClass}">${originLabel}</span>` : `<span class="text-placeholder">Non définie</span>`}
                     </div>
                     <div class="controls-table-cell control-owner-cell">
                         ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
