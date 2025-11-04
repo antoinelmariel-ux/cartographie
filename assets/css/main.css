@@ -1468,6 +1468,26 @@ tbody tr:hover {
     text-transform: uppercase;
 }
 
+.control-origin-badge {
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.75em;
+    font-weight: 500;
+    text-transform: uppercase;
+    background: rgba(52, 152, 219, 0.08);
+    color: #1f2d3d;
+}
+
+.control-origin-badge.interne {
+    background: rgba(46, 204, 113, 0.15);
+    color: #1e7e34;
+}
+
+.control-origin-badge.externe {
+    background: rgba(230, 126, 34, 0.15);
+    color: #b45715;
+}
+
 .control-type-badge.a-priori {
     background: #e8f5e8;
     color: #27ae60;
@@ -1725,7 +1745,7 @@ tbody tr:hover {
 .controls-table-header,
 .controls-table-row {
     display: grid;
-    grid-template-columns: minmax(220px, 2fr) minmax(110px, 1fr) minmax(180px, 1.2fr) minmax(140px, 1fr) minmax(120px, 0.7fr);
+    grid-template-columns: minmax(220px, 2fr) minmax(110px, 1fr) minmax(120px, 1fr) minmax(180px, 1.2fr) minmax(140px, 1fr) minmax(120px, 0.7fr);
     gap: 16px;
     align-items: center;
     padding: 18px 22px;
@@ -1785,6 +1805,14 @@ tbody tr:hover {
     text-align: center;
 }
 
+.control-origin-cell .control-origin-badge {
+    min-width: 105px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
 .control-owner-cell .control-owner {
     font-weight: 500;
     color: #34495e;
@@ -1820,7 +1848,8 @@ tbody tr:hover {
     font-style: italic;
 }
 
-.control-type-badge.type-undefined {
+.control-type-badge.type-undefined,
+.control-origin-badge.origin-undefined {
     background: rgba(149, 165, 166, 0.12);
     color: #7f8c8d;
 }
@@ -1852,7 +1881,7 @@ tbody tr:hover {
 
     .controls-table-header,
     .controls-table-row {
-        min-width: 720px;
+        min-width: 840px;
     }
 }
 

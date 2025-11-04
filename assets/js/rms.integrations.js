@@ -1377,6 +1377,7 @@ function applyPatch() {
         if (lastControlData) {
           document.getElementById('controlName').value = lastControlData.name || '';
           document.getElementById('controlType').value = lastControlData.type || '';
+          document.getElementById('controlOrigin').value = lastControlData.origin || '';
           document.getElementById('controlOwner').value = lastControlData.owner || '';
           document.getElementById('controlFrequency').value = lastControlData.frequency || '';
           document.getElementById('controlMode').value = lastControlData.mode || '';
@@ -1404,6 +1405,7 @@ function applyPatch() {
 
         document.getElementById('controlName').value = control.name || '';
         document.getElementById('controlType').value = control.type || '';
+        document.getElementById('controlOrigin').value = control.origin || '';
         document.getElementById('controlOwner').value = control.owner || '';
         document.getElementById('controlFrequency').value = control.frequency || '';
         document.getElementById('controlMode').value = control.mode || '';
@@ -1540,6 +1542,7 @@ function applyPatch() {
         const controlData = {
           name: formData.get('name'),
           type: formData.get('type'),
+          origin: formData.get('origin'),
           owner: formData.get('owner'),
           frequency: formData.get('frequency'),
           mode: formData.get('mode'),
@@ -1549,7 +1552,7 @@ function applyPatch() {
           risks: [...selectedRisksForControl]
         };
 
-        if (!controlData.name || !controlData.type || !controlData.owner || !controlData.frequency ||
+        if (!controlData.name || !controlData.type || !controlData.origin || !controlData.owner || !controlData.frequency ||
             !controlData.mode || !controlData.effectiveness || !controlData.status) {
           alert('Veuillez remplir tous les champs obligatoires (marqués d\'un *)');
           return;

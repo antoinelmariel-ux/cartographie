@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.2</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -402,6 +402,12 @@
                             </select>
                         </div>
                         <div class="filter-group">
+                            <label class="filter-label" for="controlsOriginFilter">Origine</label>
+                            <select id="controlsOriginFilter" class="filter-select" data-filter-key="origin" onchange="applyControlFilters('origin', this.value, this)">
+                                <option value="">Toutes les origines</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
                             <label class="filter-label" for="controlsStatusFilter">Statut</label>
                             <select id="controlsStatusFilter" class="filter-select" data-filter-key="status" onchange="applyControlFilters('status', this.value, this)">
                                 <option value="">Tous les statuts</option>
@@ -414,10 +420,11 @@
                     </div>
                     <div class="controls-section">
                         <div class="form-section-title">Contrôles Actifs</div>
-                        <div class="controls-table">
+                            <div class="controls-table">
                             <div class="controls-table-header">
                                 <div>Nom du contrôle</div>
                                 <div>Type</div>
+                                <div>Origine</div>
                                 <div>Propriétaire</div>
                                 <div>Statut</div>
                                 <div class="controls-table-actions">Actions</div>
@@ -581,7 +588,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.1</span>
+            <span class="app-version">Version 2.1.2</span>
         </footer>
     </div>
 
@@ -618,6 +625,13 @@
                             <div class="form-group">
                                 <label class="form-label required" for="controlType">Type de contrôle</label>
                                 <select class="form-select" id="controlType" name="type" required>
+                                    <option value="">Sélectionner...</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label required" for="controlOrigin">Origine</label>
+                                <select class="form-select" id="controlOrigin" name="origin" required>
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
