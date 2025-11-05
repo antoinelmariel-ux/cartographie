@@ -2599,6 +2599,13 @@ tbody tr:hover {
     color: #1f2a37;
 }
 
+.process-card-actions {
+    margin-left: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .process-title-input:focus,
 .subprocess-title-input:focus,
 .process-insert-input:focus,
@@ -2615,6 +2622,49 @@ tbody tr:hover {
     font-size: 0.8rem;
     padding: 4px 10px;
     border-radius: 999px;
+}
+
+.process-card-toggle {
+    border: none;
+    background: #eef2f7;
+    color: #2c3e50;
+    cursor: pointer;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s ease, color 0.2s ease;
+}
+
+.process-card-toggle:hover,
+.process-card-toggle:focus-visible {
+    outline: none;
+    background: #dbe6f5;
+    color: #1f2a37;
+}
+
+.process-card-toggle:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+    background: #f0f4fb;
+    color: #7f8c8d;
+}
+
+.process-card-toggle-icon::before {
+    content: '▾';
+    font-size: 1rem;
+    transition: transform 0.2s ease;
+}
+
+.process-card.is-collapsed .process-card-toggle-icon::before,
+.process-card-toggle.is-collapsed .process-card-toggle-icon::before {
+    transform: rotate(-90deg);
+}
+
+.process-card.is-collapsed .subprocess-section {
+    display: none;
 }
 
 .icon-button {
