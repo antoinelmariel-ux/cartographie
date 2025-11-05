@@ -185,7 +185,8 @@ function writeDashboardPdfContent(writer, data) {
             const processLabel = risk.sousProcessus
                 ? `${risk.processus} / ${risk.sousProcessus}`
                 : risk.processus;
-            writer.addBullet(`${risk.rank}. ${risk.titre} - ${processLabel} (Score ${formatNumber(risk.score)}, P${risk.probNet} x I${risk.impactNet})`);
+            const effectiveness = risk.effectivenessLabel ? ` (${risk.effectivenessLabel})` : '';
+            writer.addBullet(`${risk.rank}. ${risk.titre} - ${processLabel} (Brut ${formatNumber(risk.brutScore)} → Net ${formatNumber(risk.score)}, Réduction ${risk.reduction}%${effectiveness})`);
         });
         if (topRisks.length > maxRisks) {
             writer.addParagraph(`... et ${topRisks.length - maxRisks} risques supplémentaires dans l'application.`);
@@ -1131,6 +1132,16 @@ function applyPatch() {
                       ),
                       impactBrut
                     );
+                    const mitigationEffectivenessRaw = toText(
+                      accessor.get(
+                        'mitigationEffectiveness',
+                        'efficaciteMitigation',
+                        'efficaciteMesures',
+                        'niveauEfficacite',
+                        'mitigation_level'
+                      ),
+                      ''
+                    );
                     const statut = toText(
                       accessor.get('statut', 'status', 'etat', 'state', 'riskStatus'),
                       'brouillon'
@@ -1194,6 +1205,12 @@ function applyPatch() {
                       group1: aggravatingGroup1,
                       group2: aggravatingGroup2
                     };
+
+                    if (mitigationEffectivenessRaw) {
+                      risk.mitigationEffectiveness = typeof normalizeMitigationEffectiveness === 'function'
+                        ? normalizeMitigationEffectiveness(mitigationEffectivenessRaw)
+                        : mitigationEffectivenessRaw;
+                    }
 
                     if (aggravatingCoefficient !== undefined) {
                       risk.aggravatingCoefficient = aggravatingCoefficient;

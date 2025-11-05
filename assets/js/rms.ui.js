@@ -326,6 +326,14 @@ function addNewRisk() {
             document.getElementById('impactBrut').value = lastRiskData.impactBrut || 1;
             document.getElementById('probNet').value = lastRiskData.probNet || 1;
             document.getElementById('impactNet').value = lastRiskData.impactNet || 1;
+            const mitigationSelect = document.getElementById('mitigationEffectiveness');
+            if (mitigationSelect) {
+                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                    ? DEFAULT_MITIGATION_EFFECTIVENESS
+                    : 'insuffisant';
+                mitigationSelect.value = lastRiskData.mitigationEffectiveness || defaultMitigation;
+                mitigationSelect.onchange = () => calculateScore('net');
+            }
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
             setAggravatingFactorsSelection(lastRiskData.aggravatingFactors || null);
@@ -334,6 +342,14 @@ function addNewRisk() {
             selectedControlsForRisk = [];
             selectedActionPlansForRisk = [];
             setAggravatingFactorsSelection(null);
+            const mitigationSelect = document.getElementById('mitigationEffectiveness');
+            if (mitigationSelect) {
+                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                    ? DEFAULT_MITIGATION_EFFECTIVENESS
+                    : 'insuffisant';
+                mitigationSelect.value = defaultMitigation;
+                mitigationSelect.onchange = () => calculateScore('net');
+            }
         }
 
         if (statutSelect) {
@@ -401,6 +417,7 @@ function saveRisk() {
         impactBrut: parseInt(document.getElementById('impactBrut').value),
         probNet: parseInt(document.getElementById('probNet').value),
         impactNet: parseInt(document.getElementById('impactNet').value),
+        mitigationEffectiveness: document.getElementById('mitigationEffectiveness').value,
         aggravatingFactors,
         aggravatingCoefficient,
         controls: [...selectedControlsForRisk],

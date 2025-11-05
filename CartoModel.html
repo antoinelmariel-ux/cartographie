@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.4.2</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.5.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -314,9 +314,11 @@
                             <div class="matrix-wrapper">
                                 <div class="matrix">
                                     <div class="matrix-grid" id="matrixGridNet"></div>
-                                    <div class="axis-label x-axis">Probabilité →</div>
+                                    <div class="matrix-net-row-labels" id="matrixNetRowLabels"></div>
+                                    <div class="matrix-net-col-labels" id="matrixNetColLabels"></div>
+                                    <div class="axis-label x-axis">Efficacité des mesures →</div>
                                     <div class="axis-label y-axis">
-                                        <span class="axis-text">Impact</span>
+                                        <span class="axis-text">Niveau de risque brut</span>
                                         <span class="axis-arrow" aria-hidden="true">↑</span>
                                     </div>
                                 </div>
@@ -626,7 +628,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.4.3</span>
+            <span class="app-version">Version 2.5.1</span>
         </footer>
     </div>
 
@@ -1036,6 +1038,15 @@
                                     <div class="risk-score-title">Risque Net</div>
                                     <div class="risk-score-value" id="scoreNet">Score: 1</div>
                                     <div class="risk-score-meta" id="coordNet">P1 × I1</div>
+                                </div>
+                            </div>
+                            <div class="form-grid" style="margin-top: 10px;">
+                                <div class="form-group" style="grid-column: 1 / -1;">
+                                    <label class="form-label required" for="mitigationEffectiveness">Efficacité des mesures de maîtrise</label>
+                                    <select class="form-select" id="mitigationEffectiveness" required>
+                                        <option value="">Sélectionner...</option>
+                                    </select>
+                                    <p class="form-helper">Indiquez le niveau d'efficacité des dispositifs existants pour calculer le risque net.</p>
                                 </div>
                             </div>
                             <input type="hidden" id="probBrut" value="1">
