@@ -2136,6 +2136,70 @@ tbody tr:hover {
 }
 }
 
+.config-tabbar {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 24px;
+    border-bottom: 1px solid #e0e6ed;
+    padding-bottom: 4px;
+}
+
+.config-tab-button {
+    position: relative;
+    border: none;
+    background: transparent;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    padding: 10px 16px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    transition: color 0.2s ease, background 0.2s ease;
+}
+
+.config-tab-button:hover,
+.config-tab-button:focus-visible {
+    color: var(--primary-color);
+    background: rgba(52, 152, 219, 0.08);
+    outline: none;
+}
+
+.config-tab-button.active {
+    color: #1f2937;
+    background: #fff;
+    box-shadow: 0 -1px 0 #fff inset, 0 2px 6px rgba(15, 23, 42, 0.12);
+}
+
+.config-tab-button.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -5px;
+    height: 3px;
+    background: var(--primary-color);
+    border-radius: 999px;
+}
+
+.config-panels {
+    background: #fff;
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.08);
+}
+
+.config-panel {
+    display: none;
+}
+
+.config-panel.active {
+    display: block;
+}
+
+.config-panel[hidden] {
+    display: none !important;
+}
+
 .config-accordion {
     display: flex;
     flex-direction: column;

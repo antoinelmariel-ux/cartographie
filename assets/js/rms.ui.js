@@ -41,10 +41,67 @@ function switchTab(tabNameOrEvent, maybeTabName) {
 
     if (window.rms) {
         rms.currentTab = tabName;
+        if (tabName === 'config') {
+            const section = rms.currentConfigSection || 'process-manager';
+            setActiveConfigSection(section);
+        }
         rms.renderAll();
+    } else if (tabName === 'config') {
+        setActiveConfigSection('process-manager');
     }
 }
 window.switchTab = switchTab;
+
+function setActiveConfigSection(sectionId) {
+    const normalized = sectionId === 'reference-data' ? 'reference-data' : 'process-manager';
+    const targetPanelId = `config-${normalized}`;
+
+    document.querySelectorAll('.config-tab-button').forEach(button => {
+        const isMatch = button.dataset.configTarget === normalized;
+        button.classList.toggle('active', isMatch);
+        button.setAttribute('aria-selected', isMatch ? 'true' : 'false');
+    });
+
+    document.querySelectorAll('.config-panel').forEach(panel => {
+        const isMatch = panel.id === targetPanelId;
+        panel.classList.toggle('active', isMatch);
+        panel.hidden = !isMatch;
+    });
+
+    if (window.rms) {
+        rms.currentConfigSection = normalized;
+        if (normalized === 'reference-data' && typeof rms.renderConfiguration === 'function') {
+            rms.renderConfiguration();
+        }
+        if (normalized === 'process-manager' && typeof rms.renderProcessManager === 'function') {
+            rms.renderProcessManager();
+        }
+    }
+}
+window.setActiveConfigSection = setActiveConfigSection;
+
+function openProcessManagerTab(options = {}) {
+    const focusSearch = Boolean(options.focusSearch);
+    if (window.rms) {
+        rms.currentConfigSection = 'process-manager';
+    }
+    const configTabElement = document.getElementById('config-tab');
+    if (!configTabElement?.classList.contains('active')) {
+        switchTab('config');
+    }
+    setActiveConfigSection('process-manager');
+
+    if (focusSearch) {
+        window.requestAnimationFrame(() => {
+            const searchInput = document.getElementById('processSearchInput');
+            if (searchInput) {
+                searchInput.focus();
+                searchInput.select();
+            }
+        });
+    }
+}
+window.openProcessManagerTab = openProcessManagerTab;
 
 function syncRiskFilterWidgets(filterKey, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
@@ -908,23 +965,25 @@ function bindEvents() {
         const hasModifier = e.metaKey || e.ctrlKey;
 
         if (hasModifier && key === 'k') {
-            const searchInput = document.getElementById('processSearchInput');
-            if (searchInput) {
-                e.preventDefault();
-                if (typeof switchTab === 'function') {
-                    switchTab('processes');
-                }
-                searchInput.focus();
-                searchInput.select();
-            }
+            e.preventDefault();
+            openProcessManagerTab({ focusSearch: true });
         }
 
         if (hasModifier && key === 'z' && !e.shiftKey) {
-            if (window.rms && rms.currentTab === 'processes' && typeof rms.undoProcessHierarchy === 'function') {
+            if (window.rms && rms.currentTab === 'config' && rms.currentConfigSection === 'process-manager' && typeof rms.undoProcessHierarchy === 'function') {
                 e.preventDefault();
                 rms.undoProcessHierarchy();
             }
         }
+    });
+
+    document.querySelectorAll('.config-tab-button').forEach(button => {
+        button.addEventListener('click', (event) => {
+            const target = event.currentTarget?.dataset?.configTarget;
+            if (target) {
+                setActiveConfigSection(target);
+            }
+        });
     });
 
     document.querySelectorAll('.modal').forEach(modal => {

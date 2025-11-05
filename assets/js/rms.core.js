@@ -89,7 +89,8 @@ class RiskManagementSystem {
         this.needsConfigStructureRerender = configStructureUpdated;
         this.currentView = 'brut';
         this.processScoreMode = 'net';
-        this.currentTab = 'processes';
+        this.currentTab = 'config';
+        this.currentConfigSection = 'process-manager';
         this.filters = {
             process: '',
             type: '',
@@ -156,9 +157,7 @@ class RiskManagementSystem {
             this.renderConfiguration();
         }
 
-        if (this.currentTab === 'processes') {
-            this.renderProcessManager();
-        }
+        this.renderProcessManager();
     }
 
     getDefaultRisks() {

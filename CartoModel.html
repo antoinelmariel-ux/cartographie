@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.2.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.3.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -40,8 +40,8 @@
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
             <div class="tabs-container">
-                <button class="tab active" onclick="switchTab('processes')">
-                    🧭 Administration - Processus
+                <button class="tab active" onclick="switchTab('config')">
+                    ⚙️ Configuration
                 </button>
                 <button class="tab" onclick="switchTab('dashboard')">
                     📊 Tableau de Bord
@@ -65,50 +65,6 @@
                 <button class="tab" onclick="switchTab('history')">
                     📜 Historique
                 </button>
-                <button class="tab" onclick="switchTab('config')">
-                    ⚙️ Configuration
-                </button>
-            </div>
-        </div>
-
-        <!-- Process Management Tab Content -->
-        <div id="processes-tab" class="tab-content active">
-            <div class="process-admin">
-                <div class="process-toolbar">
-                    <div class="process-search-group">
-                        <span class="process-search-shortcut" aria-hidden="true">⌘/Ctrl+K</span>
-                        <input type="search" id="processSearchInput" class="process-search-input" placeholder="Rechercher un processus, un sous-processus ou un référent..." autocomplete="off">
-                    </div>
-                    <div class="process-toolbar-actions">
-                        <button class="btn btn-outline" id="processFiltersToggle" type="button">Filtres</button>
-                        <button class="btn btn-primary" id="newProcessButton" type="button">Nouveau processus</button>
-                    </div>
-                </div>
-                <div class="process-filters-panel" id="processFiltersPanel" hidden>
-                    <div class="process-filter-fields">
-                        <div class="process-filter-field">
-                            <label class="process-filter-label" for="processFilterTitle">Titre</label>
-                            <input type="text" id="processFilterTitle" class="process-filter-input" placeholder="Ex. Achats">
-                        </div>
-                        <div class="process-filter-field">
-                            <label class="process-filter-label" for="processFilterReferentInput">Référent(s)</label>
-                            <div class="process-filter-referents" id="processFilterReferents">
-                                <div class="process-filter-chip-input" data-role="referent-filter-input">
-                                    <input type="text" id="processFilterReferentInput" placeholder="Ajouter un référent" autocomplete="off">
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="process-filter-actions">
-                        <button class="btn btn-secondary" type="button" id="processFiltersReset">Réinitialiser</button>
-                        <button class="btn btn-success" type="button" id="processFiltersApply">Appliquer</button>
-                    </div>
-                </div>
-                <div class="process-active-filters" id="processActiveFilters" aria-live="polite"></div>
-                <div class="process-content" id="processContentArea">
-                    <div class="process-state" id="processStateContainer"></div>
-                    <div class="process-tree" id="processTreeContainer" role="tree"></div>
-                </div>
             </div>
         </div>
 
@@ -606,7 +562,7 @@
                 </div>
             </div>
         </div>
-        <div id="config-tab" class="tab-content">
+        <div id="config-tab" class="tab-content active">
             <div class="main-content">
                 <div class="toolbar">
                     <div class="toolbar-title">Configuration</div>
@@ -620,19 +576,66 @@
                     </div>
                 </div>
                 <div class="content-area">
-                    <div class="config-helper" style="margin-bottom: 1.5rem;">
-                        <p>
-                            💡 Exportez vos données pour les transférer manuellement vers un autre navigateur puis
-                            importez le fichier <code>cartographie-donnees.json</code> afin de restaurer l'état complet de votre
-                            cartographie.
-                        </p>
+                    <div class="config-tabbar" role="tablist">
+                        <button class="config-tab-button active" id="config-tab-process-manager" type="button" data-config-target="process-manager" aria-selected="true" role="tab">Gestion des processus</button>
+                        <button class="config-tab-button" id="config-tab-reference-data" type="button" data-config-target="reference-data" aria-selected="false" role="tab">Données de référence</button>
                     </div>
-                    <div id="configurationContainer"></div>
+                    <div class="config-panels">
+                        <section id="config-process-manager" class="config-panel active" role="tabpanel" aria-labelledby="config-tab-process-manager">
+                            <div class="process-admin">
+                                <div class="process-toolbar">
+                                    <div class="process-search-group">
+                                        <span class="process-search-shortcut" aria-hidden="true">⌘/Ctrl+K</span>
+                                        <input type="search" id="processSearchInput" class="process-search-input" placeholder="Rechercher un processus, un sous-processus ou un référent..." autocomplete="off">
+                                    </div>
+                                    <div class="process-toolbar-actions">
+                                        <button class="btn btn-outline" id="processFiltersToggle" type="button">Filtres</button>
+                                        <button class="btn btn-primary" id="newProcessButton" type="button">Nouveau processus</button>
+                                    </div>
+                                </div>
+                                <div class="process-filters-panel" id="processFiltersPanel" hidden>
+                                    <div class="process-filter-fields">
+                                        <div class="process-filter-field">
+                                            <label class="process-filter-label" for="processFilterTitle">Titre</label>
+                                            <input type="text" id="processFilterTitle" class="process-filter-input" placeholder="Ex. Achats">
+                                        </div>
+                                        <div class="process-filter-field">
+                                            <label class="process-filter-label" for="processFilterReferentInput">Référent(s)</label>
+                                            <div class="process-filter-referents" id="processFilterReferents">
+                                                <div class="process-filter-chip-input" data-role="referent-filter-input">
+                                                    <input type="text" id="processFilterReferentInput" placeholder="Ajouter un référent" autocomplete="off">
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="process-filter-actions">
+                                        <button class="btn btn-secondary" type="button" id="processFiltersReset">Réinitialiser</button>
+                                        <button class="btn btn-success" type="button" id="processFiltersApply">Appliquer</button>
+                                    </div>
+                                </div>
+                                <div class="process-active-filters" id="processActiveFilters" aria-live="polite"></div>
+                                <div class="process-content" id="processContentArea">
+                                    <div class="process-state" id="processStateContainer"></div>
+                                    <div class="process-tree" id="processTreeContainer" role="tree"></div>
+                                </div>
+                            </div>
+                        </section>
+                        <section id="config-reference-data" class="config-panel" role="tabpanel" aria-labelledby="config-tab-reference-data" hidden>
+                            <div class="config-helper" style="margin-bottom: 1.5rem;">
+                                <p>
+                                    💡 Exportez vos données pour les transférer manuellement vers un autre navigateur puis
+                                    importez le fichier <code>cartographie-donnees.json</code> afin de restaurer l'état complet de votre
+                                    cartographie.
+                                </p>
+                            </div>
+                            <div id="configurationContainer"></div>
+                        </section>
+                    </div>
                 </div>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.2.0</span>
+            <span class="app-version">Version 2.3.0</span>
         </footer>
     </div>
 
