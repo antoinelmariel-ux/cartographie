@@ -2,26 +2,28 @@
 
 const RISK_PROBABILITY_INFO = {
     1: {
-        label: 'Très rare',
-        text: "Situation exceptionnelle nécessitant une combinaison d'événements peu plausibles et sans cas recensé récemment."
+        label: 'Peu probable',
+        text: "Evénement non survenu sur les 5 dernières années. Evénement non attendu sur les 5 prochaines années"
     },
     2: {
-        label: 'Peu probable',
-        text: "Peut survenir de façon isolée lorsque plusieurs facteurs se cumulent ; occurrence envisageable à moyen terme."
+        label: 'Moyennement probable',
+        text: "Evénement survenu 1 fois au cours des 5 dernières années. Evénement pouvant survenir 1 fois au cours des 5 prochaines années"
     },
     3: {
         label: 'Probable',
-        text: "Déjà observé ponctuellement ; les conditions favorables existent et les signaux faibles sont identifiés."
+        text: "Evénement survenu 1 fois au cours de l’année passée. Evénement pouvant survenir 1 fois au cours de l’année à venir
+"
     },
     4: {
         label: 'Très probable',
-        text: "Événement attendu à court terme en l'absence d'action ; les contrôles actuels ne suffisent pas à le prévenir."
+        text: "Evénement survenu plusieurs fois au cours de l’année passée. Evénement attendu 1 ou plusieurs fois au cours de l’année à venir
+"
     }
 };
 
 const RISK_IMPACT_INFO = {
     1: {
-        label: 'Mineur',
+        label: 'Faible',
         text: "Conséquences limitées, facilement réversibles et sans effet notable sur les activités ou la réputation."
     },
     2: {
@@ -29,7 +31,7 @@ const RISK_IMPACT_INFO = {
         text: "Incident gérable avec des efforts supplémentaires ; impacts financiers ou opérationnels contenus."
     },
     3: {
-        label: 'Majeur',
+        label: 'Fort',
         text: "Perturbation significative de l'activité ou des relations externes avec exposition médiatique possible."
     },
     4: {
