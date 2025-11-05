@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.2</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.2.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -40,7 +40,10 @@
         <!-- Navigation Tabs -->
         <div class="nav-tabs">
             <div class="tabs-container">
-                <button class="tab active" onclick="switchTab('dashboard')">
+                <button class="tab active" onclick="switchTab('processes')">
+                    🧭 Administration - Processus
+                </button>
+                <button class="tab" onclick="switchTab('dashboard')">
                     📊 Tableau de Bord
                     <span class="tab-badge">0</span>
                 </button>
@@ -68,8 +71,49 @@
             </div>
         </div>
 
+        <!-- Process Management Tab Content -->
+        <div id="processes-tab" class="tab-content active">
+            <div class="process-admin">
+                <div class="process-toolbar">
+                    <div class="process-search-group">
+                        <span class="process-search-shortcut" aria-hidden="true">⌘/Ctrl+K</span>
+                        <input type="search" id="processSearchInput" class="process-search-input" placeholder="Rechercher un processus, un sous-processus ou un référent..." autocomplete="off">
+                    </div>
+                    <div class="process-toolbar-actions">
+                        <button class="btn btn-outline" id="processFiltersToggle" type="button">Filtres</button>
+                        <button class="btn btn-primary" id="newProcessButton" type="button">Nouveau processus</button>
+                    </div>
+                </div>
+                <div class="process-filters-panel" id="processFiltersPanel" hidden>
+                    <div class="process-filter-fields">
+                        <div class="process-filter-field">
+                            <label class="process-filter-label" for="processFilterTitle">Titre</label>
+                            <input type="text" id="processFilterTitle" class="process-filter-input" placeholder="Ex. Achats">
+                        </div>
+                        <div class="process-filter-field">
+                            <label class="process-filter-label" for="processFilterReferentInput">Référent(s)</label>
+                            <div class="process-filter-referents" id="processFilterReferents">
+                                <div class="process-filter-chip-input" data-role="referent-filter-input">
+                                    <input type="text" id="processFilterReferentInput" placeholder="Ajouter un référent" autocomplete="off">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="process-filter-actions">
+                        <button class="btn btn-secondary" type="button" id="processFiltersReset">Réinitialiser</button>
+                        <button class="btn btn-success" type="button" id="processFiltersApply">Appliquer</button>
+                    </div>
+                </div>
+                <div class="process-active-filters" id="processActiveFilters" aria-live="polite"></div>
+                <div class="process-content" id="processContentArea">
+                    <div class="process-state" id="processStateContainer"></div>
+                    <div class="process-tree" id="processTreeContainer" role="tree"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Dashboard Tab Content -->
-        <div id="dashboard-tab" class="tab-content active">
+        <div id="dashboard-tab" class="tab-content">
             <div class="main-content">
                 <div class="toolbar">
                     <div class="toolbar-title">Vue d'ensemble</div>
@@ -588,7 +632,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.2</span>
+            <span class="app-version">Version 2.2.0</span>
         </footer>
     </div>
 
