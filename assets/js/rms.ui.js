@@ -903,28 +903,6 @@ function bindEvents() {
                 modal.classList.remove('show');
             });
         }
-
-        const key = typeof e.key === 'string' ? e.key.toLowerCase() : '';
-        const hasModifier = e.metaKey || e.ctrlKey;
-
-        if (hasModifier && key === 'k') {
-            const searchInput = document.getElementById('processSearchInput');
-            if (searchInput) {
-                e.preventDefault();
-                if (typeof switchTab === 'function') {
-                    switchTab('processes');
-                }
-                searchInput.focus();
-                searchInput.select();
-            }
-        }
-
-        if (hasModifier && key === 'z' && !e.shiftKey) {
-            if (window.rms && rms.currentTab === 'processes' && typeof rms.undoProcessHierarchy === 'function') {
-                e.preventDefault();
-                rms.undoProcessHierarchy();
-            }
-        }
     });
 
     document.querySelectorAll('.modal').forEach(modal => {
