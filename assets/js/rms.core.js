@@ -491,6 +491,15 @@ class RiskManagementSystem {
 
         normalized.aggravatingCoefficient = coefficient;
 
+        const mitigationLevel = typeof getRiskMitigationEffectiveness === 'function'
+            ? getRiskMitigationEffectiveness(risk)
+            : (typeof normalizeMitigationEffectiveness === 'function'
+                ? normalizeMitigationEffectiveness(risk?.mitigationEffectiveness)
+                : (typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                    ? DEFAULT_MITIGATION_EFFECTIVENESS
+                    : 'insuffisant'));
+        normalized.mitigationEffectiveness = mitigationLevel;
+
         return normalized;
     }
 
@@ -585,6 +594,15 @@ class RiskManagementSystem {
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
         fill('statut', this.config.riskStatuses, 'Sélectionner...');
         fill('tiers', this.config.tiers);
+        const mitigationOptions = typeof getMitigationEffectivenessOptions === 'function'
+            ? getMitigationEffectivenessOptions()
+            : [
+                { value: 'inefficace', label: 'Inefficace' },
+                { value: 'insuffisant', label: 'Insuffisant' },
+                { value: 'ameliorable', label: 'Améliorable' },
+                { value: 'efficace', label: 'Efficace' }
+            ];
+        fill('mitigationEffectiveness', mitigationOptions, 'Sélectionner...');
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -2605,17 +2623,9 @@ class RiskManagementSystem {
 
     // Matrix functions
     initializeMatrix() {
-        const viewConfigs = {
-            brut: { gridId: 'matrixGridBrut' },
-            net: { gridId: 'matrixGridNet' }
-        };
-
-        Object.values(viewConfigs).forEach(({ gridId }) => {
-            const grid = document.getElementById(gridId);
-            if (!grid) return;
-
-            grid.innerHTML = '';
-
+        const brutGrid = document.getElementById('matrixGridBrut');
+        if (brutGrid) {
+            brutGrid.innerHTML = '';
             for (let impact = 4; impact >= 1; impact--) {
                 for (let prob = 1; prob <= 4; prob++) {
                     const cell = document.createElement('div');
@@ -2629,10 +2639,81 @@ class RiskManagementSystem {
                     else if (riskLevel <= 12) cell.classList.add('level-3');
                     else cell.classList.add('level-4');
 
-                    grid.appendChild(cell);
+                    brutGrid.appendChild(cell);
                 }
             }
-        });
+        }
+
+        const netGrid = document.getElementById('matrixGridNet');
+        if (netGrid) {
+            netGrid.innerHTML = '';
+
+            const mitigationOptions = typeof getMitigationEffectivenessOptions === 'function'
+                ? getMitigationEffectivenessOptions()
+                : [
+                    { value: 'inefficace', label: 'Inefficace', coefficient: 0 },
+                    { value: 'insuffisant', label: 'Insuffisant', coefficient: 0.25 },
+                    { value: 'ameliorable', label: 'Améliorable', coefficient: 0.5 },
+                    { value: 'efficace', label: 'Efficace', coefficient: 0.75 }
+                ];
+
+            const brutLevels = [
+                { value: 'critique', label: 'Critique', range: 'Score ≥ 12', reference: 13.5 },
+                { value: 'fort', label: 'Fort', range: '6 ≤ score < 12', reference: 9 },
+                { value: 'modere', label: 'Modéré', range: '3 ≤ score < 6', reference: 4.5 },
+                { value: 'faible', label: 'Faible', range: 'Score < 3', reference: 2 }
+            ];
+
+            const severityClassMap = {
+                faible: 'level-1',
+                modere: 'level-2',
+                fort: 'level-3',
+                critique: 'level-4'
+            };
+
+            const getSeverityClass = (score) => {
+                const level = typeof getRiskSeverityFromScore === 'function'
+                    ? getRiskSeverityFromScore(score)
+                    : (score >= 12 ? 'critique' : score >= 6 ? 'fort' : score >= 3 ? 'modere' : 'faible');
+                return severityClassMap[level] || 'level-1';
+            };
+
+            brutLevels.forEach(level => {
+                mitigationOptions.forEach(option => {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.dataset.brutLevel = level.value;
+                    cell.dataset.effectiveness = option.value;
+                    const coefficient = Number(option.coefficient) || 0;
+                    const referenceScore = level.reference * coefficient;
+                    cell.classList.add(getSeverityClass(referenceScore));
+                    netGrid.appendChild(cell);
+                });
+            });
+
+            const rowLabels = document.getElementById('matrixNetRowLabels');
+            if (rowLabels) {
+                rowLabels.innerHTML = '';
+                brutLevels.forEach(level => {
+                    const label = document.createElement('div');
+                    label.className = 'matrix-net-row-label';
+                    label.innerHTML = `${level.label}<span>${level.range}</span>`;
+                    rowLabels.appendChild(label);
+                });
+            }
+
+            const colLabels = document.getElementById('matrixNetColLabels');
+            if (colLabels) {
+                colLabels.innerHTML = '';
+                mitigationOptions.forEach(option => {
+                    const percent = Math.round((Number(option.coefficient) || 0) * 100);
+                    const label = document.createElement('div');
+                    label.className = 'matrix-net-col-label';
+                    label.innerHTML = `${option.label}<span>Réduction ${percent}%</span>`;
+                    colLabels.appendChild(label);
+                });
+            }
+        }
 
         this.renderRiskPoints();
         this.updateRiskDetailsList();
@@ -2653,17 +2734,27 @@ class RiskManagementSystem {
                 gridId: 'matrixGridBrut',
                 probKey: 'probBrut',
                 impactKey: 'impactBrut',
-                label: 'Risque brut'
+                label: 'Risque brut',
+                mode: 'brut'
             },
             net: {
                 gridId: 'matrixGridNet',
-                probKey: 'probNet',
-                impactKey: 'impactNet',
-                label: 'Risque net'
+                label: 'Risque net',
+                mode: 'net'
             }
         };
 
         const viewSymbols = { brut: 'B', net: 'N' };
+        const mitigationOrder = Array.isArray(MITIGATION_EFFECTIVENESS_ORDER)
+            ? [...MITIGATION_EFFECTIVENESS_ORDER]
+            : ['inefficace', 'insuffisant', 'ameliorable', 'efficace'];
+        const brutLevelsOrder = ['critique', 'fort', 'modere', 'faible'];
+        const severityLabelMap = {
+            critique: 'Critique',
+            fort: 'Fort',
+            modere: 'Modéré',
+            faible: 'Faible'
+        };
 
         Object.entries(viewConfigs).forEach(([viewKey, config]) => {
             const grid = document.getElementById(config.gridId);
@@ -2674,6 +2765,70 @@ class RiskManagementSystem {
             const cellCounts = {};
 
             filteredRisks.forEach(risk => {
+                if (config.mode === 'net') {
+                    const netInfo = typeof getRiskNetInfo === 'function'
+                        ? getRiskNetInfo(risk)
+                        : { score: 0, brutScore: 0, coefficient: 0, effectiveness: 'inefficace', label: 'Inefficace' };
+                    const brutLevel = typeof getRiskBrutLevel === 'function'
+                        ? getRiskBrutLevel(risk)
+                        : (typeof getRiskSeverityFromScore === 'function'
+                            ? getRiskSeverityFromScore(netInfo.brutScore)
+                            : 'faible');
+
+                    const rowIndex = brutLevelsOrder.indexOf(brutLevel);
+                    const colIndex = mitigationOrder.indexOf(netInfo.effectiveness);
+                    if (rowIndex === -1 || colIndex === -1) {
+                        return;
+                    }
+
+                    const leftPercent = ((colIndex + 0.5) / mitigationOrder.length) * 100;
+                    const bottomPercent = ((brutLevelsOrder.length - rowIndex - 0.5) / brutLevelsOrder.length) * 100;
+
+                    const key = `${colIndex}-${rowIndex}`;
+                    const index = cellCounts[key] || 0;
+                    cellCounts[key] = index + 1;
+                    const slots = cellCounts[key];
+                    const gridSize = Math.ceil(Math.sqrt(slots));
+                    const slotIndex = index;
+                    const row = Math.floor(slotIndex / gridSize);
+                    const col = slotIndex % gridSize;
+
+                    const point = document.createElement('div');
+                    point.className = `risk-point ${viewKey}`;
+                    point.dataset.riskId = risk.id;
+
+                    const tooltipSegments = [];
+                    if (risk.description) {
+                        tooltipSegments.push(risk.description);
+                    }
+                    const formattedBrut = Number.isFinite(netInfo.brutScore)
+                        ? netInfo.brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                        : '0';
+                    const formattedNet = Number.isFinite(netInfo.score)
+                        ? netInfo.score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                        : '0';
+                    tooltipSegments.push(`Brut ${formattedBrut} → Net ${formattedNet}`);
+                    tooltipSegments.push(`Réduction ${formatMitigationCoefficient(netInfo.coefficient)} (${netInfo.label})`);
+                    tooltipSegments.push(`Niveau brut : ${severityLabelMap[brutLevel] || brutLevel}`);
+
+                    point.title = tooltipSegments.join(' • ');
+                    point.textContent = viewSymbols[viewKey] || '';
+                    point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
+                    point.onclick = () => this.selectRisk(risk.id);
+                    grid.appendChild(point);
+
+                    const diameter = point.offsetWidth;
+                    const margin = 4;
+                    const step = diameter + margin;
+                    const dx = (col - (gridSize - 1) / 2) * step;
+                    const dy = (row - (gridSize - 1) / 2) * step;
+
+                    point.style.left = `calc(${leftPercent}% + ${dx}px)`;
+                    point.style.bottom = `calc(${bottomPercent}% + ${dy}px)`;
+                    point.style.transform = 'translate(-50%, 50%)';
+                    return;
+                }
+
                 const baseProb = Number(risk?.[config.probKey]);
                 const rawImpact = Number(risk?.[config.impactKey]);
                 if (!Number.isFinite(baseProb) || !Number.isFinite(rawImpact)) {
@@ -2714,7 +2869,7 @@ class RiskManagementSystem {
                 if (risk.description) {
                     tooltipSegments.push(risk.description);
                 }
-                if (viewKey === 'brut' && coefficient > 1) {
+                if (coefficient > 1) {
                     const formattedCoef = typeof formatCoefficient === 'function'
                         ? formatCoefficient(coefficient)
                         : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
@@ -2722,8 +2877,7 @@ class RiskManagementSystem {
                 }
 
                 point.title = tooltipSegments.join(' • ');
-                const symbol = viewSymbols[viewKey] || '';
-                point.textContent = symbol;
+                point.textContent = viewSymbols[viewKey] || '';
                 point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
                 point.onclick = () => this.selectRisk(risk.id);
                 grid.appendChild(point);
@@ -2871,18 +3025,19 @@ class RiskManagementSystem {
                 titleId: 'riskDetailsTitleBrut',
                 probKey: 'probBrut',
                 impactKey: 'impactBrut',
-                title: 'Risques bruts triés par score'
+                title: 'Risques bruts triés par score',
+                mode: 'brut'
             },
             net: {
                 containerId: 'riskDetailsListNet',
                 titleId: 'riskDetailsTitleNet',
-                probKey: 'probNet',
-                impactKey: 'impactNet',
-                title: 'Risques nets triés par score'
+                title: 'Risques nets triés par score',
+                mode: 'net'
             }
         };
 
-        Object.values(viewConfigs).forEach(({ containerId, titleId, probKey, impactKey, title }) => {
+        Object.values(viewConfigs).forEach((config) => {
+            const { containerId, titleId, title, mode } = config;
             const container = document.getElementById(containerId);
             if (!container) return;
 
@@ -2891,26 +3046,29 @@ class RiskManagementSystem {
                 titleElement.textContent = title;
             }
 
-            const isBrutView = probKey === 'probBrut';
-
             const scoredRisks = filteredRisks.map(risk => {
-                const baseProb = Number(risk?.[probKey]) || 0;
-                const impact = Number(risk?.[impactKey]) || 0;
-                const coefficient = isBrutView && typeof getRiskAggravatingCoefficient === 'function'
+                if (mode === 'net') {
+                    const netInfo = typeof getRiskNetInfo === 'function'
+                        ? getRiskNetInfo(risk)
+                        : { score: 0, brutScore: 0, coefficient: 0, label: 'Inefficace', effectiveness: 'inefficace' };
+                    return { risk, score: netInfo.score, brutScore: netInfo.brutScore, coefficient: netInfo.coefficient, label: netInfo.label, effectiveness: netInfo.effectiveness };
+                }
+
+                const baseProb = Number(risk?.[config.probKey]) || 0;
+                const impact = Number(risk?.[config.impactKey]) || 0;
+                const coefficient = typeof getRiskAggravatingCoefficient === 'function'
                     ? getRiskAggravatingCoefficient(risk)
                     : 1;
-                const prob = isBrutView ? baseProb * coefficient : baseProb;
-                return {
-                    risk,
-                    prob,
-                    impact,
-                    coefficient,
-                    score: prob * impact
-                };
+                const prob = baseProb * coefficient;
+                return { risk, prob, impact, coefficient, score: prob * impact };
             }).sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
-                if (b.prob !== a.prob) return b.prob - a.prob;
-                if (b.impact !== a.impact) return b.impact - a.impact;
+                if (mode === 'net') {
+                    if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
+                } else {
+                    if ((b.prob || 0) !== (a.prob || 0)) return (b.prob || 0) - (a.prob || 0);
+                    if ((b.impact || 0) !== (a.impact || 0)) return (b.impact || 0) - (a.impact || 0);
+                }
 
                 const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
                 if (descComparison !== 0) return descComparison;
@@ -2931,7 +3089,8 @@ class RiskManagementSystem {
                 return;
             }
 
-            container.innerHTML = scoredRisks.map(({ risk, score, coefficient }) => {
+            container.innerHTML = scoredRisks.map(entry => {
+                const { risk, score } = entry;
                 let scoreClass = 'low';
                 if (score > 12) scoreClass = 'critical';
                 else if (score > 8) scoreClass = 'high';
@@ -2941,11 +3100,28 @@ class RiskManagementSystem {
                 const formattedScore = Number.isFinite(score)
                     ? score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                     : '0';
-                const coefficientTag = isBrutView && coefficient > 1
-                    ? ` <span class="risk-item-coefficient">Coef ${typeof formatCoefficient === 'function'
-                        ? formatCoefficient(coefficient)
-                        : (Math.round(coefficient * 10) / 10).toString().replace('.', ',')}</span>`
-                    : '';
+
+                let metaDetails = `${risk.processus}${sp}`;
+
+                if (mode === 'brut' && entry.coefficient > 1) {
+                    const coefficientTag = typeof formatCoefficient === 'function'
+                        ? formatCoefficient(entry.coefficient)
+                        : (Math.round(entry.coefficient * 10) / 10).toString().replace('.', ',');
+                    metaDetails += ` <span class="risk-item-coefficient">Coef ${coefficientTag}</span>`;
+                }
+
+                if (mode === 'net') {
+                    const brutValue = Number.isFinite(entry.brutScore)
+                        ? entry.brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                        : '0';
+                    const reductionLabel = typeof formatMitigationCoefficient === 'function'
+                        ? formatMitigationCoefficient(entry.coefficient)
+                        : `${Math.round((entry.coefficient || 0) * 100)}%`;
+                    const effectivenessLabel = entry.label || '';
+                    metaDetails += ` • Brut ${brutValue}`;
+                    metaDetails += ` • Réduction ${reductionLabel}${effectivenessLabel ? ` (${effectivenessLabel})` : ''}`;
+                }
+
                 return `
                     <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
                         <div class="risk-item-header">
@@ -2953,7 +3129,7 @@ class RiskManagementSystem {
                             <span class="risk-item-score ${scoreClass}">${formattedScore}</span>
                         </div>
                         <div class="risk-item-meta">
-                            ${risk.processus}${sp}${coefficientTag}
+                            ${metaDetails}
                         </div>
                     </div>
                 `;
@@ -2983,7 +3159,9 @@ class RiskManagementSystem {
             const brut = typeof getRiskBrutScore === 'function'
                 ? getRiskBrutScore(risk)
                 : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
-            const net = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
+            const net = typeof getRiskNetScore === 'function'
+                ? getRiskNetScore(risk)
+                : (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
 
             return {
                 brut: acc.brut + brut,
@@ -3201,18 +3379,17 @@ class RiskManagementSystem {
         const filteredRisks = this.getFilteredRisks(Array.isArray(validatedRisks) ? validatedRisks : []);
 
         const enrichedRisks = filteredRisks.map(risk => {
-            const probNet = Number(risk?.probNet) || 0;
-            const impactNet = Number(risk?.impactNet) || 0;
-            const score = probNet * impactNet;
-            return { risk, probNet, impactNet, score };
+            const netInfo = typeof getRiskNetInfo === 'function'
+                ? getRiskNetInfo(risk)
+                : { score: 0, brutScore: 0, coefficient: 0, label: 'Inefficace', reduction: 0 };
+            return { risk, score: netInfo.score, brutScore: netInfo.brutScore, coefficient: netInfo.coefficient, label: netInfo.label, reduction: netInfo.reduction };
         }).filter(entry => Number.isFinite(entry.score));
 
         const topRisks = enrichedRisks
             .slice()
             .sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
-                if (b.impactNet !== a.impactNet) return b.impactNet - a.impactNet;
-                if (b.probNet !== a.probNet) return b.probNet - a.probNet;
+                if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
                 const aTitle = a.risk?.titre || a.risk?.description || '';
                 const bTitle = b.risk?.titre || b.risk?.description || '';
                 return aTitle.localeCompare(bTitle, 'fr', { sensitivity: 'base' });
@@ -3229,8 +3406,9 @@ class RiskManagementSystem {
                     processus: risk.processus || 'Non défini',
                     sousProcessus: subProcessLabel,
                     score: Number.isFinite(entry.score) ? entry.score : 0,
-                    probNet: Number.isFinite(entry.probNet) ? entry.probNet : 0,
-                    impactNet: Number.isFinite(entry.impactNet) ? entry.impactNet : 0
+                    brutScore: Number.isFinite(entry.brutScore) ? entry.brutScore : 0,
+                    reduction: Number.isFinite(entry.coefficient) ? Math.round(entry.coefficient * 100) : 0,
+                    effectivenessLabel: entry.label || ''
                 };
             });
 
@@ -3241,14 +3419,14 @@ class RiskManagementSystem {
                 acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
             }
 
-            const probNet = Number(risk?.probNet) || 0;
-            const impactNet = Number(risk?.impactNet) || 0;
-            const score = probNet * impactNet;
+            const netScore = typeof getRiskNetScore === 'function'
+                ? getRiskNetScore(risk)
+                : (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
 
             acc[label].count += 1;
-            if (Number.isFinite(score)) {
-                acc[label].totalScore += score;
-                acc[label].maxScore = Math.max(acc[label].maxScore, score);
+            if (Number.isFinite(netScore)) {
+                acc[label].totalScore += netScore;
+                acc[label].maxScore = Math.max(acc[label].maxScore, netScore);
             }
             return acc;
         }, {});
@@ -3590,17 +3768,20 @@ class RiskManagementSystem {
 
         const severeRisks = sourceRisks
             .filter(risk => {
-                const prob = Number(risk.probNet) || 0;
-                const impact = Number(risk.impactNet) || 0;
-                const score = prob * impact;
+                const score = typeof getRiskNetScore === 'function'
+                    ? getRiskNetScore(risk)
+                    : (Number(risk.probNet) || 0) * (Number(risk.impactNet) || 0);
                 const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
                 return score >= 9 && !hasPlans;
             })
             .map(risk => {
-                const prob = Number(risk.probNet) || 0;
-                const impact = Number(risk.impactNet) || 0;
-                const score = prob * impact;
-                const isCritical = score > 12;
+                const score = typeof getRiskNetScore === 'function'
+                    ? getRiskNetScore(risk)
+                    : (Number(risk.probNet) || 0) * (Number(risk.impactNet) || 0);
+                const severity = typeof getRiskSeverityFromScore === 'function'
+                    ? getRiskSeverityFromScore(score)
+                    : (score > 12 ? 'critique' : score >= 9 ? 'fort' : 'modere');
+                const isCritical = severity === 'critique';
                 const dateValue = risk.dateCreation || risk.date || risk.createdAt;
                 return {
                     id: risk.id,
@@ -3608,8 +3789,6 @@ class RiskManagementSystem {
                     process: risk.processus || risk.process || '-',
                     level: isCritical ? 'Critique' : 'Sévère',
                     score,
-                    probNet: prob,
-                    impactNet: impact,
                     date: dateValue || null,
                     formattedDate: formatDate(dateValue)
                 };
@@ -3751,9 +3930,9 @@ class RiskManagementSystem {
         };
 
         sourceRisks.forEach(risk => {
-            const prob = Number(risk?.probNet) || 0;
-            const impact = Number(risk?.impactNet) || 0;
-            const score = prob * impact;
+            const score = typeof getRiskNetScore === 'function'
+                ? getRiskNetScore(risk)
+                : (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
             if (score > 12) stats.critical++;
             else if (score > 8) stats.high++;
             else if (score > 4) stats.medium++;
@@ -3771,16 +3950,15 @@ class RiskManagementSystem {
         const topRisksContent = document.getElementById('topRisksContent');
         if (topRisksBody && topRisksContent) {
             const enrichedRisks = filteredRisks.map(risk => {
-                const probNet = Number(risk?.probNet) || 0;
-                const impactNet = Number(risk?.impactNet) || 0;
-                const score = probNet * impactNet;
-                return { risk, score, probNet, impactNet };
+                const netInfo = typeof getRiskNetInfo === 'function'
+                    ? getRiskNetInfo(risk)
+                    : { score: 0, brutScore: 0, coefficient: 0, reduction: 0, label: 'Inefficace' };
+                return { risk, score: netInfo.score, brutScore: netInfo.brutScore, coefficient: netInfo.coefficient, reduction: netInfo.reduction, label: netInfo.label };
             }).filter(entry => Number.isFinite(entry.score));
 
             const topRisks = enrichedRisks.sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
-                if (b.impactNet !== a.impactNet) return b.impactNet - a.impactNet;
-                if (b.probNet !== a.probNet) return b.probNet - a.probNet;
+                if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
                 const aTitle = a.risk?.titre || a.risk?.description || '';
                 const bTitle = b.risk?.titre || b.risk?.description || '';
                 return aTitle.localeCompare(bTitle, 'fr', { sensitivity: 'base' });
@@ -3801,8 +3979,11 @@ class RiskManagementSystem {
                     const scoreLabel = Number.isFinite(entry.score)
                         ? entry.score.toLocaleString('fr-FR')
                         : '0';
-
-                    const meta = `P${entry.probNet} × I${entry.impactNet}`;
+                    const brutLabel = Number.isFinite(entry.brutScore)
+                        ? entry.brutScore.toLocaleString('fr-FR')
+                        : '0';
+                    const reductionLabel = `${entry.reduction ?? 0}%${entry.label ? ` (${entry.label})` : ''}`;
+                    const meta = `Brut ${brutLabel} → Net ${scoreLabel} • Réduction ${reductionLabel}`;
 
                     return `
                         <tr>
@@ -3843,10 +4024,8 @@ class RiskManagementSystem {
 
         const scoreMode = this.processScoreMode === 'brut' ? 'brut' : 'net';
         const scoreKeyMap = {
-            brut: { prob: 'probBrut', impact: 'impactBrut' },
-            net: { prob: 'probNet', impact: 'impactNet' }
+            brut: { prob: 'probBrut', impact: 'impactBrut' }
         };
-        const { prob: probKey, impact: impactKey } = scoreKeyMap[scoreMode] || scoreKeyMap.net;
 
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
@@ -3857,14 +4036,21 @@ class RiskManagementSystem {
 
             acc[label].count += 1;
 
-            const baseProb = Number(risk?.[probKey]) || 0;
-            const impact = Number(risk?.[impactKey]) || 0;
-            let coefficient = 1;
-            if (scoreMode === 'brut' && typeof getRiskAggravatingCoefficient === 'function') {
-                coefficient = getRiskAggravatingCoefficient(risk);
+            let score = 0;
+            if (scoreMode === 'brut') {
+                const probKey = scoreKeyMap.brut.prob;
+                const impactKey = scoreKeyMap.brut.impact;
+                const baseProb = Number(risk?.[probKey]) || 0;
+                const impact = Number(risk?.[impactKey]) || 0;
+                const coefficient = typeof getRiskAggravatingCoefficient === 'function'
+                    ? getRiskAggravatingCoefficient(risk)
+                    : 1;
+                score = baseProb * coefficient * impact;
+            } else {
+                score = typeof getRiskNetScore === 'function'
+                    ? getRiskNetScore(risk)
+                    : (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
             }
-            const prob = scoreMode === 'brut' ? baseProb * coefficient : baseProb;
-            const score = prob * impact;
 
             if (Number.isFinite(score)) {
                 acc[label].scores.push(score);
@@ -4109,13 +4295,21 @@ class RiskManagementSystem {
             const brutScore = typeof getRiskBrutScore === 'function'
                 ? getRiskBrutScore(risk)
                 : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
-            const netScore = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
+            const netInfo = typeof getRiskNetInfo === 'function'
+                ? getRiskNetInfo(risk)
+                : { score: (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0), coefficient: 0, reduction: 0, label: '' };
+            const netScore = netInfo.score;
             const brutLabel = Number.isFinite(brutScore)
                 ? brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                 : '0';
             const netLabel = Number.isFinite(netScore)
                 ? netScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                 : '0';
+            const reductionPercent = Number.isFinite(netInfo.reduction)
+                ? netInfo.reduction
+                : Math.round((netInfo.coefficient || 0) * 100);
+            const reductionLabel = `${reductionPercent}%`;
+            const effectivenessLabel = netInfo.label ? ` (${netInfo.label})` : '';
 
             return `
                 <tr>
@@ -4126,7 +4320,7 @@ class RiskManagementSystem {
                     <td>${risk.typeCorruption}</td>
                     <td>${(risk.tiers || []).join(', ')}</td>
                     <td>${brutLabel}</td>
-                    <td>${netLabel}</td>
+                    <td title="Réduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
                     <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
                     <td class="table-actions-cell">
                         <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
@@ -4536,6 +4730,25 @@ class RiskManagementSystem {
             document.getElementById('impactBrut').value = risk.impactBrut;
             document.getElementById('probNet').value = risk.probNet;
             document.getElementById('impactNet').value = risk.impactNet;
+
+            const mitigationSelect = document.getElementById('mitigationEffectiveness');
+            if (mitigationSelect) {
+                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                    ? DEFAULT_MITIGATION_EFFECTIVENESS
+                    : 'insuffisant';
+                const mitigationLevel = risk.mitigationEffectiveness || defaultMitigation;
+                if (mitigationLevel) {
+                    const normalized = String(mitigationLevel);
+                    if (!Array.from(mitigationSelect.options).some(opt => opt.value === normalized)) {
+                        const option = document.createElement('option');
+                        option.value = normalized;
+                        option.textContent = normalized;
+                        mitigationSelect.appendChild(option);
+                    }
+                    mitigationSelect.value = normalized;
+                }
+                mitigationSelect.onchange = () => calculateScore('net');
+            }
 
             if (typeof setAggravatingFactorsSelection === 'function') {
                 setAggravatingFactorsSelection(risk.aggravatingFactors || null);

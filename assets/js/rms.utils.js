@@ -163,3 +163,124 @@ window.getRiskEffectiveBrutProbability = getRiskEffectiveBrutProbability;
 window.getRiskBrutScore = getRiskBrutScore;
 window.formatCoefficient = formatCoefficient;
 window.getFormAggravatingSelection = getFormAggravatingSelection;
+
+const MITIGATION_EFFECTIVENESS_ORDER = Object.freeze([
+    'inefficace',
+    'insuffisant',
+    'ameliorable',
+    'efficace'
+]);
+
+const MITIGATION_EFFECTIVENESS_SCALE = Object.freeze({
+    inefficace: { label: 'Inefficace', coefficient: 0 },
+    insuffisant: { label: 'Insuffisant', coefficient: 0.25 },
+    ameliorable: { label: 'Améliorable', coefficient: 0.5 },
+    efficace: { label: 'Efficace', coefficient: 0.75 }
+});
+
+const DEFAULT_MITIGATION_EFFECTIVENESS = 'insuffisant';
+
+function normalizeMitigationEffectiveness(value) {
+    if (typeof value === 'string') {
+        const normalized = value.trim().toLowerCase();
+        if (MITIGATION_EFFECTIVENESS_ORDER.includes(normalized)) {
+            return normalized;
+        }
+    }
+    return DEFAULT_MITIGATION_EFFECTIVENESS;
+}
+
+function getMitigationEffectivenessOptions() {
+    return MITIGATION_EFFECTIVENESS_ORDER.map(key => {
+        const entry = MITIGATION_EFFECTIVENESS_SCALE[key] || {};
+        return {
+            value: key,
+            label: entry.label || key,
+            coefficient: entry.coefficient ?? 0
+        };
+    });
+}
+
+function getRiskMitigationEffectiveness(risk) {
+    if (risk && typeof risk === 'object') {
+        const candidates = [
+            risk.mitigationEffectiveness,
+            risk.mitigation_level,
+            risk.mitigationLevel,
+            risk.efficacite,
+            risk.efficaciteMesures,
+            risk.effectiveness
+        ];
+
+        for (const candidate of candidates) {
+            if (typeof candidate === 'string' && candidate.trim()) {
+                return normalizeMitigationEffectiveness(candidate);
+            }
+        }
+    }
+
+    return DEFAULT_MITIGATION_EFFECTIVENESS;
+}
+
+function getRiskMitigationCoefficient(input) {
+    const level = typeof input === 'string' ? normalizeMitigationEffectiveness(input) : getRiskMitigationEffectiveness(input);
+    const entry = MITIGATION_EFFECTIVENESS_SCALE[level];
+    const coefficient = entry?.coefficient;
+    return Number.isFinite(coefficient) ? coefficient : 0;
+}
+
+function getRiskNetScore(risk) {
+    const brutScore = typeof getRiskBrutScore === 'function'
+        ? getRiskBrutScore(risk)
+        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+    const coefficient = getRiskMitigationCoefficient(risk);
+    return brutScore * coefficient;
+}
+
+function getRiskSeverityFromScore(score) {
+    const numericScore = Number(score) || 0;
+    if (numericScore >= 12) return 'critique';
+    if (numericScore >= 6) return 'fort';
+    if (numericScore >= 3) return 'modere';
+    return 'faible';
+}
+
+function getRiskBrutLevel(risk) {
+    const brutScore = typeof getRiskBrutScore === 'function'
+        ? getRiskBrutScore(risk)
+        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+    return getRiskSeverityFromScore(brutScore);
+}
+
+function getRiskNetInfo(risk) {
+    const coefficient = getRiskMitigationCoefficient(risk);
+    const brutScore = typeof getRiskBrutScore === 'function'
+        ? getRiskBrutScore(risk)
+        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+    const score = brutScore * coefficient;
+    const level = getRiskSeverityFromScore(score);
+    const effectiveness = getRiskMitigationEffectiveness(risk);
+    const label = MITIGATION_EFFECTIVENESS_SCALE[effectiveness]?.label || effectiveness;
+    const reduction = Math.round(coefficient * 100);
+
+    return { score, brutScore, coefficient, level, effectiveness, label, reduction };
+}
+
+function formatMitigationCoefficient(value) {
+    const numeric = Number(value);
+    const safe = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+    return `${Math.round(safe * 100)}%`;
+}
+
+window.MITIGATION_EFFECTIVENESS_ORDER = MITIGATION_EFFECTIVENESS_ORDER;
+window.MITIGATION_EFFECTIVENESS_SCALE = MITIGATION_EFFECTIVENESS_SCALE;
+window.DEFAULT_MITIGATION_EFFECTIVENESS = DEFAULT_MITIGATION_EFFECTIVENESS;
+window.normalizeMitigationEffectiveness = normalizeMitigationEffectiveness;
+window.getMitigationEffectivenessOptions = getMitigationEffectivenessOptions;
+window.getRiskMitigationEffectiveness = getRiskMitigationEffectiveness;
+window.getRiskMitigationCoefficient = getRiskMitigationCoefficient;
+window.getRiskNetScore = getRiskNetScore;
+window.getRiskSeverityFromScore = getRiskSeverityFromScore;
+window.getRiskBrutLevel = getRiskBrutLevel;
+window.getRiskNetInfo = getRiskNetInfo;
+window.formatMitigationCoefficient = formatMitigationCoefficient;

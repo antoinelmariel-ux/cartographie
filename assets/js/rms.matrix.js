@@ -57,6 +57,8 @@ function calculateScore(type) {
 
     let coefficient = 1;
     let adjustedProb = prob;
+    let rawScore;
+    let brutScoreReference = null;
 
     if (stateKey === 'brut') {
         let selection = { coefficient: 1 };
@@ -67,6 +69,7 @@ function calculateScore(type) {
         const rawCoefficient = Number(selection?.coefficient);
         coefficient = Number.isFinite(rawCoefficient) && rawCoefficient >= 1 ? rawCoefficient : 1;
         adjustedProb = prob * coefficient;
+        rawScore = adjustedProb * impact;
 
         const coefficientDisplay = document.getElementById('aggravatingCoefficientDisplay');
         if (coefficientDisplay) {
@@ -75,9 +78,33 @@ function calculateScore(type) {
                 : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
             coefficientDisplay.textContent = formatted;
         }
+    } else if (stateKey === 'net') {
+        const brutProb = parseInt(document.getElementById('probBrut')?.value, 10) || 1;
+        const brutImpact = parseInt(document.getElementById('impactBrut')?.value, 10) || 1;
+        let aggravatingCoefficient = 1;
+        if (typeof getFormAggravatingSelection === 'function') {
+            const selection = getFormAggravatingSelection();
+            const rawCoef = Number(selection?.coefficient);
+            aggravatingCoefficient = Number.isFinite(rawCoef) && rawCoef >= 1 ? rawCoef : 1;
+        }
+        brutScoreReference = brutProb * aggravatingCoefficient * brutImpact;
+
+        const mitigationSelect = document.getElementById('mitigationEffectiveness');
+        const mitigationValue = mitigationSelect ? mitigationSelect.value : '';
+        const mitigationCoefficient = typeof getRiskMitigationCoefficient === 'function'
+            ? getRiskMitigationCoefficient(mitigationValue)
+            : (typeof normalizeMitigationEffectiveness === 'function'
+                ? getRiskMitigationCoefficient(normalizeMitigationEffectiveness(mitigationValue))
+                : 0);
+
+        coefficient = Number.isFinite(mitigationCoefficient) ? mitigationCoefficient : 0;
+        adjustedProb = brutScoreReference;
+        rawScore = brutScoreReference * coefficient;
     }
 
-    const rawScore = adjustedProb * impact;
+    if (rawScore === undefined) {
+        rawScore = adjustedProb * impact;
+    }
     const safeScore = Number.isFinite(rawScore) ? rawScore : 0;
 
     const scoreElement = document.getElementById(config.scoreElement);
@@ -93,6 +120,14 @@ function calculateScore(type) {
                 ? formatCoefficient(coefficient)
                 : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
             coordElement.textContent = `P${prob} × C${formattedCoef} × I${impact}`;
+        } else if (stateKey === 'net') {
+            const brutLabel = Number.isFinite(brutScoreReference)
+                ? brutScoreReference.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                : '0';
+            const reductionLabel = typeof formatMitigationCoefficient === 'function'
+                ? formatMitigationCoefficient(coefficient)
+                : `${Math.round(coefficient * 100)}%`;
+            coordElement.textContent = `Brut ${brutLabel} × Réduction ${reductionLabel}`;
         } else {
             coordElement.textContent = `P${prob} × I${impact}`;
         }
@@ -103,6 +138,10 @@ function calculateScore(type) {
     if (activeRiskEditState === stateKey) {
         highlightCell(prob, impact);
         updateMatrixDescription(prob, impact, stateKey);
+    }
+
+    if (stateKey === 'brut') {
+        calculateScore('net');
     }
 }
 window.calculateScore = calculateScore;
