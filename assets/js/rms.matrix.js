@@ -54,16 +54,48 @@ function calculateScore(type) {
 
     const prob = parseInt(probInput.value, 10) || 1;
     const impact = parseInt(impactInput.value, 10) || 1;
-    const score = prob * impact;
+
+    let coefficient = 1;
+    let adjustedProb = prob;
+
+    if (stateKey === 'brut') {
+        let selection = { coefficient: 1 };
+        if (typeof getFormAggravatingSelection === 'function') {
+            selection = getFormAggravatingSelection();
+        }
+
+        const rawCoefficient = Number(selection?.coefficient);
+        coefficient = Number.isFinite(rawCoefficient) && rawCoefficient >= 1 ? rawCoefficient : 1;
+        adjustedProb = prob * coefficient;
+
+        const coefficientDisplay = document.getElementById('aggravatingCoefficientDisplay');
+        if (coefficientDisplay) {
+            const formatted = typeof formatCoefficient === 'function'
+                ? formatCoefficient(coefficient)
+                : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
+            coefficientDisplay.textContent = formatted;
+        }
+    }
+
+    const rawScore = adjustedProb * impact;
+    const safeScore = Number.isFinite(rawScore) ? rawScore : 0;
 
     const scoreElement = document.getElementById(config.scoreElement);
     if (scoreElement) {
-        scoreElement.textContent = `Score: ${score}`;
+        const formattedScore = safeScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
+        scoreElement.textContent = `Score: ${formattedScore}`;
     }
 
     const coordElement = document.getElementById(config.coordElement);
     if (coordElement) {
-        coordElement.textContent = `P${prob} × I${impact}`;
+        if (stateKey === 'brut' && coefficient > 1) {
+            const formattedCoef = typeof formatCoefficient === 'function'
+                ? formatCoefficient(coefficient)
+                : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
+            coordElement.textContent = `P${prob} × C${formattedCoef} × I${impact}`;
+        } else {
+            coordElement.textContent = `P${prob} × I${impact}`;
+        }
     }
 
     positionRiskPointIfExists(stateKey, prob, impact);

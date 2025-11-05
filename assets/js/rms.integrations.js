@@ -1139,6 +1139,30 @@ function applyPatch() {
                     const controls = parseIdList(accessor.get('controls', 'controles', 'contrôles', 'controlIds', 'control_ids', 'listeControls'));
                     const actionPlans = parseIdList(accessor.get('actionPlans', 'plans', 'planActions', 'actionPlanIds', 'plan_ids', 'plansActions'));
 
+                    const aggravatingGroup1 = parseTextList(accessor.get(
+                        'aggravatingGroup1',
+                        'facteursAggravantsGroupe1',
+                        'facteurs_aggravants_groupe1',
+                        'aggravatingFactorsGroup1',
+                        'facteurs_aggravants_1'
+                    ));
+                    const aggravatingGroup2 = parseTextList(accessor.get(
+                        'aggravatingGroup2',
+                        'facteursAggravantsGroupe2',
+                        'facteurs_aggravants_groupe2',
+                        'aggravatingFactorsGroup2',
+                        'facteurs_aggravants_2'
+                    ));
+
+                    let aggravatingCoefficient;
+                    const rawCoefficient = accessor.get('aggravatingCoefficient', 'coefficientAggravant', 'coeffAggravant', 'coefAggravant', 'coefficient_aggravant');
+                    if (hasMeaningfulValue(rawCoefficient)) {
+                        const parsed = Number.parseFloat(String(rawCoefficient).replace(',', '.'));
+                        if (Number.isFinite(parsed) && parsed >= 1) {
+                            aggravatingCoefficient = parsed;
+                        }
+                    }
+
                     const rawDate = accessor.get('dateCreation', 'date', 'creationDate', 'date_creation', 'createdAt');
                     const dateText = toText(rawDate, '');
                     let dateCreation;
@@ -1165,6 +1189,15 @@ function applyPatch() {
                       tiers,
                       dateCreation
                     };
+
+                    risk.aggravatingFactors = {
+                      group1: aggravatingGroup1,
+                      group2: aggravatingGroup2
+                    };
+
+                    if (aggravatingCoefficient !== undefined) {
+                      risk.aggravatingCoefficient = aggravatingCoefficient;
+                    }
 
                     if (titre) {
                       risk.titre = titre;

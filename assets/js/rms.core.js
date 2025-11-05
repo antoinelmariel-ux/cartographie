@@ -75,7 +75,10 @@ function ensureEmptyChartMessagePlugin() {
 
 class RiskManagementSystem {
     constructor() {
-        this.risks = this.loadData('risks') || this.getDefaultRisks();
+        const storedRisks = this.loadData('risks') || this.getDefaultRisks();
+        this.risks = Array.isArray(storedRisks)
+            ? storedRisks.map(risk => this.normalizeRisk(risk))
+            : [];
         this.controls = this.loadData('controls') || this.getDefaultControls();
         this.actionPlans = this.loadData('actionPlans') || [];
         this.history = this.loadData('history') || [];
@@ -443,6 +446,40 @@ class RiskManagementSystem {
         return updated;
     }
 
+    normalizeRisk(risk) {
+        if (!risk || typeof risk !== 'object') {
+            return {};
+        }
+
+        const normalized = { ...risk };
+
+        if (typeof normalizeAggravatingFactors === 'function') {
+            normalized.aggravatingFactors = normalizeAggravatingFactors(risk.aggravatingFactors);
+        } else {
+            const group1 = Array.isArray(risk?.aggravatingFactors?.group1)
+                ? [...risk.aggravatingFactors.group1]
+                : [];
+            const group2 = Array.isArray(risk?.aggravatingFactors?.group2)
+                ? [...risk.aggravatingFactors.group2]
+                : [];
+            normalized.aggravatingFactors = { group1, group2 };
+        }
+
+        const rawCoefficient = Number(risk?.aggravatingCoefficient);
+        let coefficient = Number.isFinite(rawCoefficient) && rawCoefficient >= 1 ? rawCoefficient : 1;
+
+        if (typeof computeAggravatingCoefficientFromGroups === 'function') {
+            const computed = computeAggravatingCoefficientFromGroups(normalized.aggravatingFactors);
+            if (computed > coefficient) {
+                coefficient = computed;
+            }
+        }
+
+        normalized.aggravatingCoefficient = coefficient;
+
+        return normalized;
+    }
+
     getSnapshot() {
         return JSON.parse(JSON.stringify({
             risks: this.risks,
@@ -466,7 +503,7 @@ class RiskManagementSystem {
             ? JSON.parse(JSON.stringify(value))
             : this.getDefaultConfig();
 
-        this.risks = cloneArray(snapshot.risks);
+        this.risks = cloneArray(snapshot.risks).map(risk => this.normalizeRisk(risk));
         this.controls = cloneArray(snapshot.controls);
         this.actionPlans = cloneArray(snapshot.actionPlans);
         this.history = cloneArray(snapshot.history);
@@ -2622,19 +2659,31 @@ class RiskManagementSystem {
             const cellCounts = {};
 
             filteredRisks.forEach(risk => {
-                const rawProb = Number(risk?.[config.probKey]);
+                const baseProb = Number(risk?.[config.probKey]);
                 const rawImpact = Number(risk?.[config.impactKey]);
-                if (!Number.isFinite(rawProb) || !Number.isFinite(rawImpact)) {
+                if (!Number.isFinite(baseProb) || !Number.isFinite(rawImpact)) {
                     return;
                 }
 
-                const prob = Math.min(4, Math.max(1, rawProb || 1));
-                const impact = Math.min(4, Math.max(1, rawImpact || 1));
+                let coefficient = 1;
+                let effectiveProb = baseProb;
 
-                const leftPercent = ((prob - 0.5) / 4) * 100;
-                const bottomPercent = ((impact - 0.5) / 4) * 100;
+                if (viewKey === 'brut') {
+                    if (typeof getRiskEffectiveBrutProbability === 'function') {
+                        effectiveProb = getRiskEffectiveBrutProbability(risk);
+                    }
+                    if (typeof getRiskAggravatingCoefficient === 'function') {
+                        coefficient = getRiskAggravatingCoefficient(risk);
+                    }
+                }
 
-                const key = `${prob}-${impact}`;
+                const clampedProb = Math.min(4, Math.max(1, effectiveProb || 1));
+                const clampedImpact = Math.min(4, Math.max(1, rawImpact || 1));
+
+                const leftPercent = ((clampedProb - 0.5) / 4) * 100;
+                const bottomPercent = ((clampedImpact - 0.5) / 4) * 100;
+
+                const key = `${clampedProb}-${clampedImpact}`;
                 const index = cellCounts[key] || 0;
                 cellCounts[key] = index + 1;
                 const slots = cellCounts[key];
@@ -2646,7 +2695,18 @@ class RiskManagementSystem {
                 const point = document.createElement('div');
                 point.className = `risk-point ${viewKey}`;
                 point.dataset.riskId = risk.id;
-                point.title = risk.description;
+                const tooltipSegments = [];
+                if (risk.description) {
+                    tooltipSegments.push(risk.description);
+                }
+                if (viewKey === 'brut' && coefficient > 1) {
+                    const formattedCoef = typeof formatCoefficient === 'function'
+                        ? formatCoefficient(coefficient)
+                        : (Math.round(coefficient * 10) / 10).toString().replace('.', ',');
+                    tooltipSegments.push(`Coef ${formattedCoef}`);
+                }
+
+                point.title = tooltipSegments.join(' • ');
                 const symbol = viewSymbols[viewKey] || '';
                 point.textContent = symbol;
                 point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
@@ -2816,13 +2876,20 @@ class RiskManagementSystem {
                 titleElement.textContent = title;
             }
 
+            const isBrutView = probKey === 'probBrut';
+
             const scoredRisks = filteredRisks.map(risk => {
-                const prob = Number(risk?.[probKey]) || 0;
+                const baseProb = Number(risk?.[probKey]) || 0;
                 const impact = Number(risk?.[impactKey]) || 0;
+                const coefficient = isBrutView && typeof getRiskAggravatingCoefficient === 'function'
+                    ? getRiskAggravatingCoefficient(risk)
+                    : 1;
+                const prob = isBrutView ? baseProb * coefficient : baseProb;
                 return {
                     risk,
                     prob,
                     impact,
+                    coefficient,
                     score: prob * impact
                 };
             }).sort((a, b) => {
@@ -2849,21 +2916,29 @@ class RiskManagementSystem {
                 return;
             }
 
-            container.innerHTML = scoredRisks.map(({ risk, score }) => {
+            container.innerHTML = scoredRisks.map(({ risk, score, coefficient }) => {
                 let scoreClass = 'low';
                 if (score > 12) scoreClass = 'critical';
                 else if (score > 8) scoreClass = 'high';
                 else if (score > 4) scoreClass = 'medium';
 
                 const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
+                const formattedScore = Number.isFinite(score)
+                    ? score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                    : '0';
+                const coefficientTag = isBrutView && coefficient > 1
+                    ? ` <span class="risk-item-coefficient">Coef ${typeof formatCoefficient === 'function'
+                        ? formatCoefficient(coefficient)
+                        : (Math.round(coefficient * 10) / 10).toString().replace('.', ',')}</span>`
+                    : '';
                 return `
                     <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
                         <div class="risk-item-header">
                             <span class="risk-item-title">${risk.description}</span>
-                            <span class="risk-item-score ${scoreClass}">${score}</span>
+                            <span class="risk-item-score ${scoreClass}">${formattedScore}</span>
                         </div>
                         <div class="risk-item-meta">
-                            ${risk.processus}${sp}
+                            ${risk.processus}${sp}${coefficientTag}
                         </div>
                     </div>
                 `;
@@ -2890,7 +2965,9 @@ class RiskManagementSystem {
         const totalRisks = computedStats?.total ?? sourceRisks.length;
 
         const totals = sourceRisks.reduce((acc, risk) => {
-            const brut = (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+            const brut = typeof getRiskBrutScore === 'function'
+                ? getRiskBrutScore(risk)
+                : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
             const net = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
 
             return {
@@ -3765,8 +3842,13 @@ class RiskManagementSystem {
 
             acc[label].count += 1;
 
-            const prob = Number(risk?.[probKey]) || 0;
+            const baseProb = Number(risk?.[probKey]) || 0;
             const impact = Number(risk?.[impactKey]) || 0;
+            let coefficient = 1;
+            if (scoreMode === 'brut' && typeof getRiskAggravatingCoefficient === 'function') {
+                coefficient = getRiskAggravatingCoefficient(risk);
+            }
+            const prob = scoreMode === 'brut' ? baseProb * coefficient : baseProb;
             const score = prob * impact;
 
             if (Number.isFinite(score)) {
@@ -4008,23 +4090,36 @@ class RiskManagementSystem {
             return;
         }
 
-        tbody.innerHTML = filteredRisks.map(risk => `
-            <tr>
-                <td>#${risk.id}</td>
-                <td>${risk.description}</td>
-                <td>${risk.processus}</td>
-                <td>${risk.sousProcessus || ''}</td>
-                <td>${risk.typeCorruption}</td>
-                <td>${(risk.tiers || []).join(', ')}</td>
-                <td>${risk.probBrut * risk.impactBrut}</td>
-                <td>${risk.probNet * risk.impactNet}</td>
-                <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
-                <td class="table-actions-cell">
-                    <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                    <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
-                </td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = filteredRisks.map(risk => {
+            const brutScore = typeof getRiskBrutScore === 'function'
+                ? getRiskBrutScore(risk)
+                : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
+            const netScore = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
+            const brutLabel = Number.isFinite(brutScore)
+                ? brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                : '0';
+            const netLabel = Number.isFinite(netScore)
+                ? netScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                : '0';
+
+            return `
+                <tr>
+                    <td>#${risk.id}</td>
+                    <td>${risk.description}</td>
+                    <td>${risk.processus}</td>
+                    <td>${risk.sousProcessus || ''}</td>
+                    <td>${risk.typeCorruption}</td>
+                    <td>${(risk.tiers || []).join(', ')}</td>
+                    <td>${brutLabel}</td>
+                    <td>${netLabel}</td>
+                    <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
+                    <td class="table-actions-cell">
+                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                        <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
     }
 
     // Controls functions
@@ -4373,12 +4468,14 @@ class RiskManagementSystem {
             statut: riskData.statut || 'brouillon'
         };
 
-        this.risks.push(newRisk);
-        this.addHistoryItem('Création risque', `Nouveau risque: ${newRisk.description}`);
+        const normalizedRisk = this.normalizeRisk(newRisk);
+
+        this.risks.push(normalizedRisk);
+        this.addHistoryItem('Création risque', `Nouveau risque: ${normalizedRisk.description}`);
         this.saveData();
         this.init();
-        
-        return newRisk;
+
+        return normalizedRisk;
     }
 
     editRisk(riskId) {
@@ -4424,6 +4521,10 @@ class RiskManagementSystem {
             document.getElementById('impactBrut').value = risk.impactBrut;
             document.getElementById('probNet').value = risk.probNet;
             document.getElementById('impactNet').value = risk.impactNet;
+
+            if (typeof setAggravatingFactorsSelection === 'function') {
+                setAggravatingFactorsSelection(risk.aggravatingFactors || null);
+            }
 
             calculateScore('brut');
             calculateScore('net');

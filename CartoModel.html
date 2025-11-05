@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.3.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.4.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -626,7 +626,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.3.0</span>
+            <span class="app-version">Version 2.4.0</span>
         </footer>
     </div>
 
@@ -973,6 +973,57 @@
                             <div id="matrixDescription" class="matrix-description">
                                 <div class="matrix-description-empty">
                                     Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
+                                </div>
+                            </div>
+                            <div class="aggravating-factors" id="aggravatingFactorsBlock">
+                                <div class="aggravating-factors-header">
+                                    <h4>Facteurs aggravants potentiels</h4>
+                                    <p>Sélectionnez les éléments pertinents pour ajuster automatiquement la probabilité du risque brut.</p>
+                                    <div class="aggravating-coefficient-summary">
+                                        Coefficient appliqué : <strong id="aggravatingCoefficientDisplay">1,0</strong>
+                                    </div>
+                                </div>
+                                <div class="aggravating-factor-groups">
+                                    <div class="aggravating-factor-group" data-group="group1">
+                                        <div class="aggravating-factor-group-title">
+                                            <span>Groupe 1</span>
+                                            <span class="aggravating-factor-coefficient">Coef. 1,4</span>
+                                        </div>
+                                        <label class="aggravating-factor-option" for="aggravating-group1-cpi">
+                                            <input type="checkbox" id="aggravating-group1-cpi" name="aggravatingGroup1" value="pays-risque-cpi-40">
+                                            <span>Pays à risque de corruption élevé (CPI &lt; 40)</span>
+                                        </label>
+                                        <label class="aggravating-factor-option" for="aggravating-group1-unstable">
+                                            <input type="checkbox" id="aggravating-group1-unstable" name="aggravatingGroup1" value="zones-instables">
+                                            <span>Zones géographiques instables</span>
+                                        </label>
+                                        <label class="aggravating-factor-option" for="aggravating-group1-intermediaires">
+                                            <input type="checkbox" id="aggravating-group1-intermediaires" name="aggravatingGroup1" value="intermediaires-difficiles">
+                                            <span>Intermédiaires difficiles à contrôler</span>
+                                        </label>
+                                    </div>
+                                    <div class="aggravating-factor-group" data-group="group2">
+                                        <div class="aggravating-factor-group-title">
+                                            <span>Groupe 2</span>
+                                            <span class="aggravating-factor-coefficient">Coef. 1,2</span>
+                                        </div>
+                                        <label class="aggravating-factor-option" for="aggravating-group2-cpi">
+                                            <input type="checkbox" id="aggravating-group2-cpi" name="aggravatingGroup2" value="pays-risque-cpi-60">
+                                            <span>Pays à risques de corruption modéré (40 &le; CPI &le; 60)</span>
+                                        </label>
+                                        <label class="aggravating-factor-option" for="aggravating-group2-secteurs">
+                                            <input type="checkbox" id="aggravating-group2-secteurs" name="aggravatingGroup2" value="secteurs-exposes">
+                                            <span>Secteurs d’activité exposés (BTP, énergie, défense, transport)</span>
+                                        </label>
+                                        <label class="aggravating-factor-option" for="aggravating-group2-cadeaux">
+                                            <input type="checkbox" id="aggravating-group2-cadeaux" name="aggravatingGroup2" value="culture-cadeaux">
+                                            <span>Culture tolérante aux cadeaux</span>
+                                        </label>
+                                        <label class="aggravating-factor-option" for="aggravating-group2-turnover">
+                                            <input type="checkbox" id="aggravating-group2-turnover" name="aggravatingGroup2" value="turnover-eleve">
+                                            <span>Turn-over élevé</span>
+                                        </label>
+                                    </div>
                                 </div>
                             </div>
                             <div class="risk-score-cards">
