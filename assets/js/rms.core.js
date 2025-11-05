@@ -90,6 +90,7 @@ class RiskManagementSystem {
         this.currentView = 'brut';
         this.processScoreMode = 'net';
         this.currentTab = 'dashboard';
+        this.currentConfigSection = 'processManager';
         this.filters = {
             process: '',
             type: '',
@@ -108,6 +109,12 @@ class RiskManagementSystem {
             owner: '',
             dueDateOrder: ''
         };
+        this.processManagerFilters = {
+            query: '',
+            referent: ''
+        };
+        this.activeInsertionForm = null;
+        this.dragState = null;
         this.lastDashboardMetrics = null;
         this.charts = {};
         this.risks.forEach(r => {
@@ -152,7 +159,7 @@ class RiskManagementSystem {
     }
 
     getDefaultConfig() {
-        return {
+        const config = {
             processes: [
                 { value: 'R&D', label: 'R&D' },
                 { value: 'Achats', label: 'Achats' },
@@ -279,6 +286,29 @@ class RiskManagementSystem {
                 { value: 'obsolete', label: 'Obsolète' }
             ]
         };
+
+        config.processes = (config.processes || []).map(process => ({
+            ...process,
+            referents: Array.isArray(process?.referents)
+                ? process.referents.filter(ref => typeof ref === 'string' && ref.trim())
+                : []
+        }));
+
+        const subProcesses = config.subProcesses && typeof config.subProcesses === 'object'
+            ? config.subProcesses
+            : {};
+
+        Object.keys(subProcesses).forEach(key => {
+            const list = Array.isArray(subProcesses[key]) ? subProcesses[key] : [];
+            subProcesses[key] = list.map(item => ({
+                ...item,
+                referents: Array.isArray(item?.referents)
+                    ? item.referents.filter(ref => typeof ref === 'string' && ref.trim())
+                    : []
+            }));
+        });
+
+        return config;
     }
 
     loadConfig() {
@@ -303,6 +333,35 @@ class RiskManagementSystem {
         }
 
         this.config = { ...fallback, ...baseConfig };
+
+        const normalizeReferents = (value) => {
+            if (!Array.isArray(value)) {
+                return [];
+            }
+            const normalized = [];
+            const seen = new Set();
+            value.forEach(entry => {
+                const str = typeof entry === 'string' ? entry.trim() : '';
+                if (!str) {
+                    return;
+                }
+                const key = str.toLowerCase();
+                if (seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                normalized.push(str);
+            });
+            return normalized;
+        };
+
+        const cloneConfigItem = (item, fallbackItem = {}) => {
+            const base = item && typeof item === 'object' && !Array.isArray(item)
+                ? { ...item }
+                : { ...fallbackItem };
+            base.referents = normalizeReferents(base.referents);
+            return base;
+        };
 
         const fallbackStatuses = (fallback && Array.isArray(fallback.actionPlanStatuses))
             ? fallback.actionPlanStatuses
@@ -331,7 +390,7 @@ class RiskManagementSystem {
             const normalizedSubProcesses = {};
             Object.entries(baseConfig.subProcesses).forEach(([key, value]) => {
                 normalizedSubProcesses[key] = Array.isArray(value)
-                    ? value.map(item => ({ ...item }))
+                    ? value.map(item => cloneConfigItem(item))
                     : [];
                 if (!Array.isArray(value)) {
                     updated = true;
@@ -341,10 +400,10 @@ class RiskManagementSystem {
         }
 
         if (Array.isArray(baseConfig.processes)) {
-            this.config.processes = baseConfig.processes.map(process => ({ ...process }));
+            this.config.processes = baseConfig.processes.map(process => cloneConfigItem(process));
         } else {
             this.config.processes = Array.isArray(fallback.processes)
-                ? fallback.processes.map(process => ({ ...process }))
+                ? fallback.processes.map(process => cloneConfigItem(process))
                 : [];
             if (baseConfig.processes !== undefined) {
                 updated = true;
@@ -357,7 +416,7 @@ class RiskManagementSystem {
                 this.config.subProcesses[process.value] = [];
                 updated = true;
             } else {
-                this.config.subProcesses[process.value] = this.config.subProcesses[process.value].map(item => ({ ...item }));
+                this.config.subProcesses[process.value] = this.config.subProcesses[process.value].map(item => cloneConfigItem(item));
             }
         });
 
@@ -624,8 +683,60 @@ class RiskManagementSystem {
         const container = document.getElementById('configurationContainer');
         if (!container) return;
 
+        const availableSections = [
+            { id: 'processManager', label: 'Processus & référents' },
+            { id: 'general', label: 'Autres paramètres' }
+        ];
+
+        if (!this.currentConfigSection || !availableSections.some(section => section.id === this.currentConfigSection)) {
+            this.currentConfigSection = 'processManager';
+        }
+
+        this.closeActiveInsertionForm();
+        this.dragState = null;
+
+        this.processManagerContainer = container;
+        container.innerHTML = '';
+
+        const tabs = document.createElement('div');
+        tabs.className = 'config-section-tabs';
+        availableSections.forEach(section => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `config-section-tab${this.currentConfigSection === section.id ? ' active' : ''}`;
+            button.textContent = section.label;
+            button.addEventListener('click', () => {
+                this.currentConfigSection = section.id;
+                this.renderConfiguration();
+            });
+            tabs.appendChild(button);
+        });
+        container.appendChild(tabs);
+
+        const content = document.createElement('div');
+        content.className = 'config-section-panel';
+        container.appendChild(content);
+
+        if (this.currentConfigSection === 'processManager') {
+            this.renderProcessManager(content);
+        } else {
+            this.renderGeneralConfiguration(content);
+        }
+    }
+
+    renderGeneralConfiguration(container) {
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const intro = document.createElement('div');
+        intro.className = 'config-section-description';
+        intro.innerHTML = "<p>Gérez ici les valeurs de référence utilisées dans l'application (types de corruption, statuts, etc.). Les éléments marqués comme verrouillés ne peuvent pas être modifiés.</p>";
+        container.appendChild(intro);
+
         const sections = {
-            processes: 'Processus',
             riskTypes: 'Types de corruption',
             tiers: 'Tiers',
             riskStatuses: 'Statuts des risques',
@@ -640,8 +751,6 @@ class RiskManagementSystem {
         const readOnlyMessages = {
             riskStatuses: 'Les statuts de risque sont prédéfinis et ne peuvent pas être modifiés.'
         };
-
-        container.innerHTML = '';
 
         const accordion = document.createElement('div');
         accordion.className = 'config-accordion';
@@ -721,39 +830,1077 @@ class RiskManagementSystem {
             }
         });
 
-        const subItem = document.createElement('div');
-        subItem.className = 'config-accordion-item';
-
-        const subHeader = document.createElement('button');
-        subHeader.type = 'button';
-        subHeader.className = 'config-accordion-header';
-        subHeader.id = 'config-accordion-subprocesses-header';
-        subHeader.innerHTML = `
-            <span class="config-accordion-title">Sous-processus</span>
-            <span class="config-accordion-icon" aria-hidden="true"></span>
-        `;
-
-        const subBody = document.createElement('div');
-        subBody.className = 'config-accordion-body';
-        subBody.id = 'config-accordion-subprocesses-panel';
-        subBody.setAttribute('aria-labelledby', subHeader.id);
-        subBody.setAttribute('role', 'region');
-        subHeader.setAttribute('aria-controls', subBody.id);
-
-        const subProcessContainer = document.createElement('div');
-        subProcessContainer.id = 'subProcessConfig';
-        subBody.appendChild(subProcessContainer);
-
-        subItem.appendChild(subHeader);
-        subItem.appendChild(subBody);
-        accordion.appendChild(subItem);
-
-        this.configureAccordionItem(subItem, subHeader, subBody);
-
         this.refreshConfigLists();
-        this.renderSubProcessConfig();
         this.adjustOpenAccordionBodies(container);
     }
+
+    renderProcessManager(container) {
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const header = document.createElement('div');
+        header.className = 'process-manager-header';
+
+        const title = document.createElement('h3');
+        title.textContent = 'Gestion des processus et sous-processus';
+        header.appendChild(title);
+
+        const subtitle = document.createElement('p');
+        subtitle.textContent = 'Ajoutez vos processus, rattachez des sous-processus et associez des référents. Utilisez le glisser-déposer pour réorganiser la hiérarchie.';
+        header.appendChild(subtitle);
+
+        container.appendChild(header);
+
+        const filtersBar = document.createElement('div');
+        filtersBar.className = 'process-manager-filters';
+
+        const queryInput = document.createElement('input');
+        queryInput.type = 'search';
+        queryInput.className = 'process-filter-input';
+        queryInput.placeholder = 'Filtrer par titre de processus ou sous-processus';
+        queryInput.value = this.processManagerFilters.query || '';
+        queryInput.addEventListener('input', (event) => {
+            this.processManagerFilters.query = event.target.value || '';
+            this.renderProcessManager(container);
+        });
+        filtersBar.appendChild(queryInput);
+
+        const referentInput = document.createElement('input');
+        referentInput.type = 'search';
+        referentInput.className = 'process-filter-input';
+        referentInput.placeholder = 'Filtrer par référent';
+        referentInput.value = this.processManagerFilters.referent || '';
+        referentInput.setAttribute('list', 'processReferentSuggestions');
+        referentInput.addEventListener('input', (event) => {
+            this.processManagerFilters.referent = event.target.value || '';
+            this.renderProcessManager(container);
+        });
+        filtersBar.appendChild(referentInput);
+
+        if ((this.processManagerFilters.query || '').trim() || (this.processManagerFilters.referent || '').trim()) {
+            const resetButton = document.createElement('button');
+            resetButton.type = 'button';
+            resetButton.className = 'btn btn-outline process-filter-reset';
+            resetButton.textContent = 'Réinitialiser';
+            resetButton.addEventListener('click', () => {
+                this.processManagerFilters = { query: '', referent: '' };
+                this.renderProcessManager(container);
+            });
+            filtersBar.appendChild(resetButton);
+        }
+
+        container.appendChild(filtersBar);
+
+        this.ensureReferentDatalist(container);
+
+        const listWrapper = document.createElement('div');
+        listWrapper.className = 'process-manager-list';
+        container.appendChild(listWrapper);
+
+        const filters = this.getProcessFilterState();
+        const filtersActive = filters.hasQuery || filters.hasReferent;
+
+        let hasVisibleProcesses = false;
+        let lastControlIndex = 0;
+
+        listWrapper.appendChild(this.createProcessInsertionControl(0, { filtersActive }));
+
+        this.config.processes.forEach((process, index) => {
+            const subs = Array.isArray(this.config.subProcesses[process.value])
+                ? this.config.subProcesses[process.value]
+                : [];
+            const visibility = this.evaluateProcessVisibility(process, subs, filters);
+            if (!visibility.visible) {
+                return;
+            }
+
+            hasVisibleProcesses = true;
+
+            const card = this.createProcessCard({
+                process,
+                index,
+                visibleSubs: visibility.subs,
+                totalSubs: subs.length,
+                filters,
+                filtersActive
+            });
+
+            listWrapper.appendChild(card);
+
+            const control = this.createProcessInsertionControl(index + 1, { filtersActive });
+            listWrapper.appendChild(control);
+            lastControlIndex = index + 1;
+        });
+
+        if (this.config.processes.length > 0 && lastControlIndex !== this.config.processes.length) {
+            listWrapper.appendChild(this.createProcessInsertionControl(this.config.processes.length, { filtersActive }));
+            lastControlIndex = this.config.processes.length;
+        }
+
+        if (!hasVisibleProcesses) {
+            const empty = document.createElement('div');
+            empty.className = 'process-manager-empty';
+            empty.innerHTML = '<p>Aucun processus ne correspond aux filtres actuels.</p><p>Utilisez le bouton + pour ajouter un processus ou réinitialisez les filtres.</p>';
+            listWrapper.appendChild(empty);
+        }
+    }
+
+
+    ensureReferentDatalist(container) {
+        const scope = container instanceof HTMLElement ? container : document.body;
+        const datalistId = 'processReferentSuggestions';
+        let datalist = document.getElementById(datalistId);
+
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = datalistId;
+            scope.appendChild(datalist);
+        } else if (scope !== document.body && !scope.contains(datalist)) {
+            datalist.remove();
+            scope.appendChild(datalist);
+        }
+
+        const referents = this.collectAllReferents();
+        datalist.innerHTML = '';
+        referents.forEach((referent) => {
+            const option = document.createElement('option');
+            option.value = referent;
+            datalist.appendChild(option);
+        });
+    }
+
+    getProcessFilterState() {
+        const query = (this.processManagerFilters.query || '').trim();
+        const referent = (this.processManagerFilters.referent || '').trim();
+        return {
+            query,
+            referent,
+            normalizedQuery: query.toLowerCase(),
+            normalizedReferent: referent.toLowerCase(),
+            hasQuery: query.length > 0,
+            hasReferent: referent.length > 0
+        };
+    }
+
+    evaluateProcessVisibility(process, subs, filters) {
+        const processReferents = Array.isArray(process?.referents) ? process.referents : [];
+
+        const matchesProcessQuery = !filters.hasQuery || [process.label, process.value, ...processReferents]
+            .filter(value => typeof value === 'string')
+            .some(value => value.toLowerCase().includes(filters.normalizedQuery));
+
+        const matchesProcessReferent = !filters.hasReferent || processReferents
+            .some(ref => typeof ref === 'string' && ref.toLowerCase() === filters.normalizedReferent);
+
+        const normalizedSubs = subs.map((subProcess, index) => {
+            const subReferents = Array.isArray(subProcess?.referents) ? subProcess.referents : [];
+            const matchesQuery = !filters.hasQuery || [subProcess.label, subProcess.value, ...subReferents]
+                .filter(value => typeof value === 'string')
+                .some(value => value.toLowerCase().includes(filters.normalizedQuery));
+            const matchesReferent = !filters.hasReferent || subReferents
+                .some(ref => typeof ref === 'string' && ref.toLowerCase() === filters.normalizedReferent);
+
+            return {
+                item: subProcess,
+                index,
+                visible: (!filters.hasQuery && !filters.hasReferent) || (matchesQuery && matchesReferent)
+            };
+        });
+
+        const visibleSubs = filters.hasQuery || filters.hasReferent
+            ? normalizedSubs.filter(entry => entry.visible)
+            : normalizedSubs;
+
+        const processVisible = (!filters.hasQuery && !filters.hasReferent)
+            || (matchesProcessQuery && matchesProcessReferent)
+            || visibleSubs.length > 0;
+
+        return { visible: processVisible, subs: visibleSubs };
+    }
+
+    createProcessInsertionControl(position, options = {}) {
+        const { parentProcess = null, filtersActive = false } = options;
+        const control = document.createElement('div');
+        control.className = 'process-insert-control';
+        control.dataset.position = String(position);
+        if (parentProcess) {
+            control.dataset.parentProcess = parentProcess;
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'process-insert-button';
+        button.innerHTML = '<span aria-hidden="true">+</span>';
+        button.setAttribute('aria-label', parentProcess
+            ? 'Ajouter un sous-processus ici'
+            : 'Ajouter un processus ici');
+
+        if (filtersActive) {
+            button.disabled = true;
+            button.title = 'Ajout désactivé pendant l\'application de filtres';
+            control.classList.add('is-disabled');
+        } else {
+            button.addEventListener('click', () => {
+                this.toggleInsertionForm({ parentProcess, position });
+            });
+
+            control.addEventListener('dragover', (event) => {
+                this.handleInsertDragOver(event, control, { parentProcess, position });
+            });
+            control.addEventListener('dragleave', () => {
+                this.handleInsertDragLeave(control);
+            });
+            control.addEventListener('drop', (event) => {
+                this.handleInsertDrop(event, control, { parentProcess, position });
+            });
+        }
+
+        control.appendChild(button);
+
+        const isActive = this.activeInsertionForm
+            && this.activeInsertionForm.position === position
+            && (this.activeInsertionForm.parentProcess || null) === (parentProcess || null);
+
+        if (isActive && !filtersActive) {
+            control.classList.add('process-insert-open');
+            const form = this.renderProcessInsertionForm({ parentProcess, position });
+            control.appendChild(form);
+        }
+
+        return control;
+    }
+
+    toggleInsertionForm(context) {
+        const { parentProcess = null, position = 0 } = context || {};
+
+        if (this.activeInsertionForm
+            && this.activeInsertionForm.position === position
+            && (this.activeInsertionForm.parentProcess || null) === (parentProcess || null)) {
+            this.closeActiveInsertionForm({ rerender: true });
+            return;
+        }
+
+        this.activeInsertionForm = { parentProcess: parentProcess || null, position };
+        this.rerenderProcessManager();
+    }
+
+    renderProcessInsertionForm(options = {}) {
+        const { parentProcess = null, position = 0 } = options;
+
+        const form = document.createElement('form');
+        form.className = 'process-insert-form';
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.required = true;
+        labelInput.className = 'process-insert-input';
+        labelInput.placeholder = parentProcess
+            ? 'Libellé du sous-processus'
+            : 'Libellé du processus';
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.required = true;
+        valueInput.className = 'process-insert-input';
+        valueInput.placeholder = parentProcess
+            ? 'Identifiant du sous-processus'
+            : 'Identifiant du processus';
+
+        this.setupAutoValueSync(labelInput, valueInput);
+
+        const actions = document.createElement('div');
+        actions.className = 'process-insert-actions';
+
+        const submitButton = document.createElement('button');
+        submitButton.type = 'submit';
+        submitButton.className = 'btn btn-primary btn-small';
+        submitButton.textContent = parentProcess ? 'Ajouter le sous-processus' : 'Ajouter le processus';
+
+        const cancelButton = document.createElement('button');
+        cancelButton.type = 'button';
+        cancelButton.className = 'btn btn-outline btn-small';
+        cancelButton.textContent = 'Annuler';
+        cancelButton.addEventListener('click', () => {
+            this.closeActiveInsertionForm({ rerender: true });
+        });
+
+        form.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const label = labelInput.value.trim();
+            const value = valueInput.value.trim();
+            if (!label || !value) {
+                return;
+            }
+
+            if (parentProcess) {
+                this.handleSubProcessSubmit({ parentProcess, label, value, position });
+            } else {
+                this.handleProcessSubmit({ label, value, position });
+            }
+        });
+
+        form.appendChild(labelInput);
+        form.appendChild(valueInput);
+        actions.appendChild(submitButton);
+        actions.appendChild(cancelButton);
+        form.appendChild(actions);
+
+        return form;
+    }
+
+    handleProcessSubmit(payload) {
+        const { label, value, position } = payload || {};
+        if (!label || !value) {
+            return;
+        }
+
+        const normalizedLabel = label.trim();
+        const baseValue = (value && value.trim()) || slugifyLabel(normalizedLabel);
+        const uniqueValue = this.generateUniqueProcessValue(baseValue);
+
+        const entry = {
+            value: uniqueValue,
+            label: normalizedLabel,
+            referents: []
+        };
+
+        const insertIndex = Number.isInteger(position)
+            ? Math.max(0, Math.min(position, this.config.processes.length))
+            : this.config.processes.length;
+
+        this.config.processes.splice(insertIndex, 0, entry);
+        this.config.subProcesses[uniqueValue] = [];
+
+        this.saveConfig();
+        this.populateSelects();
+        this.updateSousProcessusOptions();
+        this.closeActiveInsertionForm();
+        this.rerenderProcessManager();
+    }
+
+    handleSubProcessSubmit(payload) {
+        const { parentProcess, label, value, position } = payload || {};
+        if (!parentProcess || !label || !value) {
+            return;
+        }
+
+        const normalizedLabel = label.trim();
+        const baseValue = (value && value.trim()) || slugifyLabel(normalizedLabel);
+        const uniqueValue = this.generateUniqueSubProcessValue(parentProcess, baseValue);
+
+        if (!this.config.subProcesses[parentProcess]) {
+            this.config.subProcesses[parentProcess] = [];
+        }
+
+        const list = this.config.subProcesses[parentProcess];
+        const insertIndex = Number.isInteger(position)
+            ? Math.max(0, Math.min(position, list.length))
+            : list.length;
+
+        list.splice(insertIndex, 0, {
+            value: uniqueValue,
+            label: normalizedLabel,
+            referents: []
+        });
+
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.closeActiveInsertionForm();
+        this.rerenderProcessManager();
+    }
+
+    generateUniqueProcessValue(baseValue, excludeIndex = -1) {
+        const fallback = baseValue && baseValue.trim() ? baseValue.trim() : 'processus';
+        const existing = new Set();
+
+        this.config.processes.forEach((item, index) => {
+            if (index === excludeIndex) {
+                return;
+            }
+            if (item && item.value) {
+                existing.add(String(item.value).toLowerCase());
+            }
+        });
+
+        let candidate = fallback;
+        let suffix = 2;
+        while (existing.has(candidate.toLowerCase())) {
+            candidate = `${fallback}-${suffix}`;
+            suffix += 1;
+        }
+        return candidate;
+    }
+
+    generateUniqueSubProcessValue(parentProcess, baseValue, excludeIndex = -1) {
+        const fallback = baseValue && baseValue.trim() ? baseValue.trim() : 'sous-processus';
+        const list = Array.isArray(this.config.subProcesses[parentProcess])
+            ? this.config.subProcesses[parentProcess]
+            : [];
+        const existing = new Set();
+
+        list.forEach((item, index) => {
+            if (index === excludeIndex) {
+                return;
+            }
+            if (item && item.value) {
+                existing.add(String(item.value).toLowerCase());
+            }
+        });
+
+        let candidate = fallback;
+        let suffix = 2;
+        while (existing.has(candidate.toLowerCase())) {
+            candidate = `${fallback}-${suffix}`;
+            suffix += 1;
+        }
+        return candidate;
+    }
+
+    createProcessCard(context) {
+        const { process, index, visibleSubs, totalSubs, filters, filtersActive } = context;
+        const card = document.createElement('div');
+        card.className = 'process-card';
+        card.dataset.index = String(index);
+        card.dataset.value = process.value;
+        card.draggable = true;
+
+        card.addEventListener('dragstart', (event) => {
+            this.handleProcessDragStart(event, card, index);
+        });
+        card.addEventListener('dragend', () => {
+            this.handleDragEnd(card);
+        });
+
+        const header = document.createElement('div');
+        header.className = 'process-card-header';
+
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        dragHandle.setAttribute('role', 'presentation');
+        header.appendChild(dragHandle);
+
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.className = 'process-title-input';
+        titleInput.value = process.label || '';
+        titleInput.placeholder = 'Nom du processus';
+        titleInput.addEventListener('change', () => {
+            this.renameProcess(index, titleInput.value);
+        });
+        titleInput.addEventListener('blur', () => {
+            if (titleInput.value.trim() !== (process.label || '')) {
+                this.renameProcess(index, titleInput.value);
+            }
+        });
+        header.appendChild(titleInput);
+
+        const summary = document.createElement('span');
+        summary.className = 'process-sub-count';
+        if (filters.hasQuery || filters.hasReferent) {
+            summary.textContent = `${visibleSubs.length} / ${totalSubs} sous-processus`;
+        } else {
+            summary.textContent = `${totalSubs} sous-processus`;
+        }
+        header.appendChild(summary);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'icon-button danger';
+        deleteButton.setAttribute('aria-label', `Supprimer le processus ${process.label}`);
+        deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
+        deleteButton.addEventListener('click', () => {
+            this.deleteProcess(index);
+        });
+        header.appendChild(deleteButton);
+
+        card.appendChild(header);
+
+        const referentEditor = this.renderReferentEditor({
+            referents: process.referents,
+            scope: 'process',
+            processIndex: index,
+            processValue: process.value
+        });
+        card.appendChild(referentEditor);
+
+        const subSection = document.createElement('div');
+        subSection.className = 'subprocess-section';
+
+        const subHeader = document.createElement('div');
+        subHeader.className = 'subprocess-section-header';
+        subHeader.textContent = 'Sous-processus';
+        subSection.appendChild(subHeader);
+
+        const list = document.createElement('div');
+        list.className = 'subprocess-list';
+
+        list.appendChild(this.createProcessInsertionControl(0, {
+            parentProcess: process.value,
+            filtersActive
+        }));
+
+        if (visibleSubs.length === 0) {
+            const message = document.createElement('div');
+            message.className = 'subprocess-empty';
+            message.textContent = totalSubs === 0
+                ? 'Aucun sous-processus pour le moment.'
+                : 'Aucun sous-processus ne correspond aux filtres.';
+            list.appendChild(message);
+        } else {
+            visibleSubs.forEach((entry) => {
+                const subCard = this.createSubProcessCard({
+                    parentProcess: process,
+                    processIndex: index,
+                    subProcess: entry.item,
+                    subIndex: entry.index
+                });
+                list.appendChild(subCard);
+
+                list.appendChild(this.createProcessInsertionControl(entry.index + 1, {
+                    parentProcess: process.value,
+                    filtersActive
+                }));
+            });
+        }
+
+        subSection.appendChild(list);
+        card.appendChild(subSection);
+
+        return card;
+    }
+
+    createSubProcessCard(context) {
+        const { parentProcess, processIndex, subProcess, subIndex } = context;
+        const card = document.createElement('div');
+        card.className = 'subprocess-card';
+        card.dataset.index = String(subIndex);
+        card.dataset.parentProcess = parentProcess.value;
+        card.draggable = true;
+
+        card.addEventListener('dragstart', (event) => {
+            this.handleSubProcessDragStart(event, card, parentProcess.value, subIndex);
+        });
+        card.addEventListener('dragend', () => {
+            this.handleDragEnd(card);
+        });
+
+        const header = document.createElement('div');
+        header.className = 'subprocess-card-header';
+
+        const dragHandle = document.createElement('div');
+        dragHandle.className = 'drag-handle';
+        header.appendChild(dragHandle);
+
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.className = 'subprocess-title-input';
+        titleInput.value = subProcess.label || '';
+        titleInput.placeholder = 'Nom du sous-processus';
+        titleInput.addEventListener('change', () => {
+            this.renameSubProcess(parentProcess.value, subIndex, titleInput.value);
+        });
+        titleInput.addEventListener('blur', () => {
+            if (titleInput.value.trim() !== (subProcess.label || '')) {
+                this.renameSubProcess(parentProcess.value, subIndex, titleInput.value);
+            }
+        });
+        header.appendChild(titleInput);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'icon-button danger';
+        deleteButton.setAttribute('aria-label', `Supprimer le sous-processus ${subProcess.label}`);
+        deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
+        deleteButton.addEventListener('click', () => {
+            this.deleteSubProcess(parentProcess.value, subIndex);
+        });
+        header.appendChild(deleteButton);
+
+        card.appendChild(header);
+
+        const referentEditor = this.renderReferentEditor({
+            referents: subProcess.referents,
+            scope: 'subprocess',
+            processIndex,
+            processValue: parentProcess.value,
+            subIndex
+        });
+        card.appendChild(referentEditor);
+
+        return card;
+    }
+
+    renderReferentEditor(options = {}) {
+        const {
+            referents = [],
+            scope = 'process',
+            processIndex = -1,
+            processValue = '',
+            subIndex = -1
+        } = options;
+
+        const container = document.createElement('div');
+        container.className = scope === 'subprocess'
+            ? 'subprocess-card-referents'
+            : 'process-card-referents';
+
+        const title = document.createElement('div');
+        title.className = 'referent-editor-title';
+        title.textContent = 'Référents';
+        container.appendChild(title);
+
+        const chips = document.createElement('div');
+        chips.className = 'referent-chip-container';
+
+        const normalizedReferents = Array.isArray(referents) ? referents : [];
+        if (normalizedReferents.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'referent-empty';
+            empty.textContent = 'Aucun référent défini';
+            chips.appendChild(empty);
+        } else {
+            normalizedReferents.forEach((referent) => {
+                if (!referent) {
+                    return;
+                }
+                const chip = document.createElement('span');
+                chip.className = 'referent-chip';
+                chip.textContent = referent;
+
+                const remove = document.createElement('button');
+                remove.type = 'button';
+                remove.className = 'referent-chip-remove';
+                remove.setAttribute('aria-label', `Retirer ${referent}`);
+                remove.textContent = '×';
+                remove.addEventListener('click', () => {
+                    if (scope === 'subprocess') {
+                        this.removeReferentFromSubProcess(processValue, subIndex, referent);
+                    } else {
+                        this.removeReferentFromProcess(processIndex, referent);
+                    }
+                });
+
+                chip.appendChild(remove);
+                chips.appendChild(chip);
+            });
+        }
+
+        container.appendChild(chips);
+
+        const inputWrapper = document.createElement('div');
+        inputWrapper.className = 'referent-input-wrapper';
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'referent-input';
+        input.placeholder = 'Ajouter un référent';
+        input.setAttribute('list', 'processReferentSuggestions');
+
+        const commitInputValue = () => {
+            const value = input.value.trim();
+            if (!value) {
+                return;
+            }
+            if (scope === 'subprocess') {
+                this.addReferentToSubProcess(processValue, subIndex, value);
+            } else {
+                this.addReferentToProcess(processIndex, value);
+            }
+            input.value = '';
+        };
+
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ',' || event.key === ';') {
+                event.preventDefault();
+                commitInputValue();
+            }
+        });
+
+        input.addEventListener('blur', () => {
+            commitInputValue();
+        });
+
+        inputWrapper.appendChild(input);
+
+        const helper = document.createElement('p');
+        helper.className = 'referent-helper';
+        helper.textContent = 'Validez avec Entrée pour ajouter un référent. Les suggestions proviennent des référents existants.';
+
+        container.appendChild(inputWrapper);
+        container.appendChild(helper);
+
+        return container;
+    }
+
+    closeActiveInsertionForm(options = {}) {
+        this.activeInsertionForm = null;
+        if (options && options.rerender) {
+            this.rerenderProcessManager();
+        }
+    }
+
+    rerenderProcessManager() {
+        if (this.currentConfigSection === 'processManager' && this.processManagerContainer instanceof HTMLElement) {
+            this.renderProcessManager(this.processManagerContainer);
+        }
+    }
+
+    collectAllReferents() {
+        const referents = new Set();
+        const add = (value) => {
+            if (!value || typeof value !== 'string') {
+                return;
+            }
+            const trimmed = value.trim();
+            if (!trimmed) {
+                return;
+            }
+            referents.add(trimmed);
+        };
+
+        (this.config.processes || []).forEach(process => {
+            (process?.referents || []).forEach(add);
+            const subs = this.config.subProcesses?.[process.value] || [];
+            subs.forEach(sub => {
+                (sub?.referents || []).forEach(add);
+            });
+        });
+
+        return Array.from(referents).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+    }
+
+    addReferentToProcess(index, referent) {
+        const target = this.config.processes?.[index];
+        if (!target) {
+            return;
+        }
+
+        const normalized = typeof referent === 'string' ? referent.trim() : '';
+        if (!normalized) {
+            return;
+        }
+
+        target.referents = Array.isArray(target.referents) ? target.referents : [];
+        const exists = target.referents.some(entry => typeof entry === 'string' && entry.toLowerCase() === normalized.toLowerCase());
+        if (exists) {
+            return;
+        }
+
+        target.referents.push(normalized);
+        this.saveConfig();
+        this.rerenderProcessManager();
+    }
+
+    removeReferentFromProcess(index, referent) {
+        const target = this.config.processes?.[index];
+        if (!target || !Array.isArray(target.referents)) {
+            return;
+        }
+
+        const normalized = typeof referent === 'string' ? referent.trim().toLowerCase() : '';
+        if (!normalized) {
+            return;
+        }
+
+        target.referents = target.referents.filter(entry => {
+            return typeof entry === 'string' && entry.trim().toLowerCase() !== normalized;
+        });
+
+        this.saveConfig();
+        this.rerenderProcessManager();
+    }
+
+    addReferentToSubProcess(processValue, subIndex, referent) {
+        if (!processValue || typeof referent !== 'string') {
+            return;
+        }
+        const list = this.config.subProcesses?.[processValue];
+        if (!Array.isArray(list) || !list[subIndex]) {
+            return;
+        }
+
+        const normalized = referent.trim();
+        if (!normalized) {
+            return;
+        }
+
+        list[subIndex].referents = Array.isArray(list[subIndex].referents) ? list[subIndex].referents : [];
+        const exists = list[subIndex].referents.some(entry => typeof entry === 'string' && entry.toLowerCase() === normalized.toLowerCase());
+        if (exists) {
+            return;
+        }
+
+        list[subIndex].referents.push(normalized);
+        this.saveConfig();
+        this.rerenderProcessManager();
+    }
+
+    removeReferentFromSubProcess(processValue, subIndex, referent) {
+        const list = this.config.subProcesses?.[processValue];
+        if (!Array.isArray(list) || !list[subIndex] || typeof referent !== 'string') {
+            return;
+        }
+
+        const normalized = referent.trim().toLowerCase();
+        if (!normalized) {
+            return;
+        }
+
+        list[subIndex].referents = (list[subIndex].referents || []).filter(entry => {
+            return typeof entry === 'string' && entry.trim().toLowerCase() !== normalized;
+        });
+
+        this.saveConfig();
+        this.rerenderProcessManager();
+    }
+
+    renameProcess(index, label) {
+        const target = this.config.processes?.[index];
+        if (!target) {
+            return;
+        }
+
+        const normalizedLabel = typeof label === 'string' ? label.trim() : '';
+        if (!normalizedLabel) {
+            this.rerenderProcessManager();
+            return;
+        }
+
+        const baseValue = slugifyLabel ? slugifyLabel(normalizedLabel) : normalizedLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const uniqueValue = baseValue === target.value
+            ? target.value
+            : this.generateUniqueProcessValue(baseValue, index);
+
+        this.updateConfigOption('processes', index, { value: uniqueValue, label: normalizedLabel });
+    }
+
+    renameSubProcess(processValue, subIndex, label) {
+        const list = this.config.subProcesses?.[processValue];
+        if (!Array.isArray(list) || !list[subIndex]) {
+            return;
+        }
+
+        const normalizedLabel = typeof label === 'string' ? label.trim() : '';
+        if (!normalizedLabel) {
+            this.rerenderProcessManager();
+            return;
+        }
+
+        const baseValue = slugifyLabel ? slugifyLabel(normalizedLabel) : normalizedLabel.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+        const uniqueValue = baseValue === list[subIndex].value
+            ? list[subIndex].value
+            : this.generateUniqueSubProcessValue(processValue, baseValue, subIndex);
+
+        this.updateSubProcess(processValue, subIndex, { value: uniqueValue, label: normalizedLabel });
+        this.rerenderProcessManager();
+    }
+
+    deleteProcess(index) {
+        const target = this.config.processes?.[index];
+        if (!target) {
+            return;
+        }
+
+        if (typeof confirm === 'function') {
+            const confirmed = confirm(`Supprimer le processus "${target.label || target.value}" et ses sous-processus ?`);
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        const removed = this.config.processes.splice(index, 1)[0];
+        const removedValue = removed?.value;
+        if (removedValue && this.config.subProcesses[removedValue]) {
+            delete this.config.subProcesses[removedValue];
+        }
+
+        if (removedValue) {
+            this.risks.forEach(risk => {
+                if (risk.processus === removedValue) {
+                    risk.processus = '';
+                    risk.sousProcessus = '';
+                }
+            });
+        }
+
+        this.saveData();
+        this.saveConfig();
+        this.populateSelects();
+        this.updateSousProcessusOptions();
+        this.updateRisksList();
+        this.rerenderProcessManager();
+    }
+
+    deleteSubProcess(processValue, subIndex) {
+        const list = this.config.subProcesses?.[processValue];
+        if (!Array.isArray(list) || !list[subIndex]) {
+            return;
+        }
+
+        const target = list[subIndex];
+        if (typeof confirm === 'function') {
+            const confirmed = confirm(`Supprimer le sous-processus "${target.label || target.value}" ?`);
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        list.splice(subIndex, 1);
+
+        const removedValue = target?.value;
+        if (removedValue) {
+            this.risks.forEach(risk => {
+                if (risk.processus === processValue && risk.sousProcessus === removedValue) {
+                    risk.sousProcessus = '';
+                }
+            });
+        }
+
+        this.saveData();
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.updateRisksList();
+        this.rerenderProcessManager();
+    }
+
+    handleInsertDragOver(event, control, context = {}) {
+        if (!this.dragState) {
+            return;
+        }
+
+        const { parentProcess = null } = context;
+        const { type } = this.dragState;
+
+        if ((type === 'process' && parentProcess) || (type === 'subprocess' && parentProcess == null)) {
+            return;
+        }
+
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+        control.classList.add('drop-target');
+    }
+
+    handleInsertDragLeave(control) {
+        control.classList.remove('drop-target');
+    }
+
+    handleInsertDrop(event, control, context = {}) {
+        if (!this.dragState) {
+            return;
+        }
+        event.preventDefault();
+        control.classList.remove('drop-target');
+
+        const position = Number(control.dataset.position || context.position || 0);
+        const parentProcess = control.dataset.parentProcess || context.parentProcess || null;
+
+        if (this.dragState.type === 'process' && parentProcess == null) {
+            this.moveProcess(this.dragState.fromIndex, position);
+        } else if (this.dragState.type === 'subprocess' && parentProcess) {
+            this.moveSubProcess(this.dragState.parentProcess, this.dragState.fromIndex, parentProcess, position);
+        }
+
+        this.dragState = null;
+    }
+
+    handleProcessDragStart(event, card, index) {
+        if (event?.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            try {
+                event.dataTransfer.setData('text/plain', `process:${index}`);
+            } catch (error) {
+                // ignore
+            }
+        }
+
+        this.dragState = { type: 'process', fromIndex: index };
+        card.classList.add('dragging');
+    }
+
+    handleSubProcessDragStart(event, card, parentProcess, subIndex) {
+        if (event?.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            try {
+                event.dataTransfer.setData('text/plain', `subprocess:${parentProcess}:${subIndex}`);
+            } catch (error) {
+                // ignore
+            }
+        }
+
+        this.dragState = { type: 'subprocess', parentProcess, fromIndex: subIndex };
+        card.classList.add('dragging');
+    }
+
+    handleDragEnd(card) {
+        card.classList.remove('dragging');
+        this.dragState = null;
+    }
+
+    moveProcess(fromIndex, toIndex) {
+        if (!Array.isArray(this.config.processes)) {
+            return;
+        }
+        if (fromIndex === toIndex) {
+            return;
+        }
+
+        const list = this.config.processes;
+        if (fromIndex < 0 || fromIndex >= list.length) {
+            return;
+        }
+
+        const [item] = list.splice(fromIndex, 1);
+        let targetIndex = toIndex;
+        if (fromIndex < toIndex) {
+            targetIndex -= 1;
+        }
+        targetIndex = Math.max(0, Math.min(targetIndex, list.length));
+        list.splice(targetIndex, 0, item);
+
+        this.saveConfig();
+        this.populateSelects();
+        this.updateSousProcessusOptions();
+        this.rerenderProcessManager();
+    }
+
+    moveSubProcess(fromParent, fromIndex, toParent, toIndex) {
+        if (!fromParent || fromIndex < 0 || !toParent) {
+            return;
+        }
+
+        const fromList = this.config.subProcesses?.[fromParent];
+        if (!Array.isArray(fromList) || fromIndex >= fromList.length) {
+            return;
+        }
+
+        const [item] = fromList.splice(fromIndex, 1);
+        if (!item) {
+            return;
+        }
+
+        if (!Array.isArray(this.config.subProcesses[toParent])) {
+            this.config.subProcesses[toParent] = [];
+        }
+
+        const targetList = this.config.subProcesses[toParent];
+        let insertIndex = toIndex;
+        if (fromParent === toParent && fromIndex < toIndex) {
+            insertIndex -= 1;
+        }
+        insertIndex = Math.max(0, Math.min(insertIndex, targetList.length));
+        targetList.splice(insertIndex, 0, item);
+
+        this.saveConfig();
+        this.updateSousProcessusOptions();
+        this.rerenderProcessManager();
+    }
+
+
 
     configureAccordionItem(item, headerButton, body, initiallyOpen = false) {
         if (!item || !headerButton || !body) {
@@ -956,7 +2103,10 @@ class RiskManagementSystem {
         if (!value || !label) return;
 
         const previous = this.config[key][index];
-        this.config[key][index] = { value, label };
+        const referents = Array.isArray(previous?.referents)
+            ? previous.referents.filter(ref => typeof ref === 'string' && ref.trim())
+            : [];
+        this.config[key][index] = { value, label, referents };
 
         if (key === 'processes') {
             if (previous.value !== value) {
@@ -1006,7 +2156,8 @@ class RiskManagementSystem {
         const value = valueInput.value.trim();
         const label = labelInput.value.trim();
         if (!value || !label) return;
-        this.config[key].push({ value, label });
+        const entry = { value, label, referents: [] };
+        this.config[key].push(entry);
         if (key === 'processes') {
             this.config.subProcesses[value] = [];
             this.saveConfig();
@@ -1239,7 +2390,10 @@ class RiskManagementSystem {
         if (!value || !label) return;
 
         const previous = this.config.subProcesses[process][index];
-        this.config.subProcesses[process][index] = { value, label };
+        const referents = Array.isArray(previous?.referents)
+            ? previous.referents.filter(ref => typeof ref === 'string' && ref.trim())
+            : [];
+        this.config.subProcesses[process][index] = { value, label, referents };
 
         if (previous.value !== value) {
             this.risks.forEach(risk => {
@@ -1268,7 +2422,7 @@ class RiskManagementSystem {
             this.config.subProcesses = {};
         }
         this.config.subProcesses[process] = this.config.subProcesses[process] || [];
-        this.config.subProcesses[process].push({ value, label });
+        this.config.subProcesses[process].push({ value, label, referents: [] });
         this.saveConfig();
         this.updateSousProcessusOptions();
         this.refreshSubProcessLists();
