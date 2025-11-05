@@ -1,4 +1,105 @@
 // Enhanced Risk Management System
+const AGGRAVATING_FACTOR_KEY_SEPARATOR = '::';
+const AGGRAVATING_FACTOR_GROUPS = [
+    {
+        id: 'group1',
+        title: 'Groupe 1',
+        coefficient: 1.4,
+        factors: [
+            { id: 'high-corruption-country', label: 'Pays à risque de corruption élevé (CPI < 40)' },
+            { id: 'unstable-geographies', label: 'Zones géographiques instables' },
+            { id: 'hard-to-control-intermediaries', label: 'Intermédiaires difficiles à contrôler' }
+        ]
+    },
+    {
+        id: 'group2',
+        title: 'Groupe 2',
+        coefficient: 1.2,
+        factors: [
+            { id: 'moderate-risk-country', label: 'Pays à risques de corruption modéré (40 ≤ CPI ≤ 60)' },
+            { id: 'exposed-industries', label: 'Secteurs d’activité exposés (BTP, énergie, défense, transport)' },
+            { id: 'gift-tolerant-culture', label: 'Culture tolérante aux cadeaux' },
+            { id: 'high-turnover', label: 'Turn-over élevé' }
+        ]
+    }
+];
+
+const AGGRAVATING_FACTOR_COEFFICIENTS = AGGRAVATING_FACTOR_GROUPS.reduce((acc, group) => {
+    acc[group.id] = group.coefficient;
+    return acc;
+}, {});
+
+function createAggravatingKey(group, id) {
+    return `${group}${AGGRAVATING_FACTOR_KEY_SEPARATOR}${id}`;
+}
+
+function parseAggravatingKey(key) {
+    if (typeof key !== 'string') return null;
+    const [group, id] = key.split(AGGRAVATING_FACTOR_KEY_SEPARATOR);
+    if (!group || !id) return null;
+    return { group, id };
+}
+
+function normalizeAggravatingFactors(factors) {
+    if (!Array.isArray(factors)) return [];
+    return factors
+        .map(factor => {
+            if (!factor) return null;
+            if (typeof factor === 'string') {
+                return parseAggravatingKey(factor);
+            }
+            if (typeof factor === 'object') {
+                const group = factor.group || factor.category;
+                const id = factor.id || factor.value || factor.name;
+                if (group && id) {
+                    return { group, id };
+                }
+            }
+            return null;
+        })
+        .filter(Boolean);
+}
+
+function getSelectedAggravatingFactors() {
+    const container = document.getElementById('aggravatingFactorsContainer');
+    if (!container) return [];
+    return Array.from(container.querySelectorAll('input[type="checkbox"]:checked')).map(checkbox =>
+        createAggravatingKey(checkbox.dataset.group, checkbox.value)
+    );
+}
+
+function computeAdjustedProbability(baseProb, factors) {
+    const normalized = normalizeAggravatingFactors(factors);
+    const base = Number(baseProb) || 0;
+    const coefficient = normalized.reduce((max, factor) => {
+        const groupCoefficient = AGGRAVATING_FACTOR_COEFFICIENTS[factor.group] || 1;
+        return Math.max(max, groupCoefficient);
+    }, 1);
+    const adjusted = Math.min(4, Math.round(base * coefficient * 100) / 100);
+    return { adjusted, coefficient, normalized };
+}
+
+function formatNumber(value) {
+    const numeric = Number(value) || 0;
+    const rounded = Math.round(numeric * 100) / 100;
+    if (Number.isInteger(rounded)) {
+        return rounded.toString();
+    }
+    return rounded.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+}
+
+function updateAggravatingSummary(coefficient = 1, adjustedProbability = null) {
+    const summary = document.getElementById('aggravatingSummary');
+    if (!summary) return;
+    if (coefficient > 1 && adjustedProbability !== null) {
+        summary.textContent = `Coefficient appliqué : ${formatNumber(coefficient)} • Probabilité ajustée : ${formatNumber(adjustedProbability)}`;
+        summary.classList.add('active');
+    } else {
+        summary.textContent = 'Aucun facteur aggravant sélectionné.';
+        summary.classList.remove('active');
+    }
+}
+
 class RiskManagementSystem {
     constructor() {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
@@ -17,6 +118,7 @@ class RiskManagementSystem {
     }
 
     init() {
+        this.renderAggravatingFactors();
         this.populateSelects();
         this.initializeMatrix();
         this.updateDashboard();
@@ -43,6 +145,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,
                 probNet: 2, impactNet: 3,
                 probPost: 1, impactPost: 2,
+                brutAggravatingFactors: [],
                 statut: "en-cours",
                 responsable: "Dr. Martin",
                 dateCreation: "2024-01-15",
@@ -59,6 +162,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,  // Même position que risque 1
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 2,
+                brutAggravatingFactors: [],
                 statut: "traite",
                 responsable: "M. Durand",
                 dateCreation: "2024-01-20",
@@ -75,6 +179,7 @@ class RiskManagementSystem {
                 probBrut: 4, impactBrut: 3,
                 probNet: 2, impactNet: 3,  // Même position que risque 1
                 probPost: 1, impactPost: 2,
+                brutAggravatingFactors: [],
                 statut: "nouveau",
                 responsable: "Mme. Leroy",
                 dateCreation: "2024-02-01",
@@ -91,6 +196,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 4,  // Même position que risques 1 et 2
                 probNet: 2, impactNet: 3,  // Même position que risques 1 et 3
                 probPost: 1, impactPost: 1,
+                brutAggravatingFactors: [],
                 statut: "en-cours",
                 responsable: "M. Bernard",
                 dateCreation: "2024-01-10",
@@ -107,6 +213,7 @@ class RiskManagementSystem {
                 probBrut: 2, impactBrut: 3,
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risque 4
+                brutAggravatingFactors: [],
                 statut: "validé",
                 responsable: "Mme. Petit",
                 dateCreation: "2024-01-25",
@@ -123,6 +230,7 @@ class RiskManagementSystem {
                 probBrut: 2, impactBrut: 4,
                 probNet: 1, impactNet: 3,
                 probPost: 1, impactPost: 2,
+                brutAggravatingFactors: [],
                 statut: "nouveau",
                 responsable: "M. Moreau",
                 dateCreation: "2024-02-05",
@@ -139,6 +247,7 @@ class RiskManagementSystem {
                 probBrut: 3, impactBrut: 3,
                 probNet: 2, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4 et 5
+                brutAggravatingFactors: [],
                 statut: "en-cours",
                 responsable: "Mme. Dubois",
                 dateCreation: "2024-02-10",
@@ -155,6 +264,7 @@ class RiskManagementSystem {
                 probBrut: 2, impactBrut: 3,
                 probNet: 1, impactNet: 2,
                 probPost: 1, impactPost: 1,  // Même position que risques 4, 5 et 7
+                brutAggravatingFactors: [],
                 statut: "traite",
                 responsable: "Me. Lambert",
                 dateCreation: "2024-01-30",
@@ -347,6 +457,76 @@ class RiskManagementSystem {
 
     saveConfig() {
         localStorage.setItem('rms_config', JSON.stringify(this.config));
+    }
+
+    renderAggravatingFactors() {
+        const container = document.getElementById('aggravatingFactorsContainer');
+        if (!container) return;
+
+        container.innerHTML = AGGRAVATING_FACTOR_GROUPS.map(group => `
+            <div class="aggravating-group">
+                <div class="aggravating-group-header">
+                    <span>${group.title}</span>
+                    <span class="aggravating-coefficient">Coef. ×${formatNumber(group.coefficient)}</span>
+                </div>
+                <div class="aggravating-options">
+                    ${group.factors.map(factor => `
+                        <label class="aggravating-option">
+                            <input type="checkbox" data-group="${group.id}" value="${factor.id}">
+                            <span>${factor.label}</span>
+                        </label>
+                    `).join('')}
+                </div>
+            </div>
+        `).join('');
+
+        container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            checkbox.addEventListener('change', () => calculateScore('brut'));
+        });
+
+        updateAggravatingSummary();
+    }
+
+    setAggravatingFactorsSelection(factors) {
+        const container = document.getElementById('aggravatingFactorsContainer');
+        if (!container) return;
+
+        const normalized = normalizeAggravatingFactors(factors);
+        const selectedKeys = new Set(normalized.map(factor => createAggravatingKey(factor.group, factor.id)));
+
+        container.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
+            const key = createAggravatingKey(checkbox.dataset.group, checkbox.value);
+            checkbox.checked = selectedKeys.has(key);
+        });
+
+        const { adjusted, coefficient } = this.getBrutAdjustedProbabilityFromSelection(
+            Number(document.getElementById('probBrut')?.value) || 1,
+            normalized
+        );
+        updateAggravatingSummary(coefficient, adjusted);
+    }
+
+    getNormalizedBrutFactors(risk) {
+        return normalizeAggravatingFactors(risk?.brutAggravatingFactors);
+    }
+
+    getBrutAdjustedProbabilityFromSelection(baseProbability, factors) {
+        return computeAdjustedProbability(baseProbability, factors);
+    }
+
+    getBrutAdjustedProbability(risk) {
+        const { adjusted } = this.getBrutAdjustedProbabilityFromSelection(risk.probBrut, this.getNormalizedBrutFactors(risk));
+        return adjusted;
+    }
+
+    getBrutCoefficient(risk) {
+        const { coefficient } = this.getBrutAdjustedProbabilityFromSelection(risk.probBrut, this.getNormalizedBrutFactors(risk));
+        return coefficient;
+    }
+
+    getBrutScore(risk) {
+        const adjustedProbability = this.getBrutAdjustedProbability(risk);
+        return adjustedProbability * risk.impactBrut;
     }
 
     populateSelects() {
@@ -625,10 +805,17 @@ class RiskManagementSystem {
         
         filteredRisks.forEach(risk => {
             let prob, impact;
-            
+            let tooltip = risk.description;
+            let coefficient = 1;
+
             if (this.currentView === 'brut') {
-                prob = risk.probBrut;
+                const adjustedProbability = this.getBrutAdjustedProbability(risk);
+                prob = adjustedProbability;
                 impact = risk.impactBrut;
+                coefficient = this.getBrutCoefficient(risk);
+                if (coefficient > 1) {
+                    tooltip += ` (coef ×${formatNumber(coefficient)})`;
+                }
             } else if (this.currentView === 'net') {
                 prob = risk.probNet;
                 impact = risk.impactNet;
@@ -636,21 +823,24 @@ class RiskManagementSystem {
                 prob = risk.probPost;
                 impact = risk.impactPost;
             }
-            
+
             const point = document.createElement('div');
             point.className = `risk-point ${this.currentView}`;
             point.dataset.riskId = risk.id;
-            
+
             const leftPercent = ((impact - 0.5) / 4) * 100;
             const bottomPercent = ((prob - 0.5) / 4) * 100;
-            
+
             point.style.left = `${leftPercent}%`;
             point.style.bottom = `${bottomPercent}%`;
             point.style.transform = 'translate(-50%, 50%)';
-            
-            point.title = risk.description;
+
+            if (this.currentView === 'brut' && coefficient > 1) {
+                point.dataset.coefficient = formatNumber(coefficient);
+            }
+            point.title = tooltip;
             point.onclick = () => this.selectRisk(risk.id);
-            
+
             grid.appendChild(point);
         });
     }
@@ -703,7 +893,7 @@ class RiskManagementSystem {
         container.innerHTML = filteredRisks.map(risk => {
             let prob, impact;
             if (this.currentView === 'brut') {
-                prob = risk.probBrut;
+                prob = this.getBrutAdjustedProbability(risk);
                 impact = risk.impactBrut;
             } else if (this.currentView === 'net') {
                 prob = risk.probNet;
@@ -712,19 +902,19 @@ class RiskManagementSystem {
                 prob = risk.probPost;
                 impact = risk.impactPost;
             }
-            
+
             const score = prob * impact;
             let scoreClass = 'low';
             if (score > 12) scoreClass = 'critical';
             else if (score > 8) scoreClass = 'high';
             else if (score > 4) scoreClass = 'medium';
-            
+
             const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
             return `
                 <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${risk.id})">
                     <div class="risk-item-header">
                         <span class="risk-item-title">${risk.description}</span>
-                        <span class="risk-item-score ${scoreClass}">${score}</span>
+                        <span class="risk-item-score ${scoreClass}">${formatNumber(score)}</span>
                     </div>
                     <div class="risk-item-meta">
                         ${risk.processus}${sp} • ${risk.responsable}
@@ -776,7 +966,13 @@ class RiskManagementSystem {
         
         const filteredRisks = this.getFilteredRisks();
         
-        tbody.innerHTML = filteredRisks.map(risk => `
+        tbody.innerHTML = filteredRisks.map(risk => {
+            const brutScore = this.getBrutScore(risk);
+            const netScore = risk.probNet * risk.impactNet;
+            const postScore = risk.probPost * risk.impactPost;
+            const statusClass = risk.statut === 'traite' ? 'success' : risk.statut === 'en-cours' ? 'warning' : 'danger';
+
+            return `
             <tr>
                 <td>#${risk.id}</td>
                 <td>${risk.description}</td>
@@ -784,17 +980,18 @@ class RiskManagementSystem {
                 <td>${risk.sousProcessus || ''}</td>
                 <td>${risk.typeCorruption}</td>
                 <td>${(risk.tiers || []).join(', ')}</td>
-                <td>${risk.probBrut * risk.impactBrut}</td>
-                <td>${risk.probNet * risk.impactNet}</td>
-                <td>${risk.probPost * risk.impactPost}</td>
-                <td><span class="table-badge badge-${risk.statut === 'traite' ? 'success' : risk.statut === 'en-cours' ? 'warning' : 'danger'}">${risk.statut}</span></td>
+                <td>${formatNumber(brutScore)}</td>
+                <td>${formatNumber(netScore)}</td>
+                <td>${formatNumber(postScore)}</td>
+                <td><span class="table-badge badge-${statusClass}">${risk.statut}</span></td>
                 <td>${risk.responsable}</td>
                 <td class="table-actions-cell">
                     <button class="action-btn" onclick="rms.editRisk(${risk.id})">✏️</button>
                     <button class="action-btn" onclick="rms.deleteRisk(${risk.id})">🗑️</button>
                 </td>
             </tr>
-        `).join('');
+        `;
+        }).join('');
     }
 
     // Controls functions
@@ -957,6 +1154,7 @@ class RiskManagementSystem {
             document.getElementById('probPost').value = risk.probPost;
             document.getElementById('impactPost').value = risk.impactPost;
 
+            this.setAggravatingFactorsSelection(risk.brutAggravatingFactors || []);
             calculateScore('brut');
             calculateScore('net');
             calculateScore('post');
@@ -1167,9 +1365,11 @@ function addNewRisk() {
             document.getElementById('probPost').value = lastRiskData.probPost || 1;
             document.getElementById('impactPost').value = lastRiskData.impactPost || 1;
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
+            rms.setAggravatingFactorsSelection(lastRiskData.brutAggravatingFactors || []);
         } else {
             rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
+            rms.setAggravatingFactorsSelection([]);
         }
 
         // Recalculate scores for displayed values
@@ -1189,7 +1389,7 @@ window.closeModal = closeModal;
 
 function calculateScore(type) {
     let probId, impactId, scoreId;
-    
+
     if (type === 'brut') {
         probId = 'probBrut';
         impactId = 'impactBrut';
@@ -1203,12 +1403,30 @@ function calculateScore(type) {
         impactId = 'impactPost';
         scoreId = 'scorePost';
     }
-    
-    const prob = parseInt(document.getElementById(probId).value) || 1;
-    const impact = parseInt(document.getElementById(impactId).value) || 1;
-    const score = prob * impact;
-    
-    document.getElementById(scoreId).textContent = `Score: ${score}`;
+
+    const probElement = document.getElementById(probId);
+    const impactElement = document.getElementById(impactId);
+    const baseProb = parseInt(probElement?.value, 10) || 1;
+    const impact = parseInt(impactElement?.value, 10) || 1;
+
+    let probabilityForScore = baseProb;
+    let extraDetails = '';
+
+    if (type === 'brut') {
+        const selectedFactors = getSelectedAggravatingFactors();
+        const { adjusted, coefficient } = computeAdjustedProbability(baseProb, selectedFactors);
+        probabilityForScore = adjusted;
+        updateAggravatingSummary(coefficient, adjusted);
+        if (coefficient > 1) {
+            extraDetails = ` (Prob. ajustée: ${formatNumber(adjusted)} • Coef ×${formatNumber(coefficient)})`;
+        }
+    }
+
+    const score = probabilityForScore * impact;
+    const scoreElement = document.getElementById(scoreId);
+    if (scoreElement) {
+        scoreElement.textContent = `Score: ${formatNumber(score)}${extraDetails}`;
+    }
 }
 window.calculateScore = calculateScore;
 
@@ -1227,6 +1445,7 @@ function saveRisk() {
         impactNet: parseInt(document.getElementById('impactNet').value),
         probPost: parseInt(document.getElementById('probPost').value),
         impactPost: parseInt(document.getElementById('impactPost').value),
+        brutAggravatingFactors: getSelectedAggravatingFactors(),
         responsable: 'Marie Dupont',
         controls: [...selectedControlsForRisk]
     };
@@ -1284,7 +1503,12 @@ function saveRisk() {
         showNotification('success', 'Risque ajouté avec succès!');
     }
 
-    lastRiskData = { ...formData, tiers: [...formData.tiers], controls: [...formData.controls] };
+    lastRiskData = {
+        ...formData,
+        tiers: [...formData.tiers],
+        controls: [...formData.controls],
+        brutAggravatingFactors: [...formData.brutAggravatingFactors]
+    };
 }
 window.saveRisk = saveRisk;
 

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -432,6 +432,10 @@
                 <div class="content-area" id="configurationContainer"></div>
             </div>
         </div>
+        <footer class="app-footer">
+            <div class="footer-info">© 2024 Cartographie des Risques Corruption</div>
+            <div class="footer-version">Version 2.1.0</div>
+        </footer>
     </div>
 
     <!-- Control Form Modal -->
@@ -643,6 +647,15 @@
                                             <option value="4">4 - Critique</option>
                                         </select>
                                     </div>
+                                </div>
+                                <div class="aggravating-factors">
+                                    <div class="aggravating-header">
+                                        <span>Facteurs aggravants potentiels</span>
+                                        <span class="aggravating-helper">Sélectionnez les facteurs applicables</span>
+                                    </div>
+                                    <div class="aggravating-note">Le coefficient le plus élevé sélectionné est appliqué à la probabilité brute (limité à la matrice 4×4).</div>
+                                    <div id="aggravatingFactorsContainer" class="aggravating-groups"></div>
+                                    <div id="aggravatingSummary" class="aggravating-summary">Aucun facteur aggravant sélectionné.</div>
                                 </div>
                                 <div class="risk-score-display" id="scoreBrut">Score: 1</div>
                             </div>
