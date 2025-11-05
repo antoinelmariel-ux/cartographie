@@ -118,12 +118,6 @@ class RiskManagementSystem {
         this.dragState = null;
         this.lastDashboardMetrics = null;
         this.charts = {};
-        this.risks.forEach(r => {
-            if (!r.actionPlans || r.actionPlans.length === 0) {
-                r.probPost = r.probNet;
-                r.impactPost = r.impactNet;
-            }
-        });
         this.init();
     }
 
@@ -479,14 +473,6 @@ class RiskManagementSystem {
         this.config = cloneObject(snapshot.config);
 
         this.ensureConfigStructure();
-
-        this.risks.forEach(risk => {
-            if (!risk) return;
-            if (!Array.isArray(risk.actionPlans) || risk.actionPlans.length === 0) {
-                risk.probPost = risk.probNet;
-                risk.impactPost = risk.impactNet;
-            }
-        });
 
         this.saveData();
         this.saveConfig();
@@ -2608,27 +2594,24 @@ class RiskManagementSystem {
 
         const viewSymbols = {
             brut: 'B',
-            net: 'N',
-            'post-mitigation': 'P'
+            net: 'N'
         };
         const viewLabels = {
             brut: 'Risque brut',
-            net: 'Risque net',
-            'post-mitigation': 'Risque post-mitigation'
+            net: 'Risque net'
         };
 
         filteredRisks.forEach(risk => {
-            let prob, impact;
+            const viewKey = this.currentView === 'net' ? 'net' : 'brut';
+            let prob;
+            let impact;
 
-            if (this.currentView === 'brut') {
-                prob = risk.probBrut;
-                impact = risk.impactBrut;
-            } else if (this.currentView === 'net') {
+            if (viewKey === 'net') {
                 prob = risk.probNet;
                 impact = risk.impactNet;
             } else {
-                prob = risk.probPost;
-                impact = risk.impactPost;
+                prob = risk.probBrut;
+                impact = risk.impactBrut;
             }
 
             const leftPercent = ((prob - 0.5) / 4) * 100;
@@ -2646,12 +2629,12 @@ class RiskManagementSystem {
 
             // Create point element and temporarily add it to the DOM to get its size
             const point = document.createElement('div');
-            point.className = `risk-point ${this.currentView}`;
+            point.className = `risk-point ${viewKey}`;
             point.dataset.riskId = risk.id;
             point.title = risk.description;
-            const symbol = viewSymbols[this.currentView] || '';
+            const symbol = viewSymbols[viewKey] || '';
             point.textContent = symbol;
-            point.setAttribute('aria-label', `${viewLabels[this.currentView] || 'Risque'} : ${risk.description}`);
+            point.setAttribute('aria-label', `${viewLabels[viewKey] || 'Risque'} : ${risk.description}`);
             point.onclick = () => this.selectRisk(risk.id);
             grid.appendChild(point);
 
@@ -2797,17 +2780,14 @@ class RiskManagementSystem {
         const filteredRisks = this.getFilteredRisks(baseRisks);
         const viewConfig = {
             'brut': { prob: 'probBrut', impact: 'impactBrut' },
-            'net': { prob: 'probNet', impact: 'impactNet' },
-            'post': { prob: 'probPost', impact: 'impactPost' },
-            'post-mitigation': { prob: 'probPost', impact: 'impactPost' }
+            'net': { prob: 'probNet', impact: 'impactNet' }
         };
-        const { prob: probKey, impact: impactKey } = viewConfig[this.currentView] || viewConfig['brut'];
+        const viewKey = this.currentView === 'net' ? 'net' : 'brut';
+        const { prob: probKey, impact: impactKey } = viewConfig[viewKey];
 
         const viewLabels = {
             'brut': 'Vue Brut',
-            'net': 'Vue Net',
-            'post': 'Vue Post-Mitigation',
-            'post-mitigation': 'Vue Post-Mitigation'
+            'net': 'Vue Net'
         };
 
         const scoredRisks = filteredRisks.map(risk => {
@@ -2832,7 +2812,7 @@ class RiskManagementSystem {
 
         const titleElement = document.getElementById('riskDetailsTitle');
         if (titleElement) {
-            const viewLabel = viewLabels[this.currentView] || viewLabels['brut'];
+            const viewLabel = viewLabels[viewKey] || viewLabels['brut'];
             titleElement.textContent = `Risques triés par score - ${viewLabel}`;
         }
 
@@ -2891,14 +2871,12 @@ class RiskManagementSystem {
         const totals = sourceRisks.reduce((acc, risk) => {
             const brut = (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
             const net = (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0);
-            const post = (Number(risk?.probPost) || 0) * (Number(risk?.impactPost) || 0);
 
             return {
                 brut: acc.brut + brut,
-                net: acc.net + net,
-                post: acc.post + post
+                net: acc.net + net
             };
-        }, { brut: 0, net: 0, post: 0 });
+        }, { brut: 0, net: 0 });
 
         const maxScorePerRisk = 16; // 4x4 matrix
         const potentialScore = totalRisks * maxScorePerRisk;
@@ -3994,7 +3972,7 @@ class RiskManagementSystem {
         if (!allRisks.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" class="table-empty">Aucun risque enregistré</td>
+                    <td colspan="10" class="table-empty">Aucun risque enregistré</td>
                 </tr>
             `;
             return;
@@ -4003,7 +3981,7 @@ class RiskManagementSystem {
         if (!filteredRisks.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="11" class="table-empty">Aucun risque ne correspond aux filtres</td>
+                    <td colspan="10" class="table-empty">Aucun risque ne correspond aux filtres</td>
                 </tr>
             `;
             return;
@@ -4019,7 +3997,6 @@ class RiskManagementSystem {
                 <td>${(risk.tiers || []).join(', ')}</td>
                 <td>${risk.probBrut * risk.impactBrut}</td>
                 <td>${risk.probNet * risk.impactNet}</td>
-                <td>${risk.probPost * risk.impactPost}</td>
                 <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
                 <td class="table-actions-cell">
                     <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
@@ -4426,12 +4403,9 @@ class RiskManagementSystem {
             document.getElementById('impactBrut').value = risk.impactBrut;
             document.getElementById('probNet').value = risk.probNet;
             document.getElementById('impactNet').value = risk.impactNet;
-            document.getElementById('probPost').value = risk.probPost;
-            document.getElementById('impactPost').value = risk.impactPost;
 
             calculateScore('brut');
             calculateScore('net');
-            calculateScore('post');
         }
 
         selectedControlsForRisk = [...(risk.controls || [])];

@@ -1131,28 +1131,6 @@ function applyPatch() {
                       ),
                       impactBrut
                     );
-                    const probPost = parseScore(
-                      accessor.get(
-                        'probPost',
-                        'probabilitePost',
-                        'probabilite_post',
-                        'probabilitePostMitigation',
-                        'postProbability',
-                        'prob post'
-                      ),
-                      probNet
-                    );
-                    const impactPost = parseScore(
-                      accessor.get(
-                        'impactPost',
-                        'impact_post',
-                        'impactPostMitigation',
-                        'postImpact',
-                        'impact post'
-                      ),
-                      impactNet
-                    );
-
                     const statut = toText(
                       accessor.get('statut', 'status', 'etat', 'state', 'riskStatus'),
                       'brouillon'
@@ -1181,8 +1159,6 @@ function applyPatch() {
                       impactBrut,
                       probNet,
                       impactNet,
-                      probPost,
-                      impactPost,
                       statut,
                       controls,
                       actionPlans,
