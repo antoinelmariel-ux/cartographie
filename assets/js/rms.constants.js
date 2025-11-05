@@ -11,13 +11,11 @@ const RISK_PROBABILITY_INFO = {
     },
     3: {
         label: 'Probable',
-        text: "Evénement survenu 1 fois au cours de l’année passée. Evénement pouvant survenir 1 fois au cours de l’année à venir
-"
+        text: "Evénement survenu 1 fois au cours de l’année passée. Evénement pouvant survenir 1 fois au cours de l’année à venir"
     },
     4: {
         label: 'Très probable',
-        text: "Evénement survenu plusieurs fois au cours de l’année passée. Evénement attendu 1 ou plusieurs fois au cours de l’année à venir
-"
+        text: "Evénement survenu plusieurs fois au cours de l’année passée. Evénement attendu 1 ou plusieurs fois au cours de l’année à venir"
     }
 };
 
