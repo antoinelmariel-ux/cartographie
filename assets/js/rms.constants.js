@@ -56,15 +56,6 @@ const RISK_STATE_CONFIG = {
         coordElement: 'coordNet',
         pointClass: 'net',
         symbol: 'N'
-    },
-    post: {
-        label: 'Post-mitigation',
-        probInput: 'probPost',
-        impactInput: 'impactPost',
-        scoreElement: 'scorePost',
-        coordElement: 'coordPost',
-        pointClass: 'post',
-        symbol: 'P'
     }
 };
 

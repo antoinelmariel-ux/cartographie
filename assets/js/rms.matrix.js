@@ -10,23 +10,25 @@ var lastDragCell = null;
 function changeMatrixView(view) {
     if (!window.rms) return;
 
-    rms.currentView = view;
+    const targetView = view === 'net' ? 'net' : 'brut';
+    rms.currentView = targetView;
 
     document.querySelectorAll('.view-btn').forEach(btn => {
         btn.classList.remove('active');
     });
-    const evt = window.event;
-    evt && evt.target.classList.add('active');
+    const viewButton = document.querySelector(`.view-btn[onclick*="${targetView}"]`);
+    if (viewButton) {
+        viewButton.classList.add('active');
+    }
 
     const titles = {
         'brut': 'Matrice des Risques - Vue Brut',
-        'net': 'Matrice des Risques - Vue Net',
-        'post-mitigation': 'Matrice des Risques - Post-Mitigation'
+        'net': 'Matrice des Risques - Vue Net'
     };
 
     const titleElement = document.getElementById('matrixTitle');
     if (titleElement) {
-        titleElement.textContent = titles[view];
+        titleElement.textContent = titles[targetView];
     }
 
     rms.renderRiskPoints();
@@ -50,25 +52,8 @@ function resetMatrixView() {
 }
 window.resetMatrixView = resetMatrixView;
 
-function getSelectedActionPlansForRiskArray() {
-    if (typeof window.getSelectedActionPlansForRisk === 'function') {
-        try {
-            const plans = window.getSelectedActionPlansForRisk();
-            if (Array.isArray(plans)) {
-                return plans;
-            }
-        } catch (err) {
-            console.warn('Error accessing selected action plans', err);
-        }
-    }
-    if (Array.isArray(window.selectedActionPlansForRisk)) {
-        return window.selectedActionPlansForRisk;
-    }
-    return [];
-}
-
 function calculateScore(type) {
-    const stateKey = type === 'post' ? 'post' : type;
+    const stateKey = type;
     const config = RISK_STATE_CONFIG[stateKey];
     if (!config) return;
 
@@ -96,18 +81,6 @@ function calculateScore(type) {
         highlightCell(prob, impact);
         updateMatrixDescription(prob, impact, stateKey);
     }
-
-    const selectedPlans = getSelectedActionPlansForRiskArray();
-    if (type === 'net' && selectedPlans.length === 0) {
-        const postConfig = RISK_STATE_CONFIG.post;
-        if (postConfig) {
-            const postProbInput = document.getElementById(postConfig.probInput);
-            const postImpactInput = document.getElementById(postConfig.impactInput);
-            if (postProbInput) postProbInput.value = prob;
-            if (postImpactInput) postImpactInput.value = impact;
-            calculateScore('post');
-        }
-    }
 }
 window.calculateScore = calculateScore;
 
@@ -128,7 +101,7 @@ function setStateValues(state, prob, impact) {
     const impactInput = document.getElementById(config.impactInput);
     if (probInput) probInput.value = prob;
     if (impactInput) impactInput.value = impact;
-    calculateScore(state === 'post' ? 'post' : state);
+    calculateScore(state);
 }
 
 function positionRiskPointIfExists(state, prob, impact) {

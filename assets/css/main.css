@@ -466,11 +466,9 @@ body {
 }
 
 .risk-point.brut,
-.risk-point.net,
-.risk-point.post-mitigation,
-.risk-point.post {
+.risk-point.net {
       background: linear-gradient(135deg, #4b91c5, #0061af);
- 
+
 }
 
 .risk-point.inactive {
@@ -631,10 +629,6 @@ body {
 
 .risk-score-card.net {
     border-color: rgba(243, 156, 18, 0.3);
-}
-
-.risk-score-card.post {
-    border-color: rgba(39, 174, 96, 0.3);
 }
 
 .risk-score-card.active {
@@ -1668,7 +1662,7 @@ tbody tr:hover {
 /* Risk evaluation cards */
 .evaluation-cards {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(2, 1fr);
     gap: 20px;
     margin: 20px 0;
 }
@@ -1689,11 +1683,6 @@ tbody tr:hover {
 .evaluation-card.net {
     border-color: #f39c12;
     background: linear-gradient(135deg, rgba(243, 156, 18, 0.05), rgba(243, 156, 18, 0.1));
-}
-
-.evaluation-card.post-mitigation {
-    border-color: #27ae60;
-    background: linear-gradient(135deg, rgba(39, 174, 96, 0.05), rgba(39, 174, 96, 0.1));
 }
 
 .evaluation-card-header {

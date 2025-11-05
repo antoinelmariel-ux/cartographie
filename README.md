@@ -27,7 +27,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 ## Fonctionnalités principales
 
 - **Tableau de bord temps réel** : synthèse des KPIs clés (risques critiques, contrôles actifs, score global) et graphiques alimentés par Chart.js pour suivre l'évolution des risques et leur répartition par processus.
-- **Matrice des risques** : vue interactive des expositions brut, net et post-mitigation avec légende dynamique, filtres et édition visuelle des probabilités/impacts.
+- **Matrice des risques** : vue interactive des expositions brut et net avec légende dynamique, filtres et édition visuelle des probabilités/impacts.
 - **Registre des risques** : création, édition et suppression des risques avec liens vers les contrôles et plans d'actions associés, filtres texte/processus/statut et export CSV.
 - **Gestion des contrôles & plans** : fiches détaillées, modales d'édition, suivi des responsabilités et de l'efficacité des mesures.
 - **Historique & alertes** : timeline chronologique des actions, notifications utilisateur et badges d'alerte sur le tableau de bord.
@@ -127,8 +127,6 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
        "impactBrut": 3,
        "probNet": 2,
        "impactNet": 2,
-       "probPost": 1,
-       "impactPost": 1,
        "statut": "brouillon",
        "controls": [],
        "actionPlans": []

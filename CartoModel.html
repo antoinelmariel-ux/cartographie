@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.2.2</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.2.3</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -255,9 +255,6 @@
                         <button class="view-btn" onclick="changeMatrixView('net')">
                             Risque Net
                         </button>
-                        <button class="view-btn" onclick="changeMatrixView('post-mitigation')">
-                            Post-Mitigation
-                        </button>
                     </div>
 
                     <div class="matrix-container">
@@ -367,7 +364,6 @@
                                     <th>Tiers</th>
                                     <th>Score Brut</th>
                                     <th>Score Net</th>
-                                    <th>Score Final</th>
                                     <th>Statut</th>
                                     <th>Actions</th>
                                 </tr>
@@ -588,7 +584,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.2.2</span>
+            <span class="app-version">Version 2.2.3</span>
         </footer>
     </div>
 
@@ -907,7 +903,6 @@
                             <div class="risk-state-selector">
                                 <button type="button" class="state-btn active" data-state="brut" onclick="setActiveRiskState('brut')">Risque Brut</button>
                                 <button type="button" class="state-btn" data-state="net" onclick="setActiveRiskState('net')">Risque Net</button>
-                                <button type="button" class="state-btn" data-state="post" onclick="setActiveRiskState('post')">Post-mitigation</button>
                             </div>
                             <div class="risk-matrix-layout">
                                 <div class="edit-matrix-container">
@@ -937,18 +932,11 @@
                                     <div class="risk-score-value" id="scoreNet">Score: 1</div>
                                     <div class="risk-score-meta" id="coordNet">P1 × I1</div>
                                 </div>
-                                <div class="risk-score-card post" data-state="post">
-                                    <div class="risk-score-title">Post-mitigation</div>
-                                    <div class="risk-score-value" id="scorePost">Score: 1</div>
-                                    <div class="risk-score-meta" id="coordPost">P1 × I1</div>
-                                </div>
                             </div>
                             <input type="hidden" id="probBrut" value="1">
                             <input type="hidden" id="impactBrut" value="1">
                             <input type="hidden" id="probNet" value="1">
                             <input type="hidden" id="impactNet" value="1">
-                            <input type="hidden" id="probPost" value="1">
-                            <input type="hidden" id="impactPost" value="1">
                         </div>
                     </div>
 
