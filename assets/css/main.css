@@ -382,8 +382,8 @@ body {
 }
 
 .matrix-dual-layout {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    display: flex;
+    flex-direction: column;
     gap: 24px;
     margin-bottom: 30px;
 }
