@@ -2553,102 +2553,116 @@ class RiskManagementSystem {
 
     // Matrix functions
     initializeMatrix() {
-        const grid = document.getElementById('matrixGrid');
-        if (!grid) return;
-        
-        grid.innerHTML = '';
-        
-        for (let impact = 4; impact >= 1; impact--) {
-            for (let prob = 1; prob <= 4; prob++) {
-                const cell = document.createElement('div');
-                cell.className = 'matrix-cell';
-                cell.dataset.probability = prob;
-                cell.dataset.impact = impact;
+        const viewConfigs = {
+            brut: { gridId: 'matrixGridBrut' },
+            net: { gridId: 'matrixGridNet' }
+        };
 
-                const riskLevel = prob * impact;
-                if (riskLevel <= 4) cell.classList.add('level-1');
-                else if (riskLevel <= 8) cell.classList.add('level-2');
-                else if (riskLevel <= 12) cell.classList.add('level-3');
-                else cell.classList.add('level-4');
-                
-                grid.appendChild(cell);
+        Object.values(viewConfigs).forEach(({ gridId }) => {
+            const grid = document.getElementById(gridId);
+            if (!grid) return;
+
+            grid.innerHTML = '';
+
+            for (let impact = 4; impact >= 1; impact--) {
+                for (let prob = 1; prob <= 4; prob++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'matrix-cell';
+                    cell.dataset.probability = prob;
+                    cell.dataset.impact = impact;
+
+                    const riskLevel = prob * impact;
+                    if (riskLevel <= 4) cell.classList.add('level-1');
+                    else if (riskLevel <= 8) cell.classList.add('level-2');
+                    else if (riskLevel <= 12) cell.classList.add('level-3');
+                    else cell.classList.add('level-4');
+
+                    grid.appendChild(cell);
+                }
             }
-        }
-        
+        });
+
         this.renderRiskPoints();
         this.updateRiskDetailsList();
+
+        const activeView = this.currentView === 'net' ? 'net' : 'brut';
+        document.querySelectorAll('.matrix-container[data-view]').forEach(container => {
+            const isActive = container.dataset.view === activeView;
+            container.classList.toggle('active-view', isActive);
+        });
     }
 
     renderRiskPoints() {
-        // Remove existing points
-        document.querySelectorAll('.risk-point').forEach(p => p.remove());
-        
-        const grid = document.getElementById('matrixGrid');
-        if (!grid) return;
-        
         const baseRisks = Array.isArray(this.risks) ? this.risks : [];
         const filteredRisks = this.getFilteredRisks(baseRisks);
 
-        // Track how many risks are placed in each cell to offset duplicates
-        const cellCounts = {};
-
-        const viewSymbols = {
-            brut: 'B',
-            net: 'N'
-        };
-        const viewLabels = {
-            brut: 'Risque brut',
-            net: 'Risque net'
-        };
-
-        filteredRisks.forEach(risk => {
-            const viewKey = this.currentView === 'net' ? 'net' : 'brut';
-            let prob;
-            let impact;
-
-            if (viewKey === 'net') {
-                prob = risk.probNet;
-                impact = risk.impactNet;
-            } else {
-                prob = risk.probBrut;
-                impact = risk.impactBrut;
+        const viewConfigs = {
+            brut: {
+                gridId: 'matrixGridBrut',
+                probKey: 'probBrut',
+                impactKey: 'impactBrut',
+                label: 'Risque brut'
+            },
+            net: {
+                gridId: 'matrixGridNet',
+                probKey: 'probNet',
+                impactKey: 'impactNet',
+                label: 'Risque net'
             }
+        };
 
-            const leftPercent = ((prob - 0.5) / 4) * 100;
-            const bottomPercent = ((impact - 0.5) / 4) * 100;
+        const viewSymbols = { brut: 'B', net: 'N' };
 
-            // Calculate offset so that points do not overlap
-            const key = `${prob}-${impact}`;
-            const index = cellCounts[key] || 0;
-            cellCounts[key] = index + 1;
-            const slots = cellCounts[key];
-            const gridSize = Math.ceil(Math.sqrt(slots));
-            const slotIndex = index;
-            const row = Math.floor(slotIndex / gridSize);
-            const col = slotIndex % gridSize;
+        Object.entries(viewConfigs).forEach(([viewKey, config]) => {
+            const grid = document.getElementById(config.gridId);
+            if (!grid) return;
 
-            // Create point element and temporarily add it to the DOM to get its size
-            const point = document.createElement('div');
-            point.className = `risk-point ${viewKey}`;
-            point.dataset.riskId = risk.id;
-            point.title = risk.description;
-            const symbol = viewSymbols[viewKey] || '';
-            point.textContent = symbol;
-            point.setAttribute('aria-label', `${viewLabels[viewKey] || 'Risque'} : ${risk.description}`);
-            point.onclick = () => this.selectRisk(risk.id);
-            grid.appendChild(point);
+            grid.querySelectorAll('.risk-point').forEach(p => p.remove());
 
-            // Determine actual diameter and offset
-            const diameter = point.offsetWidth;
-            const margin = 4;
-            const step = diameter + margin;
-            const dx = (col - (gridSize - 1) / 2) * step;
-            const dy = (row - (gridSize - 1) / 2) * step;
+            const cellCounts = {};
 
-            // Position the point
-            point.style.left = `calc(${leftPercent}% + ${dx}px)`;
-            point.style.bottom = `calc(${bottomPercent}% + ${dy}px)`;
-            point.style.transform = 'translate(-50%, 50%)';
+            filteredRisks.forEach(risk => {
+                const rawProb = Number(risk?.[config.probKey]);
+                const rawImpact = Number(risk?.[config.impactKey]);
+                if (!Number.isFinite(rawProb) || !Number.isFinite(rawImpact)) {
+                    return;
+                }
+
+                const prob = Math.min(4, Math.max(1, rawProb || 1));
+                const impact = Math.min(4, Math.max(1, rawImpact || 1));
+
+                const leftPercent = ((prob - 0.5) / 4) * 100;
+                const bottomPercent = ((impact - 0.5) / 4) * 100;
+
+                const key = `${prob}-${impact}`;
+                const index = cellCounts[key] || 0;
+                cellCounts[key] = index + 1;
+                const slots = cellCounts[key];
+                const gridSize = Math.ceil(Math.sqrt(slots));
+                const slotIndex = index;
+                const row = Math.floor(slotIndex / gridSize);
+                const col = slotIndex % gridSize;
+
+                const point = document.createElement('div');
+                point.className = `risk-point ${viewKey}`;
+                point.dataset.riskId = risk.id;
+                point.title = risk.description;
+                const symbol = viewSymbols[viewKey] || '';
+                point.textContent = symbol;
+                point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
+                point.onclick = () => this.selectRisk(risk.id);
+                grid.appendChild(point);
+
+                const diameter = point.offsetWidth;
+                const margin = 4;
+                const step = diameter + margin;
+                const dx = (col - (gridSize - 1) / 2) * step;
+                const dy = (row - (gridSize - 1) / 2) * step;
+
+                point.style.left = `calc(${leftPercent}% + ${dx}px)`;
+                point.style.bottom = `calc(${bottomPercent}% + ${dy}px)`;
+                point.style.transform = 'translate(-50%, 50%)';
+            });
         });
     }
 
@@ -2773,81 +2787,88 @@ class RiskManagementSystem {
     }
 
     updateRiskDetailsList() {
-        const container = document.getElementById('riskDetailsList');
-        if (!container) return;
-        
         const baseRisks = Array.isArray(this.risks) ? this.risks : [];
         const filteredRisks = this.getFilteredRisks(baseRisks);
-        const viewConfig = {
-            'brut': { prob: 'probBrut', impact: 'impactBrut' },
-            'net': { prob: 'probNet', impact: 'impactNet' }
+
+        const viewConfigs = {
+            brut: {
+                containerId: 'riskDetailsListBrut',
+                titleId: 'riskDetailsTitleBrut',
+                probKey: 'probBrut',
+                impactKey: 'impactBrut',
+                title: 'Risques bruts triés par score'
+            },
+            net: {
+                containerId: 'riskDetailsListNet',
+                titleId: 'riskDetailsTitleNet',
+                probKey: 'probNet',
+                impactKey: 'impactNet',
+                title: 'Risques nets triés par score'
+            }
         };
-        const viewKey = this.currentView === 'net' ? 'net' : 'brut';
-        const { prob: probKey, impact: impactKey } = viewConfig[viewKey];
 
-        const viewLabels = {
-            'brut': 'Vue Brut',
-            'net': 'Vue Net'
-        };
+        Object.values(viewConfigs).forEach(({ containerId, titleId, probKey, impactKey, title }) => {
+            const container = document.getElementById(containerId);
+            if (!container) return;
 
-        const scoredRisks = filteredRisks.map(risk => {
-            const prob = Number(risk[probKey]) || 0;
-            const impact = Number(risk[impactKey]) || 0;
-            return {
-                risk,
-                prob,
-                impact,
-                score: prob * impact
-            };
-        }).sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            if (b.prob !== a.prob) return b.prob - a.prob;
-            if (b.impact !== a.impact) return b.impact - a.impact;
+            const titleElement = document.getElementById(titleId);
+            if (titleElement) {
+                titleElement.textContent = title;
+            }
 
-            const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
-            if (descComparison !== 0) return descComparison;
+            const scoredRisks = filteredRisks.map(risk => {
+                const prob = Number(risk?.[probKey]) || 0;
+                const impact = Number(risk?.[impactKey]) || 0;
+                return {
+                    risk,
+                    prob,
+                    impact,
+                    score: prob * impact
+                };
+            }).sort((a, b) => {
+                if (b.score !== a.score) return b.score - a.score;
+                if (b.prob !== a.prob) return b.prob - a.prob;
+                if (b.impact !== a.impact) return b.impact - a.impact;
 
-            return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
+                const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
+                if (descComparison !== 0) return descComparison;
+
+                return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
+            });
+
+            if (!scoredRisks.length) {
+                const message = baseRisks.length
+                    ? 'Aucun risque ne correspond aux filtres appliqués.'
+                    : 'Aucun risque enregistré. Ajoutez un risque pour visualiser les détails ici.';
+
+                container.innerHTML = `
+                    <div class="matrix-description-empty" style="text-align: center; padding: 16px 12px;">
+                        ${message}
+                    </div>
+                `;
+                return;
+            }
+
+            container.innerHTML = scoredRisks.map(({ risk, score }) => {
+                let scoreClass = 'low';
+                if (score > 12) scoreClass = 'critical';
+                else if (score > 8) scoreClass = 'high';
+                else if (score > 4) scoreClass = 'medium';
+
+                const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
+                return `
+                    <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
+                        <div class="risk-item-header">
+                            <span class="risk-item-title">${risk.description}</span>
+                            <span class="risk-item-score ${scoreClass}">${score}</span>
+                        </div>
+                        <div class="risk-item-meta">
+                            ${risk.processus}${sp}
+                        </div>
+                    </div>
+                `;
+            }).join('');
         });
-
-        const titleElement = document.getElementById('riskDetailsTitle');
-        if (titleElement) {
-            const viewLabel = viewLabels[viewKey] || viewLabels['brut'];
-            titleElement.textContent = `Risques triés par score - ${viewLabel}`;
-        }
-
-        if (!scoredRisks.length) {
-            const message = baseRisks.length
-                ? 'Aucun risque ne correspond aux filtres appliqués.'
-                : 'Aucun risque enregistré. Ajoutez un risque pour visualiser les détails ici.';
-
-            container.innerHTML = `
-                <div class="matrix-description-empty" style="text-align: center; padding: 16px 12px;">
-                    ${message}
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = scoredRisks.map(({ risk, score }) => {
-            let scoreClass = 'low';
-            if (score > 12) scoreClass = 'critical';
-            else if (score > 8) scoreClass = 'high';
-            else if (score > 4) scoreClass = 'medium';
-
-            const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
-            return `
-                <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
-                    <div class="risk-item-header">
-                        <span class="risk-item-title">${risk.description}</span>
-                        <span class="risk-item-score ${scoreClass}">${score}</span>
-                    </div>
-                    <div class="risk-item-meta">
-                        ${risk.processus}${sp}
-                    </div>
-                </div>
-            `;
-        }).join('');
     }
 
     // Dashboard functions

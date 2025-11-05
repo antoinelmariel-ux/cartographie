@@ -46,7 +46,9 @@ const RISK_STATE_CONFIG = {
         scoreElement: 'scoreBrut',
         coordElement: 'coordBrut',
         pointClass: 'brut',
-        symbol: 'B'
+        symbol: 'B',
+        matrixId: 'riskMatrixEditBrut',
+        gridId: 'riskMatrixEditGridBrut'
     },
     net: {
         label: 'Risque Net',
@@ -55,7 +57,9 @@ const RISK_STATE_CONFIG = {
         scoreElement: 'scoreNet',
         coordElement: 'coordNet',
         pointClass: 'net',
-        symbol: 'N'
+        symbol: 'N',
+        matrixId: 'riskMatrixEditNet',
+        gridId: 'riskMatrixEditGridNet'
     }
 };
 
