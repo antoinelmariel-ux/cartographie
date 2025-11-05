@@ -270,6 +270,39 @@ var riskFilterQueryForPlan = '';
 var currentEditingActionPlanId = null;
 var actionPlanFilterQueryForRisk = '';
 
+function setAggravatingFactorsSelection(factors) {
+    const groups = (typeof AGGRAVATING_FACTOR_GROUPS === 'object' && AGGRAVATING_FACTOR_GROUPS)
+        ? AGGRAVATING_FACTOR_GROUPS
+        : {
+            group1: { inputName: 'aggravatingGroup1' },
+            group2: { inputName: 'aggravatingGroup2' }
+        };
+
+    const normalized = typeof normalizeAggravatingFactors === 'function'
+        ? normalizeAggravatingFactors(factors)
+        : { group1: [], group2: [] };
+
+    Object.entries(groups).forEach(([groupKey, config]) => {
+        const inputName = config?.inputName || '';
+        if (!inputName) {
+            return;
+        }
+
+        const selector = `input[name="${inputName}"]`;
+        const inputs = document.querySelectorAll(selector);
+        const selectedValues = Array.isArray(normalized[groupKey]) ? normalized[groupKey] : [];
+
+        inputs.forEach(input => {
+            input.checked = selectedValues.includes(input.value);
+        });
+    });
+
+    if (typeof calculateScore === 'function') {
+        calculateScore('brut');
+    }
+}
+window.setAggravatingFactorsSelection = setAggravatingFactorsSelection;
+
 function addNewRisk() {
     currentEditingRiskId = null;
     const form = document.getElementById('riskForm');
@@ -295,10 +328,12 @@ function addNewRisk() {
             document.getElementById('impactNet').value = lastRiskData.impactNet || 1;
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
+            setAggravatingFactorsSelection(lastRiskData.aggravatingFactors || null);
         } else {
             rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
             selectedActionPlansForRisk = [];
+            setAggravatingFactorsSelection(null);
         }
 
         if (statutSelect) {
@@ -342,6 +377,19 @@ window.getSelectedActionPlansForRisk = () => selectedActionPlansForRisk;
 function saveRisk() {
     if (!rms) return;
 
+    const aggravatingSelection = typeof getFormAggravatingSelection === 'function'
+        ? getFormAggravatingSelection()
+        : { group1: [], group2: [], coefficient: 1 };
+
+    const aggravatingFactors = typeof normalizeAggravatingFactors === 'function'
+        ? normalizeAggravatingFactors(aggravatingSelection)
+        : { group1: [], group2: [] };
+
+    const rawCoefficient = Number(aggravatingSelection?.coefficient);
+    const aggravatingCoefficient = Number.isFinite(rawCoefficient) && rawCoefficient >= 1
+        ? Math.round(rawCoefficient * 100) / 100
+        : 1;
+
     const formData = {
         processus: document.getElementById('processus').value,
         sousProcessus: document.getElementById('sousProcessus').value,
@@ -353,6 +401,8 @@ function saveRisk() {
         impactBrut: parseInt(document.getElementById('impactBrut').value),
         probNet: parseInt(document.getElementById('probNet').value),
         impactNet: parseInt(document.getElementById('impactNet').value),
+        aggravatingFactors,
+        aggravatingCoefficient,
         controls: [...selectedControlsForRisk],
         actionPlans: [...selectedActionPlansForRisk]
     };
@@ -375,7 +425,10 @@ function saveRisk() {
         const targetId = String(currentEditingRiskId);
         const riskIndex = rms.risks.findIndex(r => idsEqual(r.id, targetId));
         if (riskIndex !== -1) {
-            rms.risks[riskIndex] = { ...rms.risks[riskIndex], ...formData };
+            const updatedRisk = typeof rms.normalizeRisk === 'function'
+                ? rms.normalizeRisk({ ...rms.risks[riskIndex], ...formData })
+                : { ...rms.risks[riskIndex], ...formData };
+            rms.risks[riskIndex] = updatedRisk;
 
             // Update control links
             rms.controls.forEach(control => {
@@ -440,7 +493,15 @@ function saveRisk() {
         rms.updateRiskDetailsList();
     }
 
-    lastRiskData = { ...formData, tiers: [...formData.tiers], controls: [...formData.controls], actionPlans: [...formData.actionPlans] };
+    lastRiskData = {
+        ...formData,
+        tiers: [...formData.tiers],
+        controls: [...formData.controls],
+        actionPlans: [...formData.actionPlans],
+        aggravatingFactors: typeof normalizeAggravatingFactors === 'function'
+            ? normalizeAggravatingFactors(formData.aggravatingFactors)
+            : { group1: [], group2: [] }
+    };
 }
 window.saveRisk = saveRisk;
 
@@ -919,6 +980,17 @@ function bindEvents() {
         impactBrut.addEventListener('change', enforceNetLimits);
         impactNet.addEventListener('change', enforceNetLimits);
         enforceNetLimits();
+    }
+
+    const aggravatingInputs = document.querySelectorAll('input[name="aggravatingGroup1"], input[name="aggravatingGroup2"]');
+    if (aggravatingInputs.length) {
+        aggravatingInputs.forEach(input => {
+            input.addEventListener('change', () => {
+                if (typeof calculateScore === 'function') {
+                    calculateScore('brut');
+                }
+            });
+        });
     }
 
     const processScoreModeSelect = document.getElementById('processScoreMode');

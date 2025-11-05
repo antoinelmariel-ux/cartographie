@@ -619,6 +619,96 @@ body {
     line-height: 1.5;
 }
 
+.aggravating-factors {
+    background: white;
+    border-radius: var(--border-radius);
+    border: 1px solid #e1e8ed;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+}
+
+.aggravating-factors-header {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aggravating-factors-header h4 {
+    margin: 0;
+    font-size: 1.05em;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.aggravating-factors-header p {
+    color: #596069;
+    font-size: 0.95em;
+    line-height: 1.45;
+}
+
+.aggravating-coefficient-summary {
+    font-size: 0.95em;
+    color: #2c3e50;
+    font-weight: 600;
+}
+
+.aggravating-coefficient-summary strong {
+    color: var(--secondary-color);
+}
+
+.aggravating-factor-groups {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+}
+
+.aggravating-factor-group {
+    background: var(--light-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid #e1e8ed;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.aggravating-factor-group-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.aggravating-factor-coefficient {
+    font-size: 0.85em;
+    color: var(--secondary-color);
+    font-weight: 600;
+}
+
+.aggravating-factor-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    color: #34495e;
+    font-size: 0.95em;
+    line-height: 1.4;
+}
+
+.aggravating-factor-option input {
+    margin-top: 3px;
+}
+
+.risk-item-coefficient {
+    font-size: 0.85em;
+    color: var(--secondary-color);
+    font-weight: 600;
+    margin-left: 6px;
+}
+
 .risk-score-cards {
     display: flex;
     gap: 15px;
