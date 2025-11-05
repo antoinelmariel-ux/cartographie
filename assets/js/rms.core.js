@@ -113,6 +113,7 @@ class RiskManagementSystem {
             query: '',
             referent: ''
         };
+        this.collapsedProcesses = new Set();
         this.activeInsertionForm = null;
         this.dragState = null;
         this.lastDashboardMetrics = null;
@@ -1021,6 +1022,36 @@ class RiskManagementSystem {
         return { visible: processVisible, subs: visibleSubs };
     }
 
+    isProcessCollapsed(processValue) {
+        if (!processValue) {
+            return false;
+        }
+        return this.collapsedProcesses instanceof Set && this.collapsedProcesses.has(processValue);
+    }
+
+    setProcessCollapsed(processValue, collapsed) {
+        if (!processValue) {
+            return;
+        }
+        if (!(this.collapsedProcesses instanceof Set)) {
+            this.collapsedProcesses = new Set();
+        }
+        if (collapsed) {
+            this.collapsedProcesses.add(processValue);
+        } else {
+            this.collapsedProcesses.delete(processValue);
+        }
+    }
+
+    toggleProcessCollapse(processValue) {
+        if (!processValue) {
+            return;
+        }
+        const nextState = !this.isProcessCollapsed(processValue);
+        this.setProcessCollapsed(processValue, nextState);
+        this.rerenderProcessManager();
+    }
+
     createProcessInsertionControl(position, options = {}) {
         const { parentProcess = null, filtersActive = false } = options;
         const control = document.createElement('div');
@@ -1267,6 +1298,11 @@ class RiskManagementSystem {
         card.dataset.value = process.value;
         card.draggable = true;
 
+        const processLabel = process.label || process.value || 'processus';
+        const collapseForcedOpen = Boolean(filtersActive);
+        const isCollapsed = collapseForcedOpen ? false : this.isProcessCollapsed(process.value);
+        card.classList.toggle('is-collapsed', isCollapsed);
+
         card.addEventListener('dragstart', (event) => {
             this.handleProcessDragStart(event, card, index);
         });
@@ -1297,6 +1333,10 @@ class RiskManagementSystem {
         });
         header.appendChild(titleInput);
 
+        const headerActions = document.createElement('div');
+        headerActions.className = 'process-card-actions';
+        header.appendChild(headerActions);
+
         const summary = document.createElement('span');
         summary.className = 'process-sub-count';
         if (filters.hasQuery || filters.hasReferent) {
@@ -1304,17 +1344,42 @@ class RiskManagementSystem {
         } else {
             summary.textContent = `${totalSubs} sous-processus`;
         }
-        header.appendChild(summary);
+        headerActions.appendChild(summary);
+
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'process-card-toggle';
+        toggleButton.setAttribute('aria-expanded', String(!isCollapsed));
+        toggleButton.setAttribute('aria-label', `${isCollapsed ? 'Afficher' : 'Masquer'} les sous-processus du ${processLabel}`);
+        toggleButton.classList.toggle('is-collapsed', isCollapsed);
+        if (collapseForcedOpen) {
+            toggleButton.disabled = true;
+            toggleButton.title = "Développement automatique pendant l'application de filtres";
+        } else {
+            toggleButton.title = isCollapsed
+                ? 'Afficher les sous-processus'
+                : 'Masquer les sous-processus';
+        }
+        const toggleIcon = document.createElement('span');
+        toggleIcon.className = 'process-card-toggle-icon';
+        toggleIcon.setAttribute('aria-hidden', 'true');
+        toggleButton.appendChild(toggleIcon);
+        if (!collapseForcedOpen) {
+            toggleButton.addEventListener('click', () => {
+                this.toggleProcessCollapse(process.value);
+            });
+        }
+        headerActions.appendChild(toggleButton);
 
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button danger';
-        deleteButton.setAttribute('aria-label', `Supprimer le processus ${process.label}`);
+        deleteButton.setAttribute('aria-label', `Supprimer le processus ${processLabel}`);
         deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
         deleteButton.addEventListener('click', () => {
             this.deleteProcess(index);
         });
-        header.appendChild(deleteButton);
+        headerActions.appendChild(deleteButton);
 
         card.appendChild(header);
 
@@ -1367,6 +1432,8 @@ class RiskManagementSystem {
         }
 
         subSection.appendChild(list);
+        subSection.hidden = isCollapsed;
+        subSection.setAttribute('aria-hidden', String(isCollapsed));
         card.appendChild(subSection);
 
         return card;
@@ -1715,6 +1782,10 @@ class RiskManagementSystem {
         const removedValue = removed?.value;
         if (removedValue && this.config.subProcesses[removedValue]) {
             delete this.config.subProcesses[removedValue];
+        }
+
+        if (removedValue && this.collapsedProcesses instanceof Set) {
+            this.collapsedProcesses.delete(removedValue);
         }
 
         if (removedValue) {
@@ -2120,6 +2191,13 @@ class RiskManagementSystem {
                 });
                 this.config.subProcesses[value] = mergedSubs;
                 delete this.config.subProcesses[previous.value];
+
+                if (this.collapsedProcesses instanceof Set) {
+                    if (this.collapsedProcesses.has(previous.value)) {
+                        this.collapsedProcesses.delete(previous.value);
+                        this.collapsedProcesses.add(value);
+                    }
+                }
 
                 if (this.filters.process === previous.value) {
                     this.filters.process = value;
