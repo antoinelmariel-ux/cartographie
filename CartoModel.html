@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.2.3</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.3.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -248,62 +248,104 @@
                 </div>
 
                 <div class="content-area">
-                    <div class="view-selector">
-                        <button class="view-btn active" onclick="changeMatrixView('brut')">
-                            Risque Brut
-                        </button>
-                        <button class="view-btn" onclick="changeMatrixView('net')">
-                            Risque Net
-                        </button>
-                    </div>
-
-                    <div class="matrix-container">
-                        <div class="matrix-header">
-                            <h3 class="matrix-title" id="matrixTitle">Matrice des Risques - Vue Brut</h3>
-                            <div class="matrix-actions">
-                                <button class="btn btn-secondary" onclick="exportMatrix()">
-                                    📸 Capture
-                                </button>
-                                <button class="btn btn-secondary" onclick="toggleFullScreen()">
-                                    🔍 Plein écran
-                                </button>
-                            </div>
-                        </div>
-                        
-                        <div class="matrix-wrapper">
-                            <div class="matrix">
-                                <div class="matrix-grid" id="matrixGrid"></div>
-                                <div class="axis-label x-axis">Probabilité →</div>
-                                <div class="axis-label y-axis">
-                                    <span class="axis-text">Impact</span>
-                                    <span class="axis-arrow" aria-hidden="true">↑</span>
+                    <div class="matrix-dual-layout">
+                        <section class="matrix-container" data-view="brut">
+                            <div class="matrix-header">
+                                <h3 class="matrix-title" id="matrixTitleBrut">Matrice des Risques Bruts</h3>
+                                <div class="matrix-actions">
+                                    <button class="btn btn-secondary" onclick="exportMatrix('brut')">
+                                        📸 Capture
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="toggleFullScreen('brut')">
+                                        🔍 Plein écran
+                                    </button>
                                 </div>
                             </div>
-                            
-                            <div class="risk-details-panel">
-                                <div class="risk-details-title" id="riskDetailsTitle">Risques triés par score - Vue Brut</div>
-                                <div id="riskDetailsList"></div>
-                            </div>
-                        </div>
 
-                        <div class="legend">
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.6));"></div>
-                                <span>Acceptable (1-4)</span>
+                            <div class="matrix-wrapper">
+                                <div class="matrix">
+                                    <div class="matrix-grid" id="matrixGridBrut"></div>
+                                    <div class="axis-label x-axis">Probabilité →</div>
+                                    <div class="axis-label y-axis">
+                                        <span class="axis-text">Impact</span>
+                                        <span class="axis-arrow" aria-hidden="true">↑</span>
+                                    </div>
+                                </div>
+
+                                <div class="risk-details-panel">
+                                    <div class="risk-details-title" id="riskDetailsTitleBrut">Risques bruts triés par score</div>
+                                    <div id="riskDetailsListBrut"></div>
+                                </div>
                             </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.6));"></div>
-                                <span>Modéré (5-8)</span>
+
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.6));"></div>
+                                    <span>Acceptable (1-4)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.6));"></div>
+                                    <span>Modéré (5-8)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(230, 126, 34, 0.6));"></div>
+                                    <span>Élevé (9-12)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.7));"></div>
+                                    <span>Critique (13-16)</span>
+                                </div>
                             </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(230, 126, 34, 0.6));"></div>
-                                <span>Élevé (9-12)</span>
+                        </section>
+
+                        <section class="matrix-container" data-view="net">
+                            <div class="matrix-header">
+                                <h3 class="matrix-title" id="matrixTitleNet">Matrice des Risques Nets</h3>
+                                <div class="matrix-actions">
+                                    <button class="btn btn-secondary" onclick="exportMatrix('net')">
+                                        📸 Capture
+                                    </button>
+                                    <button class="btn btn-secondary" onclick="toggleFullScreen('net')">
+                                        🔍 Plein écran
+                                    </button>
+                                </div>
                             </div>
-                            <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.7));"></div>
-                                <span>Critique (13-16)</span>
+
+                            <div class="matrix-wrapper">
+                                <div class="matrix">
+                                    <div class="matrix-grid" id="matrixGridNet"></div>
+                                    <div class="axis-label x-axis">Probabilité →</div>
+                                    <div class="axis-label y-axis">
+                                        <span class="axis-text">Impact</span>
+                                        <span class="axis-arrow" aria-hidden="true">↑</span>
+                                    </div>
+                                </div>
+
+                                <div class="risk-details-panel">
+                                    <div class="risk-details-title" id="riskDetailsTitleNet">Risques nets triés par score</div>
+                                    <div id="riskDetailsListNet"></div>
+                                </div>
                             </div>
-                        </div>
+
+                            <div class="legend">
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.6));"></div>
+                                    <span>Acceptable (1-4)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.6));"></div>
+                                    <span>Modéré (5-8)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(230, 126, 34, 0.6));"></div>
+                                    <span>Élevé (9-12)</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.7));"></div>
+                                    <span>Critique (13-16)</span>
+                                </div>
+                            </div>
+                        </section>
                     </div>
                 </div>
             </div>
@@ -584,7 +626,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.2.3</span>
+            <span class="app-version">Version 2.3.0</span>
         </footer>
     </div>
 
@@ -900,25 +942,37 @@
                     <div class="form-section">
                         <div class="form-section-title">Évaluation du Risque</div>
                         <div class="risk-matrix-editor">
-                            <div class="risk-state-selector">
-                                <button type="button" class="state-btn active" data-state="brut" onclick="setActiveRiskState('brut')">Risque Brut</button>
-                                <button type="button" class="state-btn" data-state="net" onclick="setActiveRiskState('net')">Risque Net</button>
-                            </div>
                             <div class="risk-matrix-layout">
-                                <div class="edit-matrix-container">
-                                    <div class="matrix edit-matrix" id="riskMatrixEdit">
-                                        <div class="matrix-grid" id="riskMatrixEditGrid"></div>
-                                        <div class="axis-label x-axis">Probabilité →</div>
-                                        <div class="axis-label y-axis">
-                                            <span class="axis-text">Impact</span>
-                                            <span class="axis-arrow" aria-hidden="true">↑</span>
+                                <div class="edit-matrix-group" data-state="brut">
+                                    <div class="edit-matrix-heading">Risque Brut</div>
+                                    <div class="edit-matrix-container">
+                                        <div class="matrix edit-matrix" id="riskMatrixEditBrut" data-state="brut">
+                                            <div class="matrix-grid" id="riskMatrixEditGridBrut"></div>
+                                            <div class="axis-label x-axis">Probabilité →</div>
+                                            <div class="axis-label y-axis">
+                                                <span class="axis-text">Impact</span>
+                                                <span class="axis-arrow" aria-hidden="true">↑</span>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                                <div id="matrixDescription" class="matrix-description">
-                                    <div class="matrix-description-empty">
-                                        Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
+                                <div class="edit-matrix-group" data-state="net">
+                                    <div class="edit-matrix-heading">Risque Net</div>
+                                    <div class="edit-matrix-container">
+                                        <div class="matrix edit-matrix" id="riskMatrixEditNet" data-state="net">
+                                            <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
+                                            <div class="axis-label x-axis">Probabilité →</div>
+                                            <div class="axis-label y-axis">
+                                                <span class="axis-text">Impact</span>
+                                                <span class="axis-arrow" aria-hidden="true">↑</span>
+                                            </div>
+                                        </div>
                                     </div>
+                                </div>
+                            </div>
+                            <div id="matrixDescription" class="matrix-description">
+                                <div class="matrix-description-empty">
+                                    Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
                                 </div>
                             </div>
                             <div class="risk-score-cards">

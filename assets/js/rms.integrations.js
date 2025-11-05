@@ -1290,8 +1290,10 @@ function applyPatch() {
         addHistoryItem("Export historique", description, {format});
       };
 
-      window.exportMatrix = async function exportMatrix(){
-        const container = document.querySelector('.matrix-container') || document.querySelector('#matrix') || document.body;
+      window.exportMatrix = async function exportMatrix(view = 'brut'){
+        const normalizedView = view === 'net' ? 'net' : 'brut';
+        const selector = `.matrix-container[data-view="${normalizedView}"]`;
+        const container = document.querySelector(selector) || document.querySelector('.matrix-container') || document.querySelector('#matrix') || document.body;
         if (!window.html2canvas){
           alert("html2canvas non chargé. Connectez-vous à Internet ou ajoutez la librairie en local.");
           return;
@@ -1300,15 +1302,18 @@ function applyPatch() {
         canvas.toBlob((blob)=>{
           const url = URL.createObjectURL(blob);
           const a = document.createElement('a');
-          a.href = url; a.download = "matrice-risques.png";
+          a.href = url; a.download = `matrice-risques-${normalizedView}.png`;
           document.body.appendChild(a); a.click();
           setTimeout(()=>{ URL.revokeObjectURL(url); a.remove(); },0);
-          addHistoryItem("Export matrice (PNG)", "Export de la matrice des risques en image PNG.");
+          const label = normalizedView === 'net' ? 'des risques nets' : 'des risques bruts';
+          addHistoryItem("Export matrice (PNG)", `Export de la matrice ${label} en image PNG.`, { view: normalizedView });
         });
       };
 
-      window.toggleFullScreen = function toggleFullScreen(){
-        const el = document.querySelector('.matrix-container') || document.documentElement;
+      window.toggleFullScreen = function toggleFullScreen(view = 'brut'){
+        const normalizedView = view === 'net' ? 'net' : 'brut';
+        const selector = `.matrix-container[data-view="${normalizedView}"]`;
+        const el = document.querySelector(selector) || document.querySelector('.matrix-container') || document.documentElement;
         const doc = document;
         if (!doc.fullscreenElement){
           (el.requestFullscreen && el.requestFullscreen()) ||

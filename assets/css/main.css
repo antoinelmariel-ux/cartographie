@@ -375,7 +375,22 @@ body {
     background: var(--light-bg);
     border-radius: var(--border-radius);
     padding: 30px;
+    margin-bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.matrix-dual-layout {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(420px, 1fr));
+    gap: 24px;
     margin-bottom: 30px;
+}
+
+.matrix-container.active-view {
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+    border: 1px solid rgba(52, 152, 219, 0.4);
 }
 
 .matrix-header {
@@ -400,12 +415,15 @@ body {
     display: flex;
     gap: 30px;
     align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
 }
 
 .matrix {
     position: relative;
-    width: 600px;
-    height: 600px;
+    width: min(100%, 520px);
+    height: auto;
+    aspect-ratio: 1 / 1;
     border: 2px solid var(--secondary-color);
     background: white;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -474,8 +492,9 @@ body {
 .risk-point.inactive {
     background: linear-gradient(135deg, #d5d8dc, #bdc3c7);
     border-color: #f0f3f4;
-    cursor: not-allowed;
+    cursor: pointer;
     box-shadow: none;
+    opacity: 0.85;
 }
 
 .risk-point.active-point {
@@ -501,35 +520,29 @@ body {
     margin-top: 10px;
 }
 
-.risk-state-selector {
+
+.edit-matrix-group {
+    flex: 1 1 260px;
     display: flex;
-    flex-wrap: wrap;
-    gap: 10px;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: var(--light-bg);
+    border-radius: var(--border-radius);
+    border: 1px solid transparent;
+    transition: box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
-.state-btn {
-    padding: 10px 16px;
-    border: none;
-    border-radius: 8px;
-    background: #ecf0f1;
+.edit-matrix-group.active {
+    border-color: rgba(52, 152, 219, 0.4);
+    box-shadow: 0 8px 22px rgba(52, 152, 219, 0.15);
+}
+
+.edit-matrix-heading {
+    font-weight: 600;
     color: #2c3e50;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-}
-
-.state-btn:hover {
-    background: #dce6f7;
-}
-
-.state-btn.active {
-    background: var(--primary-color);
-    color: white;
-    box-shadow: 0 6px 18px rgba(52, 152, 219, 0.3);
+    text-align: center;
+    font-size: 1.05em;
 }
 
 .risk-matrix-layout {

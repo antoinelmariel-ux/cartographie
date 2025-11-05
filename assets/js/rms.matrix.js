@@ -2,7 +2,7 @@
 
 var activeRiskEditState = 'brut';
 var editMatrixPoints = {};
-var highlightedEditCell = null;
+var highlightedEditCells = {};
 var currentDragState = null;
 var currentPointerId = null;
 var lastDragCell = null;
@@ -21,14 +21,14 @@ function changeMatrixView(view) {
         viewButton.classList.add('active');
     }
 
-    const titles = {
-        'brut': 'Matrice des Risques - Vue Brut',
-        'net': 'Matrice des Risques - Vue Net'
-    };
+    document.querySelectorAll('.matrix-container[data-view]').forEach(container => {
+        const isActive = container.dataset.view === targetView;
+        container.classList.toggle('active-view', isActive);
+    });
 
-    const titleElement = document.getElementById('matrixTitle');
-    if (titleElement) {
-        titleElement.textContent = titles[targetView];
+    const targetContainer = document.querySelector(`.matrix-container[data-view="${targetView}"]`);
+    if (targetContainer) {
+        targetContainer.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
     rms.renderRiskPoints();
@@ -39,16 +39,7 @@ window.changeMatrixView = changeMatrixView;
 function resetMatrixView() {
     if (!window.rms) return;
 
-    rms.currentView = 'brut';
-    document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-    const brutBtn = document.querySelector(".view-btn[onclick*='brut']");
-    brutBtn && brutBtn.classList.add('active');
-    const titleElement = document.getElementById('matrixTitle');
-    if (titleElement) {
-        titleElement.textContent = 'Matrice des Risques - Vue Brut';
-    }
-    rms.renderRiskPoints();
-    rms.updateRiskDetailsList();
+    changeMatrixView('brut');
 }
 window.resetMatrixView = resetMatrixView;
 
@@ -113,7 +104,9 @@ function positionRiskPointIfExists(state, prob, impact) {
 }
 
 function positionRiskPoint(state, prob, impact) {
-    const matrix = document.getElementById('riskMatrixEdit');
+    const config = RISK_STATE_CONFIG[state];
+    if (!config) return;
+    const matrix = document.getElementById(config.matrixId);
     const point = editMatrixPoints[state];
     if (!matrix || !point) return;
 
@@ -135,34 +128,44 @@ function positionRiskPoint(state, prob, impact) {
 
 function positionAllPoints() {
     if (!Object.keys(editMatrixPoints).length) return;
-    const matrix = document.getElementById('riskMatrixEdit');
-    if (!matrix) return;
-    const rect = matrix.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
     Object.keys(RISK_STATE_CONFIG).forEach(state => {
         const { prob, impact } = getStateValues(state);
         positionRiskPoint(state, prob, impact);
     });
 }
 
-function clearHighlightedCell() {
-    if (highlightedEditCell) {
-        highlightedEditCell.classList.remove('drag-hover');
-        highlightedEditCell = null;
+function clearHighlightedCell(state) {
+    if (state) {
+        const highlighted = highlightedEditCells[state];
+        if (highlighted) {
+            highlighted.classList.remove('drag-hover');
+            highlightedEditCells[state] = null;
+        }
+        return;
     }
+
+    Object.keys(highlightedEditCells).forEach(key => {
+        if (highlightedEditCells[key]) {
+            highlightedEditCells[key].classList.remove('drag-hover');
+            highlightedEditCells[key] = null;
+        }
+    });
 }
 
-function highlightCell(prob, impact) {
-    const grid = document.getElementById('riskMatrixEditGrid');
+function highlightCell(prob, impact, state = activeRiskEditState) {
+    const config = RISK_STATE_CONFIG[state];
+    if (!config) return;
+
+    const grid = document.getElementById(config.gridId);
     if (!grid) return;
 
-    clearHighlightedCell();
+    clearHighlightedCell(state);
 
     const selector = `.matrix-cell[data-probability="${prob}"][data-impact="${impact}"]`;
     const cell = grid.querySelector(selector);
     if (cell) {
         cell.classList.add('drag-hover');
-        highlightedEditCell = cell;
+        highlightedEditCells[state] = cell;
     }
 }
 
@@ -200,6 +203,10 @@ function updateStateButtons() {
         const state = btn.dataset.state;
         btn.classList.toggle('active', state === activeRiskEditState);
     });
+    document.querySelectorAll('.edit-matrix-group').forEach(group => {
+        const state = group.dataset.state;
+        group.classList.toggle('active', state === activeRiskEditState);
+    });
 }
 
 function updateScoreCardState() {
@@ -225,7 +232,7 @@ function setActiveRiskState(state) {
     updateScoreCardState();
     updatePointsVisualState();
     const { prob, impact } = getStateValues(state);
-    highlightCell(prob, impact);
+    highlightCell(prob, impact, state);
     updateMatrixDescription(prob, impact, state);
     positionAllPoints();
 }
@@ -251,7 +258,11 @@ function getCellFromEvent(event, matrix) {
 function startPointDrag(event) {
     const point = event.currentTarget;
     const state = point.dataset.state;
-    if (state !== activeRiskEditState) return;
+    if (!state) return;
+
+    if (state !== activeRiskEditState) {
+        setActiveRiskState(state);
+    }
 
     currentDragState = state;
     currentPointerId = event.pointerId;
@@ -263,7 +274,9 @@ function startPointDrag(event) {
 
 function handlePointMove(event) {
     if (!currentDragState || event.pointerId !== currentPointerId) return;
-    const matrix = document.getElementById('riskMatrixEdit');
+    const config = RISK_STATE_CONFIG[currentDragState];
+    if (!config) return;
+    const matrix = document.getElementById(config.matrixId);
     const cell = getCellFromEvent(event, matrix);
     if (!cell) return;
 
@@ -280,7 +293,8 @@ function finishPointDrag(event) {
     point.releasePointerCapture(currentPointerId);
     point.classList.remove('dragging');
 
-    const matrix = document.getElementById('riskMatrixEdit');
+    const config = RISK_STATE_CONFIG[state];
+    const matrix = config ? document.getElementById(config.matrixId) : null;
     const cell = getCellFromEvent(event, matrix) || lastDragCell || getStateValues(state);
     if (cell) {
         setStateValues(state, cell.prob, cell.impact);
@@ -291,30 +305,24 @@ function finishPointDrag(event) {
     lastDragCell = null;
 }
 
-function initRiskEditMatrix() {
-    const matrix = document.getElementById('riskMatrixEdit');
-    const grid = document.getElementById('riskMatrixEditGrid');
-    if (!matrix || !grid) return;
+function handleMatrixPointerDown(event) {
+    const matrix = event.currentTarget;
+    const state = matrix.dataset.state;
+    if (!state || !RISK_STATE_CONFIG[state]) return;
 
-    grid.innerHTML = '';
+    setActiveRiskState(state);
 
-    for (let impact = 4; impact >= 1; impact--) {
-        for (let prob = 1; prob <= 4; prob++) {
-            const cell = document.createElement('div');
-            cell.className = 'matrix-cell';
-            cell.dataset.probability = prob;
-            cell.dataset.impact = impact;
-
-            const riskLevel = prob * impact;
-            if (riskLevel <= 4) cell.classList.add('level-1');
-            else if (riskLevel <= 8) cell.classList.add('level-2');
-            else if (riskLevel <= 12) cell.classList.add('level-3');
-            else cell.classList.add('level-4');
-
-            grid.appendChild(cell);
-        }
+    if (event.target && event.target.classList.contains('risk-point')) {
+        return;
     }
 
+    const cell = getCellFromEvent(event, matrix);
+    if (cell) {
+        setStateValues(state, cell.prob, cell.impact);
+    }
+}
+
+function initRiskEditMatrix() {
     Object.keys(editMatrixPoints).forEach(state => {
         const point = editMatrixPoints[state];
         if (point && point.parentNode) {
@@ -324,6 +332,33 @@ function initRiskEditMatrix() {
     });
 
     Object.entries(RISK_STATE_CONFIG).forEach(([state, config]) => {
+        const matrix = document.getElementById(config.matrixId);
+        const grid = document.getElementById(config.gridId);
+        if (!matrix || !grid) {
+            return;
+        }
+
+        grid.innerHTML = '';
+
+        for (let impact = 4; impact >= 1; impact--) {
+            for (let prob = 1; prob <= 4; prob++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.dataset.probability = prob;
+                cell.dataset.impact = impact;
+
+                const riskLevel = prob * impact;
+                if (riskLevel <= 4) cell.classList.add('level-1');
+                else if (riskLevel <= 8) cell.classList.add('level-2');
+                else if (riskLevel <= 12) cell.classList.add('level-3');
+                else cell.classList.add('level-4');
+
+                grid.appendChild(cell);
+            }
+        }
+
+        highlightedEditCells[state] = null;
+
         const point = document.createElement('div');
         point.className = `risk-point ${config.pointClass} edit-point`;
         point.dataset.state = state;
@@ -337,6 +372,11 @@ function initRiskEditMatrix() {
         point.addEventListener('pointercancel', finishPointDrag);
         matrix.appendChild(point);
         editMatrixPoints[state] = point;
+
+        if (!matrix.dataset.pointerListener) {
+            matrix.addEventListener('pointerdown', handleMatrixPointerDown);
+            matrix.dataset.pointerListener = 'true';
+        }
     });
 
     const initialState = RISK_STATE_CONFIG[activeRiskEditState] ? activeRiskEditState : 'brut';
