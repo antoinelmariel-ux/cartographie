@@ -89,7 +89,7 @@ class RiskManagementSystem {
         this.needsConfigStructureRerender = configStructureUpdated;
         this.currentView = 'brut';
         this.processScoreMode = 'net';
-        this.currentTab = 'dashboard';
+        this.currentTab = 'processes';
         this.filters = {
             process: '',
             type: '',
@@ -110,12 +110,26 @@ class RiskManagementSystem {
         };
         this.lastDashboardMetrics = null;
         this.charts = {};
+        this.processManager = {
+            loading: true,
+            error: null,
+            filters: {
+                title: '',
+                referents: [],
+                search: ''
+            },
+            collapsed: new Set(),
+            undoStack: [],
+            redoStack: [],
+            lastFocusNode: null
+        };
         this.risks.forEach(r => {
             if (!r.actionPlans || r.actionPlans.length === 0) {
                 r.probPost = r.probNet;
                 r.impactPost = r.impactNet;
             }
         });
+        this.initializeProcessHierarchy();
         this.init();
     }
 
@@ -140,6 +154,10 @@ class RiskManagementSystem {
 
         if (this.currentTab === 'config') {
             this.renderConfiguration();
+        }
+
+        if (this.currentTab === 'processes') {
+            this.renderProcessManager();
         }
     }
 
@@ -289,6 +307,1758 @@ class RiskManagementSystem {
     saveConfig() {
         localStorage.setItem('rms_config', JSON.stringify(this.config));
         this.updateLastSaveTime();
+    }
+
+    generateProcessNodeId(prefix = 'node') {
+        if (!this.processNodeCounter) {
+            this.processNodeCounter = 0;
+        }
+        this.processNodeCounter += 1;
+        const timePart = Date.now().toString(36);
+        const counterPart = this.processNodeCounter.toString(36);
+        return `${prefix}-${timePart}-${counterPart}`;
+    }
+
+    buildHierarchyFromLegacy() {
+        const processes = Array.isArray(this.config?.processes) ? this.config.processes : [];
+        const subProcesses = this.config?.subProcesses && typeof this.config.subProcesses === 'object'
+            ? this.config.subProcesses
+            : {};
+
+        return processes.map((process, index) => {
+            const title = (process && typeof process.label === 'string' && process.label.trim())
+                ? process.label.trim()
+                : (process && typeof process.value === 'string' ? process.value.trim() : `Processus ${index + 1}`);
+
+            const value = (process && typeof process.value === 'string' && process.value.trim())
+                ? process.value.trim()
+                : slugifyLabel(title) || `processus-${index + 1}`;
+
+            const childrenSource = Array.isArray(subProcesses[process?.value])
+                ? subProcesses[process.value]
+                : [];
+
+            const children = childrenSource.map((subProcess, subIndex) => {
+                const subTitle = (subProcess && typeof subProcess.label === 'string' && subProcess.label.trim())
+                    ? subProcess.label.trim()
+                    : (subProcess && typeof subProcess.value === 'string'
+                        ? subProcess.value.trim()
+                        : `Sous-processus ${subIndex + 1}`);
+
+                const subValue = (subProcess && typeof subProcess.value === 'string' && subProcess.value.trim())
+                    ? subProcess.value.trim()
+                    : slugifyLabel(`${title} ${subTitle}`) || `sous-processus-${subIndex + 1}`;
+
+                return {
+                    id: this.generateProcessNodeId('sub'),
+                    title: subTitle,
+                    value: subValue,
+                    type: 'subprocess',
+                    referents: [],
+                    children: []
+                };
+            });
+
+            return {
+                id: this.generateProcessNodeId('proc'),
+                title,
+                value,
+                type: 'process',
+                referents: [],
+                children
+            };
+        });
+    }
+
+    normalizeProcessHierarchy(nodes, options = {}) {
+        const usedValues = options.usedValues instanceof Set ? options.usedValues : new Set();
+        const level = typeof options.level === 'number' ? options.level : 0;
+
+        if (!Array.isArray(nodes)) {
+            return [];
+        }
+
+        const normalized = [];
+
+        nodes.forEach((node, index) => {
+            if (!node || typeof node !== 'object') {
+                return;
+            }
+
+            const rawTitle = typeof node.title === 'string' ? node.title.trim() : '';
+            const fallbackTitle = typeof node.label === 'string' ? node.label.trim() : '';
+            const title = rawTitle || fallbackTitle || (level === 0
+                ? `Processus ${index + 1}`
+                : `Sous-processus ${index + 1}`);
+
+            const baseValue = typeof node.value === 'string' && node.value.trim()
+                ? node.value.trim()
+                : slugifyLabel(`${title}-${level}`) || `${level === 0 ? 'processus' : 'sous-processus'}-${index + 1}`;
+
+            let value = baseValue;
+            let duplicateIndex = 1;
+            while (usedValues.has(value)) {
+                value = `${baseValue}-${duplicateIndex++}`;
+            }
+            usedValues.add(value);
+
+            const referents = Array.isArray(node.referents)
+                ? node.referents
+                    .map(ref => (typeof ref === 'string' ? ref.trim() : ''))
+                    .filter(ref => ref.length > 0)
+                : [];
+
+            const id = typeof node.id === 'string' && node.id.trim()
+                ? node.id.trim()
+                : this.generateProcessNodeId(level === 0 ? 'proc' : 'sub');
+
+            const children = this.normalizeProcessHierarchy(node.children || [], {
+                usedValues,
+                level: level + 1
+            });
+
+            normalized.push({
+                id,
+                title,
+                value,
+                type: level === 0 ? 'process' : 'subprocess',
+                referents,
+                children
+            });
+        });
+
+        return normalized;
+    }
+
+    initializeProcessHierarchy() {
+        if (!this.config) {
+            this.config = this.getDefaultConfig();
+        }
+
+        try {
+            const baseHierarchy = Array.isArray(this.config.processHierarchy)
+                ? this.config.processHierarchy
+                : null;
+            const normalized = this.normalizeProcessHierarchy(
+                baseHierarchy && baseHierarchy.length
+                    ? baseHierarchy
+                    : this.buildHierarchyFromLegacy()
+            );
+
+            this.config.processHierarchy = normalized;
+            this.refreshProcessReferentCache();
+            this.syncProcessConfigFromHierarchy({ skipHistory: true, preserveExistingValues: true });
+        } catch (error) {
+            console.error('Erreur lors de l\'initialisation des processus', error);
+            this.processManager.error = 'Impossible de charger les processus. Veuillez réessayer.';
+        } finally {
+            window.requestAnimationFrame(() => {
+                this.processManager.loading = false;
+                this.renderProcessManager();
+            });
+        }
+    }
+
+    refreshProcessReferentCache() {
+        const referents = new Set();
+        const traverse = (nodes) => {
+            if (!Array.isArray(nodes)) {
+                return;
+            }
+            nodes.forEach(node => {
+                if (!node || typeof node !== 'object') {
+                    return;
+                }
+                if (Array.isArray(node.referents)) {
+                    node.referents.forEach(ref => {
+                        if (typeof ref === 'string' && ref.trim()) {
+                            referents.add(ref.trim());
+                        }
+                    });
+                }
+                if (Array.isArray(node.children) && node.children.length) {
+                    traverse(node.children);
+                }
+            });
+        };
+        traverse(this.config?.processHierarchy || []);
+        this.processManager.availableReferents = Array.from(referents).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+        this.updateReferentFilterSuggestions();
+    }
+
+    syncProcessConfigFromHierarchy(options = {}) {
+        const hierarchy = Array.isArray(this.config?.processHierarchy)
+            ? this.config.processHierarchy
+            : [];
+
+        const previousProcesses = new Map();
+        const previousSubMap = new Map();
+
+        if (!options.skipHistory) {
+            this.pushProcessHistory();
+        }
+
+        if (Array.isArray(this.config.processes)) {
+            this.config.processes.forEach(proc => {
+                if (proc && typeof proc.value === 'string') {
+                    previousProcesses.set(proc.value, proc.label || proc.value);
+                }
+            });
+        }
+
+        if (this.config.subProcesses && typeof this.config.subProcesses === 'object') {
+            Object.entries(this.config.subProcesses).forEach(([key, values]) => {
+                if (!Array.isArray(values)) {
+                    return;
+                }
+                values.forEach(item => {
+                    if (item && typeof item.value === 'string') {
+                        previousSubMap.set(item.value, { process: key, label: item.label || item.value });
+                    }
+                });
+            });
+        }
+
+        const usedValues = new Set();
+        const newProcesses = [];
+        const newSubProcesses = {};
+        const processValueChanges = new Map();
+        const subProcessValueChanges = new Map();
+
+        const ensureUniqueValue = (candidate, fallbackPrefix) => {
+            let baseValue = candidate && candidate.trim ? candidate.trim() : '';
+            if (!baseValue) {
+                baseValue = fallbackPrefix;
+            }
+            let uniqueValue = baseValue;
+            let suffix = 1;
+            while (usedValues.has(uniqueValue)) {
+                uniqueValue = `${baseValue}-${suffix++}`;
+            }
+            usedValues.add(uniqueValue);
+            return uniqueValue;
+        };
+
+        const referentRootMap = new Map();
+
+        const traverse = (nodes, parentInfo = null, path = []) => {
+            if (!Array.isArray(nodes)) {
+                return;
+            }
+
+            nodes.forEach((node, index) => {
+                if (!node || typeof node !== 'object') {
+                    return;
+                }
+
+                const isRoot = parentInfo === null;
+                const cleanTitle = typeof node.title === 'string' && node.title.trim()
+                    ? node.title.trim()
+                    : (node.label && typeof node.label === 'string' ? node.label.trim() : (isRoot ? `Processus ${index + 1}` : `Sous-processus ${index + 1}`));
+                node.title = cleanTitle;
+
+                const fallbackPrefix = isRoot ? `processus-${index + 1}` : `sous-processus-${index + 1}`;
+                const desiredValue = typeof node.value === 'string' && node.value.trim()
+                    ? node.value.trim()
+                    : slugifyLabel(`${cleanTitle}-${isRoot ? 'process' : 'sub'}`);
+
+                const uniqueValue = ensureUniqueValue(desiredValue, fallbackPrefix);
+                if (node.value !== uniqueValue) {
+                    if (node.value) {
+                        if (isRoot) {
+                            processValueChanges.set(node.value, uniqueValue);
+                        } else {
+                            subProcessValueChanges.set(node.value, uniqueValue);
+                        }
+                    }
+                    node.value = uniqueValue;
+                }
+
+                node.type = isRoot ? 'process' : 'subprocess';
+                node.referents = Array.isArray(node.referents)
+                    ? node.referents
+                        .map(ref => (typeof ref === 'string' ? ref.trim() : ''))
+                        .filter(ref => ref.length > 0)
+                    : [];
+
+                if (isRoot) {
+                    newProcesses.push({ value: node.value, label: node.title });
+                    if (!Array.isArray(node.children) || !node.children.length) {
+                        newSubProcesses[node.value] = [];
+                    }
+                } else if (parentInfo) {
+                    const rootValue = parentInfo.rootValue;
+                    const labelPath = [...path, node.title];
+                    const subList = newSubProcesses[rootValue] || (newSubProcesses[rootValue] = []);
+                    subList.push({
+                        value: node.value,
+                        label: labelPath.join(' / ')
+                    });
+                    referentRootMap.set(node.value, rootValue);
+                }
+
+                const nextParent = isRoot
+                    ? { value: node.value, rootValue: node.value }
+                    : { value: node.value, rootValue: parentInfo.rootValue };
+                const nextPath = isRoot ? [node.title] : [...path, node.title];
+                traverse(node.children || [], nextParent, nextPath);
+            });
+        };
+
+        traverse(hierarchy, null, []);
+
+        // Ensure each process has an array in subProcesses even without visible children
+        newProcesses.forEach(proc => {
+            if (!newSubProcesses[proc.value]) {
+                newSubProcesses[proc.value] = [];
+            }
+        });
+
+        this.config.processes = newProcesses;
+        this.config.subProcesses = newSubProcesses;
+
+        if (!options.preserveExistingValues) {
+            processValueChanges.forEach((newValue, oldValue) => {
+                if (oldValue === newValue) {
+                    return;
+                }
+                this.risks.forEach(risk => {
+                    if (risk.processus === oldValue) {
+                        risk.processus = newValue;
+                    }
+                });
+            });
+        }
+
+        subProcessValueChanges.forEach((newValue, oldValue) => {
+            if (oldValue === newValue) {
+                return;
+            }
+            this.risks.forEach(risk => {
+                if (risk.sousProcessus === oldValue) {
+                    risk.sousProcessus = newValue;
+                }
+            });
+        });
+
+        const subRootMap = {};
+        Object.entries(newSubProcesses).forEach(([rootValue, subs]) => {
+            subs.forEach(sub => {
+                subRootMap[sub.value] = rootValue;
+            });
+        });
+
+        this.risks.forEach(risk => {
+            const currentRoot = subRootMap[risk.sousProcessus];
+            if (currentRoot && risk.processus !== currentRoot) {
+                risk.processus = currentRoot;
+            }
+            if (risk.processus && !newSubProcesses[risk.processus]) {
+                risk.sousProcessus = '';
+            } else if (risk.sousProcessus) {
+                const candidates = newSubProcesses[risk.processus] || [];
+                if (!candidates.some(candidate => candidate.value === risk.sousProcessus)) {
+                    risk.sousProcessus = '';
+                }
+            }
+        });
+
+        this.refreshProcessReferentCache();
+        if (!options.skipSelectRefresh) {
+            this.populateSelects();
+        }
+    }
+
+    findProcessNodeById(nodeId, nodes = this.config.processHierarchy, parent = null) {
+        if (!nodeId || !Array.isArray(nodes)) {
+            return null;
+        }
+
+        for (let index = 0; index < nodes.length; index += 1) {
+            const node = nodes[index];
+            if (!node || typeof node !== 'object') {
+                continue;
+            }
+            if (node.id === nodeId) {
+                return { node, parent, index, siblings: nodes };
+            }
+            if (Array.isArray(node.children) && node.children.length) {
+                const result = this.findProcessNodeById(nodeId, node.children, { node, siblings: nodes });
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    cloneProcessNode(node) {
+        if (!node || typeof node !== 'object') {
+            return null;
+        }
+
+        const cloned = {
+            id: this.generateProcessNodeId(node.type === 'process' ? 'proc' : 'sub'),
+            title: `${node.title} (copie)`,
+            value: '',
+            type: node.type,
+            referents: Array.isArray(node.referents) ? [...node.referents] : [],
+            children: []
+        };
+
+        if (Array.isArray(node.children) && node.children.length) {
+            cloned.children = node.children.map(child => this.cloneProcessNode(child)).filter(Boolean);
+        }
+
+        return cloned;
+    }
+
+    removeProcessNode(nodeId) {
+        const result = this.findProcessNodeById(nodeId);
+        if (!result) {
+            return false;
+        }
+
+        const { siblings, index } = result;
+        siblings.splice(index, 1);
+        return true;
+    }
+
+    insertProcessNode(parentId, index, node) {
+        if (!node) {
+            return false;
+        }
+
+        if (parentId === null || parentId === undefined || parentId === 'root') {
+            const targetIndex = Math.max(0, Math.min(index, this.config.processHierarchy.length));
+            this.config.processHierarchy.splice(targetIndex, 0, node);
+            node.type = 'process';
+            return true;
+        }
+
+        const parentResult = this.findProcessNodeById(parentId);
+        if (!parentResult || !parentResult.node) {
+            return false;
+        }
+
+        if (!Array.isArray(parentResult.node.children)) {
+            parentResult.node.children = [];
+        }
+
+        const targetIndex = Math.max(0, Math.min(index, parentResult.node.children.length));
+        parentResult.node.children.splice(targetIndex, 0, node);
+        node.type = 'subprocess';
+        return true;
+    }
+
+    pushProcessHistory() {
+        if (!this.processManager || !Array.isArray(this.config?.processHierarchy)) {
+            return;
+        }
+
+        const snapshot = JSON.parse(JSON.stringify(this.config.processHierarchy));
+        this.processManager.undoStack.push(snapshot);
+        if (this.processManager.undoStack.length > 50) {
+            this.processManager.undoStack.shift();
+        }
+    }
+
+    undoProcessHierarchy() {
+        if (!this.processManager || !this.processManager.undoStack.length) {
+            return;
+        }
+
+        const snapshot = this.processManager.undoStack.pop();
+        if (!snapshot) {
+            return;
+        }
+
+        this.config.processHierarchy = this.normalizeProcessHierarchy(snapshot);
+        this.syncProcessConfigFromHierarchy({ skipHistory: true });
+        this.saveConfig();
+        this.renderProcessManager();
+        this.renderAll();
+    }
+
+    hasActiveProcessFilters() {
+        if (!this.processManager || !this.processManager.filters) {
+            return false;
+        }
+        const { search, title, referents } = this.processManager.filters;
+        return Boolean((search && search.trim()) || (title && title.trim()) || (Array.isArray(referents) && referents.length));
+    }
+
+    getProcessFilterDraft() {
+        if (!this.processManager.filterDraft) {
+            this.processManager.filterDraft = {
+                title: this.processManager.filters?.title || '',
+                referents: Array.isArray(this.processManager.filters?.referents)
+                    ? [...this.processManager.filters.referents]
+                    : []
+            };
+        }
+        return this.processManager.filterDraft;
+    }
+
+    resetProcessFilterDraft() {
+        this.processManager.filterDraft = {
+            title: '',
+            referents: []
+        };
+    }
+
+    renderProcessFilterDraftReferents() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const container = document.getElementById('processFilterReferents');
+        if (!container) {
+            return;
+        }
+
+        const draft = this.getProcessFilterDraft();
+        const inputWrapper = container.querySelector('[data-role="referent-filter-input"]');
+        container.querySelectorAll('.process-filter-chip').forEach(chip => chip.remove());
+
+        draft.referents.forEach(ref => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'process-filter-chip';
+            chip.dataset.referent = ref;
+            chip.innerHTML = `<span>${ref}</span><span class="chip-remove" aria-hidden="true">×</span>`;
+            chip.addEventListener('click', () => {
+                this.removeProcessFilterReferent(ref);
+                this.renderProcessFilterDraftReferents();
+            });
+            container.insertBefore(chip, inputWrapper);
+        });
+    }
+
+    addProcessFilterReferent(value) {
+        const normalized = typeof value === 'string' ? value.trim() : '';
+        if (!normalized) {
+            return;
+        }
+        const draft = this.getProcessFilterDraft();
+        if (!draft.referents.some(ref => ref.toLowerCase() === normalized.toLowerCase())) {
+            draft.referents.push(normalized);
+        }
+    }
+
+    removeProcessFilterReferent(value) {
+        const draft = this.getProcessFilterDraft();
+        draft.referents = draft.referents.filter(ref => ref.toLowerCase() !== value.toLowerCase());
+    }
+
+    applyProcessFiltersFromPanel() {
+        const draft = this.getProcessFilterDraft();
+        this.processManager.filters.title = draft.title ? draft.title.trim() : '';
+        this.processManager.filters.referents = draft.referents.map(ref => ref.trim()).filter(Boolean);
+        this.renderProcessManager();
+    }
+
+    clearProcessFilters() {
+        this.resetProcessFilterDraft();
+        this.processManager.filters = {
+            ...this.processManager.filters,
+            title: '',
+            referents: [],
+            search: ''
+        };
+        const searchInput = document.getElementById('processSearchInput');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+        this.renderProcessManager();
+    }
+
+    renderProcessActiveFilters() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const container = document.getElementById('processActiveFilters');
+        if (!container) {
+            return;
+        }
+
+        container.innerHTML = '';
+        const { search, title, referents } = this.processManager.filters || {};
+
+        const addChip = (label, onRemove) => {
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'process-active-filter-chip';
+            chip.innerHTML = `<span>${label}</span><span aria-hidden="true" class="chip-remove">×</span>`;
+            chip.addEventListener('click', () => {
+                onRemove();
+                this.renderProcessManager();
+            });
+            container.appendChild(chip);
+        };
+
+        if (search && search.trim()) {
+            addChip(`Recherche : ${search.trim()}`, () => {
+                this.processManager.filters.search = '';
+                const searchInput = document.getElementById('processSearchInput');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+            });
+        }
+
+        if (title && title.trim()) {
+            addChip(`Titre : ${title.trim()}`, () => {
+                this.processManager.filters.title = '';
+                const titleInput = document.getElementById('processFilterTitle');
+                if (titleInput) {
+                    titleInput.value = '';
+                }
+                this.resetProcessFilterDraft();
+            });
+        }
+
+        if (Array.isArray(referents)) {
+            referents.forEach(ref => {
+                addChip(`Référent : ${ref}`, () => {
+                    this.processManager.filters.referents = referents.filter(r => r !== ref);
+                });
+            });
+        }
+
+        if (!container.childElementCount) {
+            const hint = document.createElement('div');
+            hint.className = 'process-active-filter-empty';
+            hint.textContent = 'Aucun filtre appliqué';
+            container.appendChild(hint);
+        }
+    }
+
+    filterProcessHierarchyForRender(nodes, filters, depth = 0) {
+        if (!Array.isArray(nodes) || !nodes.length) {
+            return [];
+        }
+
+        const searchTokens = typeof filters?.search === 'string'
+            ? filters.search.toLowerCase().split(/\s+/).filter(Boolean)
+            : [];
+        const titleFilter = typeof filters?.title === 'string' ? filters.title.toLowerCase().trim() : '';
+        const referentFilters = Array.isArray(filters?.referents)
+            ? filters.referents.map(ref => ref.toLowerCase())
+            : [];
+
+        const filtersActive = Boolean(searchTokens.length || titleFilter || referentFilters.length);
+        const results = [];
+
+        nodes.forEach(node => {
+            if (!node || typeof node !== 'object') {
+                return;
+            }
+
+            const title = typeof node.title === 'string' ? node.title : '';
+            const titleLower = title.toLowerCase();
+            const referents = Array.isArray(node.referents) ? node.referents : [];
+            const referentsLower = referents.map(ref => (typeof ref === 'string' ? ref.toLowerCase() : ''));
+
+            const matchesSearch = !searchTokens.length || searchTokens.every(token => {
+                return titleLower.includes(token) || referentsLower.some(ref => ref.includes(token));
+            });
+
+            const matchesTitle = !titleFilter || titleLower.includes(titleFilter);
+
+            const matchesReferents = !referentFilters.length || referentFilters.every(filterRef => {
+                return referentsLower.includes(filterRef);
+            });
+
+            const childMatches = this.filterProcessHierarchyForRender(node.children || [], filters, depth + 1);
+            const nodeMatches = matchesSearch && matchesTitle && matchesReferents;
+
+            if (nodeMatches || childMatches.length || !filtersActive) {
+                results.push({
+                    id: node.id,
+                    value: node.value,
+                    title: node.title,
+                    type: node.type || (depth === 0 ? 'process' : 'subprocess'),
+                    referents: [...referents],
+                    children: childMatches,
+                    __match: nodeMatches
+                });
+            }
+        });
+
+        return results;
+    }
+
+    buildProcessSkeletonState() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'process-state-skeleton';
+        for (let i = 0; i < 4; i += 1) {
+            const row = document.createElement('div');
+            row.className = 'process-skeleton-row';
+            wrapper.appendChild(row);
+        }
+        return wrapper;
+    }
+
+    buildProcessEmptyState() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'process-state-empty';
+        wrapper.innerHTML = `
+            <div class="process-empty-illustration" aria-hidden="true">🗂️</div>
+            <div class="process-empty-text">
+                <h3>Aucun processus configuré</h3>
+                <p>Créez votre premier processus pour structurer votre cartographie.</p>
+            </div>
+        `;
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-primary';
+        button.textContent = 'Créer votre premier processus';
+        button.addEventListener('click', () => {
+            this.createProcessAtEnd();
+        });
+        wrapper.appendChild(button);
+        return wrapper;
+    }
+
+    buildProcessNoResultState() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'process-state-empty';
+        wrapper.innerHTML = `
+            <div class="process-empty-illustration" aria-hidden="true">🔎</div>
+            <div class="process-empty-text">
+                <h3>Aucun résultat</h3>
+                <p>Ajustez votre recherche ou vos filtres pour afficher les processus correspondants.</p>
+            </div>
+        `;
+        return wrapper;
+    }
+
+    buildProcessErrorState() {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'process-state-error';
+        wrapper.innerHTML = `
+            <div class="process-error-icon" aria-hidden="true">⚠️</div>
+            <div class="process-error-body">
+                <h3>Une erreur est survenue</h3>
+                <p>Impossible de charger les processus. Veuillez réessayer.</p>
+            </div>
+        `;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'btn btn-secondary';
+        button.textContent = 'Réessayer';
+        button.addEventListener('click', () => {
+            this.processManager.error = null;
+            this.processManager.loading = true;
+            this.renderProcessManager();
+            window.requestAnimationFrame(() => {
+                this.processManager.loading = false;
+                this.renderProcessManager();
+            });
+        });
+        wrapper.appendChild(button);
+        return wrapper;
+    }
+
+    buildProcessHelperBanner(options = {}) {
+        const { filtersActive } = options;
+        const banner = document.createElement('div');
+        banner.className = 'process-helper-banner';
+        banner.innerHTML = filtersActive
+            ? '<span>Filtres actifs. Le glisser-déposer est désactivé temporairement.</span>'
+            : '<span>Glissez-déposez les éléments pour réorganiser la hiérarchie. Ctrl/⌘+Z pour annuler.</span>';
+        return banner;
+    }
+
+    focusProcessNodeIfNeeded() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const targetId = this.processManager?.lastFocusNode;
+        if (!targetId) {
+            return;
+        }
+        const input = document.querySelector(`.process-title-input[data-node-id="${targetId}"]`);
+        if (input) {
+            input.focus();
+            input.select();
+        }
+        this.processManager.lastFocusNode = null;
+    }
+
+    renderProcessManager() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const treeContainer = document.getElementById('processTreeContainer');
+        const stateContainer = document.getElementById('processStateContainer');
+
+        if (!treeContainer || !stateContainer) {
+            return;
+        }
+
+        if (!this.processManager.eventsBound) {
+            this.setupProcessManagerEvents();
+        }
+
+        this.closeProcessContextMenu();
+        this.renderProcessActiveFilters();
+
+        if (this.processManager.loading) {
+            treeContainer.innerHTML = '';
+            stateContainer.innerHTML = '';
+            stateContainer.appendChild(this.buildProcessSkeletonState());
+            return;
+        }
+
+        stateContainer.innerHTML = '';
+        treeContainer.innerHTML = '';
+
+        if (this.processManager.error) {
+            stateContainer.appendChild(this.buildProcessErrorState());
+            return;
+        }
+
+        const hierarchy = Array.isArray(this.config.processHierarchy) ? this.config.processHierarchy : [];
+
+        if (!hierarchy.length) {
+            stateContainer.appendChild(this.buildProcessEmptyState());
+            return;
+        }
+
+        const filters = this.processManager.filters || { search: '', title: '', referents: [] };
+        const filteredHierarchy = this.filterProcessHierarchyForRender(hierarchy, filters);
+        const filtersActive = this.hasActiveProcessFilters();
+
+        if (!filteredHierarchy.length) {
+            stateContainer.appendChild(this.buildProcessNoResultState());
+            return;
+        }
+
+        const fragment = document.createDocumentFragment();
+        filteredHierarchy.forEach((node, index) => {
+            fragment.appendChild(this.createProcessInsertionElement('root', index, 0, { filtersActive }));
+            fragment.appendChild(this.createProcessNodeElement(node, 0, { filtersActive }));
+            if (index === filteredHierarchy.length - 1) {
+                fragment.appendChild(this.createProcessInsertionElement('root', filteredHierarchy.length, 0, { filtersActive }));
+            }
+        });
+
+        treeContainer.appendChild(fragment);
+        stateContainer.appendChild(this.buildProcessHelperBanner({ filtersActive }));
+        this.focusProcessNodeIfNeeded();
+    }
+
+    createProcessInsertionElement(parentId, index, depth, options = {}) {
+        const { filtersActive } = options;
+        const container = document.createElement('div');
+        container.className = 'process-insert';
+        container.dataset.parentId = parentId;
+        container.dataset.index = String(index);
+        container.dataset.depth = String(depth);
+
+        if (!filtersActive) {
+            container.addEventListener('dragover', (event) => this.handleProcessDragOver(event, parentId, index));
+            container.addEventListener('dragleave', (event) => this.handleProcessDragLeave(event));
+            container.addEventListener('drop', (event) => this.handleProcessDrop(event, parentId, index));
+        } else {
+            container.classList.add('is-disabled');
+        }
+
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'process-insert-button';
+        button.dataset.action = 'insert';
+        button.dataset.parentId = parentId;
+        button.dataset.index = String(index);
+        button.dataset.depth = String(depth);
+        button.setAttribute('aria-label', 'Ajouter un élément ici');
+        button.innerHTML = '<span aria-hidden="true">+</span>';
+        container.appendChild(button);
+
+        return container;
+    }
+
+    createProcessNodeElement(node, depth, options = {}) {
+        const { filtersActive } = options;
+        const element = document.createElement('div');
+        element.className = 'process-node';
+        element.dataset.nodeId = node.id;
+        element.dataset.nodeType = node.type || (depth === 0 ? 'process' : 'subprocess');
+        element.dataset.depth = String(depth);
+        element.setAttribute('role', 'treeitem');
+
+        const isCollapsed = !filtersActive && this.processManager.collapsed instanceof Set
+            ? this.processManager.collapsed.has(node.id)
+            : false;
+
+        element.setAttribute('aria-expanded', isCollapsed ? 'false' : 'true');
+
+        const row = document.createElement('div');
+        row.className = 'process-row';
+        if (node.__match) {
+            row.classList.add('is-highlighted');
+        }
+
+        const toggle = document.createElement('button');
+        toggle.type = 'button';
+        toggle.className = 'process-toggle';
+        toggle.dataset.action = 'toggle';
+        toggle.dataset.nodeId = node.id;
+        toggle.setAttribute('aria-label', isCollapsed ? 'Développer' : 'Réduire');
+        toggle.innerHTML = '<span aria-hidden="true"></span>';
+        if (!node.children.length) {
+            toggle.disabled = true;
+            toggle.classList.add('is-leaf');
+        }
+
+        const handle = document.createElement('div');
+        handle.className = 'process-drag-handle';
+        handle.dataset.action = 'drag-handle';
+        handle.dataset.nodeId = node.id;
+        if (!filtersActive) {
+            handle.setAttribute('draggable', 'true');
+        } else {
+            handle.setAttribute('draggable', 'false');
+            handle.classList.add('is-disabled');
+        }
+        handle.setAttribute('aria-hidden', 'true');
+        handle.textContent = '⋮⋮';
+
+        const titleInput = document.createElement('input');
+        titleInput.type = 'text';
+        titleInput.className = 'process-title-input';
+        titleInput.dataset.nodeId = node.id;
+        titleInput.dataset.level = String(depth);
+        titleInput.value = node.title;
+        titleInput.setAttribute('aria-label', depth === 0 ? 'Titre du processus' : 'Titre du sous-processus');
+
+        const referentContainer = document.createElement('div');
+        referentContainer.className = 'process-referents';
+        referentContainer.dataset.nodeId = node.id;
+
+        (node.referents || []).forEach(ref => {
+            const chip = document.createElement('span');
+            chip.className = 'process-referent-chip';
+            chip.dataset.referent = ref;
+            chip.innerHTML = `<span>${ref}</span><button type="button" class="chip-remove" data-action="remove-referent" data-node-id="${node.id}" data-referent="${ref}" aria-label="Retirer ${ref}">×</button>`;
+            referentContainer.appendChild(chip);
+        });
+
+        const referentInputWrapper = document.createElement('div');
+        referentInputWrapper.className = 'process-referent-input-wrapper';
+
+        const referentInput = document.createElement('input');
+        referentInput.type = 'text';
+        referentInput.className = 'process-referent-input';
+        referentInput.placeholder = 'Ajouter un référent';
+        referentInput.autocomplete = 'off';
+        referentInput.dataset.nodeId = node.id;
+
+        const suggestions = document.createElement('div');
+        suggestions.className = 'process-referent-suggestions';
+        suggestions.dataset.nodeId = node.id;
+
+        referentInputWrapper.appendChild(referentInput);
+        referentInputWrapper.appendChild(suggestions);
+        referentContainer.appendChild(referentInputWrapper);
+
+        const menuButton = document.createElement('button');
+        menuButton.type = 'button';
+        menuButton.className = 'process-menu-trigger';
+        menuButton.dataset.action = 'menu';
+        menuButton.dataset.nodeId = node.id;
+        menuButton.setAttribute('aria-label', 'Autres actions');
+        menuButton.textContent = '⋯';
+
+        row.appendChild(toggle);
+        row.appendChild(handle);
+        row.appendChild(titleInput);
+        row.appendChild(referentContainer);
+        row.appendChild(menuButton);
+
+        element.appendChild(row);
+
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'process-children';
+        childrenContainer.dataset.nodeId = node.id;
+        if (isCollapsed) {
+            childrenContainer.hidden = true;
+        }
+
+        if (node.children.length) {
+            node.children.forEach((child, index) => {
+                childrenContainer.appendChild(this.createProcessInsertionElement(node.id, index, depth + 1, options));
+                childrenContainer.appendChild(this.createProcessNodeElement(child, depth + 1, options));
+                if (index === node.children.length - 1) {
+                    childrenContainer.appendChild(this.createProcessInsertionElement(node.id, node.children.length, depth + 1, options));
+                }
+            });
+        } else {
+            childrenContainer.appendChild(this.createProcessInsertionElement(node.id, 0, depth + 1, options));
+        }
+
+        element.appendChild(childrenContainer);
+
+        return element;
+    }
+
+    setupProcessManagerEvents() {
+        if (typeof document === 'undefined' || this.processManager.eventsBound) {
+            return;
+        }
+
+        const searchInput = document.getElementById('processSearchInput');
+        if (searchInput) {
+            searchInput.addEventListener('input', (event) => {
+                const value = typeof event.target.value === 'string' ? event.target.value : '';
+                this.processManager.filters.search = value.trim();
+                this.renderProcessManager();
+            });
+        }
+
+        const filtersToggle = document.getElementById('processFiltersToggle');
+        const filtersPanel = document.getElementById('processFiltersPanel');
+        if (filtersToggle && filtersPanel) {
+            filtersToggle.addEventListener('click', () => {
+                const isHidden = filtersPanel.hasAttribute('hidden');
+                if (isHidden) {
+                    const draft = this.getProcessFilterDraft();
+                    draft.title = this.processManager.filters?.title || '';
+                    draft.referents = Array.isArray(this.processManager.filters?.referents)
+                        ? [...this.processManager.filters.referents]
+                        : [];
+                    const titleInput = document.getElementById('processFilterTitle');
+                    if (titleInput) {
+                        titleInput.value = draft.title;
+                    }
+                    this.renderProcessFilterDraftReferents();
+                    filtersPanel.removeAttribute('hidden');
+                } else {
+                    filtersPanel.setAttribute('hidden', 'hidden');
+                }
+            });
+        }
+
+        const applyButton = document.getElementById('processFiltersApply');
+        if (applyButton) {
+            applyButton.addEventListener('click', () => {
+                const titleInput = document.getElementById('processFilterTitle');
+                const draft = this.getProcessFilterDraft();
+                draft.title = titleInput ? titleInput.value.trim() : '';
+                this.applyProcessFiltersFromPanel();
+                const panel = document.getElementById('processFiltersPanel');
+                panel && panel.setAttribute('hidden', 'hidden');
+            });
+        }
+
+        const resetButton = document.getElementById('processFiltersReset');
+        if (resetButton) {
+            resetButton.addEventListener('click', () => {
+                this.resetProcessFilterDraft();
+                const titleInput = document.getElementById('processFilterTitle');
+                if (titleInput) {
+                    titleInput.value = '';
+                }
+                const referentInput = document.getElementById('processFilterReferentInput');
+                if (referentInput) {
+                    referentInput.value = '';
+                }
+                this.applyProcessFiltersFromPanel();
+                this.processManager.filters.search = '';
+                const search = document.getElementById('processSearchInput');
+                if (search) {
+                    search.value = '';
+                }
+                this.renderProcessManager();
+            });
+        }
+
+        const referentFilterInput = document.getElementById('processFilterReferentInput');
+        if (referentFilterInput) {
+            referentFilterInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ',') {
+                    event.preventDefault();
+                    const value = event.target.value.trim();
+                    if (value) {
+                        this.addProcessFilterReferent(value);
+                        event.target.value = '';
+                        this.renderProcessFilterDraftReferents();
+                    }
+                } else if (event.key === 'Backspace' && !event.target.value) {
+                    const draft = this.getProcessFilterDraft();
+                    draft.referents.pop();
+                    this.renderProcessFilterDraftReferents();
+                }
+            });
+        }
+
+        const newProcessButton = document.getElementById('newProcessButton');
+        if (newProcessButton) {
+            newProcessButton.addEventListener('click', () => {
+                this.createProcessAtEnd();
+            });
+        }
+
+        const treeContainer = document.getElementById('processTreeContainer');
+        if (treeContainer) {
+            treeContainer.addEventListener('click', (event) => this.handleProcessTreeClick(event));
+            treeContainer.addEventListener('input', (event) => this.handleProcessTreeInput(event));
+            treeContainer.addEventListener('keydown', (event) => this.handleProcessTreeKeydown(event));
+            treeContainer.addEventListener('blur', (event) => this.handleProcessTreeBlur(event), true);
+            treeContainer.addEventListener('focusin', (event) => this.handleProcessTreeFocus(event));
+            treeContainer.addEventListener('dragstart', (event) => this.handleProcessDragStart(event));
+            treeContainer.addEventListener('dragend', (event) => this.handleProcessDragEnd(event));
+        }
+
+        this.updateReferentFilterSuggestions();
+        this.processManager.eventsBound = true;
+    }
+
+    updateReferentFilterSuggestions() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const datalistId = 'processReferentFilterSuggestions';
+        let datalist = document.getElementById(datalistId);
+        if (!datalist) {
+            datalist = document.createElement('datalist');
+            datalist.id = datalistId;
+            document.body.appendChild(datalist);
+        }
+
+        datalist.innerHTML = '';
+        (this.processManager.availableReferents || []).forEach(ref => {
+            const option = document.createElement('option');
+            option.value = ref;
+            datalist.appendChild(option);
+        });
+
+        const referentFilterInput = document.getElementById('processFilterReferentInput');
+        if (referentFilterInput) {
+            referentFilterInput.setAttribute('list', datalistId);
+        }
+    }
+
+    handleProcessTreeClick(event) {
+        const target = event.target;
+        if (!target || typeof target.closest !== 'function') {
+            return;
+        }
+
+        if (target.matches('[data-action="insert"]')) {
+            const button = target;
+            const parentId = button.dataset.parentId || 'root';
+            const index = parseInt(button.dataset.index || '0', 10);
+            const depth = parseInt(button.dataset.depth || '0', 10);
+            this.handleProcessInsertMenu(button, parentId, index, depth);
+            return;
+        }
+
+        const toggle = target.closest('.process-toggle');
+        if (toggle && !toggle.disabled) {
+            const nodeId = toggle.dataset.nodeId;
+            this.toggleProcessCollapse(nodeId);
+            return;
+        }
+
+        const removeChip = target.closest('[data-action="remove-referent"]');
+        if (removeChip) {
+            const nodeId = removeChip.dataset.nodeId;
+            const referent = removeChip.dataset.referent;
+            this.removeReferentFromNode(nodeId, referent);
+            return;
+        }
+
+        const suggestionButton = target.closest('[data-action="pick-referent"]');
+        if (suggestionButton) {
+            const nodeId = suggestionButton.dataset.nodeId;
+            const referent = suggestionButton.dataset.referent;
+            this.handleReferentAddition(nodeId, referent);
+            this.closeReferentSuggestions(nodeId);
+            return;
+        }
+
+        const menuButton = target.closest('.process-menu-trigger');
+        if (menuButton) {
+            const nodeId = menuButton.dataset.nodeId;
+            const items = [
+                {
+                    label: 'Renommer',
+                    onSelect: () => this.focusProcessTitle(nodeId)
+                },
+                {
+                    label: 'Dupliquer',
+                    onSelect: () => this.duplicateProcessNode(nodeId)
+                },
+                {
+                    label: 'Supprimer',
+                    onSelect: () => this.deleteProcessNode(nodeId)
+                }
+            ];
+            this.openProcessContextMenu(menuButton, items);
+        }
+    }
+
+    handleProcessTreeInput(event) {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+
+        if (target.classList.contains('process-referent-input')) {
+            const nodeId = target.dataset.nodeId;
+            this.updateReferentSuggestions(nodeId, target.value, target);
+        }
+    }
+
+    handleProcessTreeKeydown(event) {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+
+        if (target.classList.contains('process-title-input')) {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                target.blur();
+            } else if (event.key === 'Escape') {
+                event.preventDefault();
+                target.value = target.dataset.initialValue || target.value;
+                target.blur();
+            }
+        }
+
+        if (target.classList.contains('process-referent-input')) {
+            if (event.key === 'Enter' || event.key === ',') {
+                event.preventDefault();
+                const nodeId = target.dataset.nodeId;
+                this.handleReferentAddition(nodeId, target.value);
+                target.value = '';
+            } else if (event.key === 'Backspace' && !target.value) {
+                const nodeId = target.dataset.nodeId;
+                const info = this.findProcessNodeById(nodeId);
+                const referents = info && Array.isArray(info.node.referents) ? info.node.referents : [];
+                if (referents.length) {
+                    this.removeReferentFromNode(nodeId, referents[referents.length - 1]);
+                }
+            }
+        }
+    }
+
+    handleProcessTreeBlur(event) {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+        if (target.classList.contains('process-title-input')) {
+            const nodeId = target.dataset.nodeId;
+            const previous = target.dataset.initialValue || '';
+            const updated = this.updateProcessTitle(nodeId, target.value, previous);
+            if (!updated) {
+                target.value = previous;
+            }
+            target.removeAttribute('data-initial-value');
+        }
+        if (target.classList.contains('process-referent-input')) {
+            const nodeId = target.dataset.nodeId;
+            const value = target.value.trim();
+            if (value) {
+                this.handleReferentAddition(nodeId, value);
+                target.value = '';
+            }
+            this.closeReferentSuggestions(nodeId);
+        }
+    }
+
+    handleProcessTreeFocus(event) {
+        const target = event.target;
+        if (!target) {
+            return;
+        }
+        if (target.classList.contains('process-title-input')) {
+            target.dataset.initialValue = target.value;
+        }
+    }
+
+    handleProcessDragStart(event) {
+        const target = event.target;
+        if (!target || !target.classList.contains('process-drag-handle')) {
+            return;
+        }
+        if (this.hasActiveProcessFilters()) {
+            event.preventDefault();
+            return;
+        }
+        const nodeId = target.dataset.nodeId;
+        this.processManager.draggedNodeId = nodeId;
+        if (event.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            event.dataTransfer.setData('application/x-process-node', nodeId);
+            event.dataTransfer.setData('text/plain', nodeId);
+        }
+        target.classList.add('is-dragging');
+    }
+
+    handleProcessDragEnd(event) {
+        const target = event.target;
+        if (target && target.classList.contains('process-drag-handle')) {
+            target.classList.remove('is-dragging');
+        }
+        this.processManager.draggedNodeId = null;
+    }
+
+    handleProcessDragOver(event, parentId, index) {
+        if (this.hasActiveProcessFilters()) {
+            return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+        const zone = event.currentTarget;
+        if (zone && zone.classList) {
+            zone.classList.add('is-over');
+        }
+    }
+
+    handleProcessDragLeave(event) {
+        const zone = event.currentTarget;
+        if (zone && zone.classList) {
+            zone.classList.remove('is-over');
+        }
+    }
+
+    handleProcessDrop(event, parentId, index) {
+        if (this.hasActiveProcessFilters()) {
+            return;
+        }
+        event.preventDefault();
+        const zone = event.currentTarget;
+        if (zone && zone.classList) {
+            zone.classList.remove('is-over');
+        }
+
+        const dataTransfer = event.dataTransfer;
+        let nodeId = null;
+        if (dataTransfer) {
+            nodeId = dataTransfer.getData('application/x-process-node') || dataTransfer.getData('text/plain');
+        }
+        nodeId = nodeId || this.processManager.draggedNodeId;
+        if (!nodeId) {
+            return;
+        }
+        this.moveProcessNode(nodeId, parentId, index);
+    }
+
+    handleProcessInsertMenu(trigger, parentId, index, depth) {
+        const items = [];
+        if (parentId === 'root') {
+            items.push({
+                label: 'Ajouter un processus ici',
+                onSelect: () => this.createProcessAt(index)
+            });
+        }
+
+        if (parentId !== 'root') {
+            items.push({
+                label: 'Ajouter un sous-processus ici',
+                onSelect: () => this.createSubProcessAt(parentId, index)
+            });
+        }
+
+        if (!items.length) {
+            items.push({
+                label: 'Ajouter un processus ici',
+                onSelect: () => this.createProcessAtEnd()
+            });
+        }
+
+        this.openProcessContextMenu(trigger, items);
+    }
+
+    openProcessContextMenu(trigger, items) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        this.closeProcessContextMenu();
+        const menu = document.createElement('div');
+        menu.className = 'process-context-menu';
+        items.forEach(item => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'process-context-menu-item';
+            button.textContent = item.label;
+            button.addEventListener('click', () => {
+                this.closeProcessContextMenu();
+                item.onSelect();
+            });
+            menu.appendChild(button);
+        });
+
+        document.body.appendChild(menu);
+        const rect = trigger.getBoundingClientRect();
+        const top = rect.bottom + window.scrollY + 4;
+        const left = rect.left + window.scrollX;
+        menu.style.top = `${top}px`;
+        menu.style.left = `${left}px`;
+
+        const outsideHandler = (event) => {
+            if (!menu.contains(event.target)) {
+                this.closeProcessContextMenu();
+            }
+        };
+        const escapeHandler = (event) => {
+            if (event.key === 'Escape') {
+                this.closeProcessContextMenu();
+            }
+        };
+
+        document.addEventListener('mousedown', outsideHandler);
+        document.addEventListener('keydown', escapeHandler);
+
+        this.processManager.activeMenu = menu;
+        this.processManager.menuOutsideHandler = outsideHandler;
+        this.processManager.menuEscapeHandler = escapeHandler;
+    }
+
+    closeProcessContextMenu() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const menu = this.processManager.activeMenu;
+        if (menu && menu.parentNode) {
+            menu.parentNode.removeChild(menu);
+        }
+        if (this.processManager.menuOutsideHandler) {
+            document.removeEventListener('mousedown', this.processManager.menuOutsideHandler);
+            this.processManager.menuOutsideHandler = null;
+        }
+        if (this.processManager.menuEscapeHandler) {
+            document.removeEventListener('keydown', this.processManager.menuEscapeHandler);
+            this.processManager.menuEscapeHandler = null;
+        }
+        this.processManager.activeMenu = null;
+    }
+
+    toggleProcessCollapse(nodeId) {
+        if (!nodeId) {
+            return;
+        }
+        if (!(this.processManager.collapsed instanceof Set)) {
+            this.processManager.collapsed = new Set();
+        }
+        if (this.processManager.collapsed.has(nodeId)) {
+            this.processManager.collapsed.delete(nodeId);
+        } else {
+            this.processManager.collapsed.add(nodeId);
+        }
+        this.renderProcessManager();
+    }
+
+    createProcessAtEnd() {
+        const index = Array.isArray(this.config.processHierarchy) ? this.config.processHierarchy.length : 0;
+        this.createProcessAt(index);
+    }
+
+    createProcessAt(index) {
+        this.pushProcessHistory();
+        const newNode = {
+            id: this.generateProcessNodeId('proc'),
+            title: 'Nouveau processus',
+            value: '',
+            type: 'process',
+            referents: [],
+            children: []
+        };
+        this.insertProcessNode('root', index, newNode);
+        this.processManager.lastFocusNode = newNode.id;
+        this.commitProcessHierarchyChange();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Processus créé');
+        }
+    }
+
+    createSubProcessAt(parentId, index) {
+        if (!parentId || parentId === 'root') {
+            return;
+        }
+        const parentInfo = this.findProcessNodeById(parentId);
+        if (!parentInfo) {
+            return;
+        }
+        this.pushProcessHistory();
+        const newNode = {
+            id: this.generateProcessNodeId('sub'),
+            title: 'Nouveau sous-processus',
+            value: '',
+            type: 'subprocess',
+            referents: [],
+            children: []
+        };
+        this.insertProcessNode(parentId, index, newNode);
+        if (this.processManager.collapsed instanceof Set) {
+            this.processManager.collapsed.delete(parentId);
+        }
+        this.processManager.lastFocusNode = newNode.id;
+        this.commitProcessHierarchyChange();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Sous-processus créé');
+        }
+    }
+
+    duplicateProcessNode(nodeId) {
+        const info = this.findProcessNodeById(nodeId);
+        if (!info) {
+            return;
+        }
+        this.pushProcessHistory();
+        const cloned = this.cloneProcessNode(info.node);
+        const insertParentId = info.parent ? info.parent.node.id : 'root';
+        const insertIndex = info.index + 1;
+        this.insertProcessNode(insertParentId, insertIndex, cloned);
+        this.processManager.lastFocusNode = cloned.id;
+        this.commitProcessHierarchyChange();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Copie réalisée');
+        }
+    }
+
+    deleteProcessNode(nodeId) {
+        const info = this.findProcessNodeById(nodeId);
+        if (!info) {
+            return;
+        }
+        const isRoot = !info.parent;
+        const confirmationMessage = isRoot
+            ? 'Supprimer ce processus et tous ses sous-processus ?'
+            : 'Supprimer ce sous-processus et sa hiérarchie ?';
+        if (typeof window !== 'undefined' && !window.confirm(confirmationMessage)) {
+            return;
+        }
+        this.pushProcessHistory();
+        this.removeProcessNode(nodeId);
+        this.commitProcessHierarchyChange();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Élément supprimé');
+        }
+    }
+
+    commitProcessHierarchyChange(options = {}) {
+        if (options && options.focusNodeId) {
+            this.processManager.lastFocusNode = options.focusNodeId;
+        }
+        this.syncProcessConfigFromHierarchy({ skipHistory: true });
+        this.saveConfig();
+        this.renderAll();
+    }
+
+    isProcessNodeDescendant(targetId, ancestorId) {
+        if (!targetId || !ancestorId) {
+            return false;
+        }
+        const ancestor = this.findProcessNodeById(ancestorId);
+        if (!ancestor) {
+            return false;
+        }
+        const stack = Array.isArray(ancestor.node.children) ? [...ancestor.node.children] : [];
+        while (stack.length) {
+            const current = stack.pop();
+            if (!current) {
+                continue;
+            }
+            if (current.id === targetId) {
+                return true;
+            }
+            if (Array.isArray(current.children) && current.children.length) {
+                stack.push(...current.children);
+            }
+        }
+        return false;
+    }
+
+    moveProcessNode(nodeId, parentId, index) {
+        const info = this.findProcessNodeById(nodeId);
+        if (!info) {
+            return;
+        }
+        const targetParentId = parentId || 'root';
+        const numericIndex = Number.isFinite(index) ? index : 0;
+        if (info.node.type === 'process' && targetParentId !== 'root') {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Un processus ne peut pas devenir enfant d’un sous-processus.');
+            }
+            return;
+        }
+        if (targetParentId !== 'root' && this.isProcessNodeDescendant(targetParentId, nodeId)) {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Impossible de déplacer un élément dans son propre sous-niveau.');
+            }
+            return;
+        }
+
+        this.pushProcessHistory();
+
+        const sourceParentId = info.parent ? info.parent.node.id : 'root';
+        info.siblings.splice(info.index, 1);
+
+        let adjustedIndex = numericIndex;
+        if (sourceParentId === targetParentId && numericIndex > info.index) {
+            adjustedIndex = numericIndex - 1;
+        }
+
+        if (this.insertProcessNode(targetParentId, adjustedIndex, info.node)) {
+            if (this.processManager.collapsed instanceof Set) {
+                this.processManager.collapsed.delete(targetParentId);
+            }
+            this.processManager.lastFocusNode = info.node.id;
+            this.commitProcessHierarchyChange();
+            if (typeof showNotification === 'function') {
+                showNotification('success', 'Hiérarchie mise à jour');
+            }
+        }
+    }
+
+    updateProcessTitle(nodeId, newTitle, previousValue = '') {
+        const info = this.findProcessNodeById(nodeId);
+        if (!info) {
+            return false;
+        }
+        const title = typeof newTitle === 'string' ? newTitle.trim() : '';
+        if (!title) {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Le titre est requis.');
+            }
+            return false;
+        }
+        const siblings = info.siblings || (info.parent ? info.parent.node.children : this.config.processHierarchy);
+        const duplicate = siblings.some((sibling, index) => index !== info.index && sibling && typeof sibling.title === 'string' && sibling.title.trim().toLowerCase() === title.toLowerCase());
+        if (duplicate) {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Un élément du même niveau porte déjà ce titre.');
+            }
+            return false;
+        }
+
+        if (info.node.title === title) {
+            return true;
+        }
+
+        this.pushProcessHistory();
+        info.node.title = title;
+        this.processManager.lastFocusNode = nodeId;
+        this.commitProcessHierarchyChange();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Titre mis à jour');
+        }
+        return true;
+    }
+
+    focusProcessTitle(nodeId) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const input = document.querySelector(`.process-title-input[data-node-id="${nodeId}"]`);
+        if (input) {
+            input.focus();
+            input.select();
+        } else {
+            this.processManager.lastFocusNode = nodeId;
+            this.renderProcessManager();
+        }
+    }
+
+    handleReferentAddition(nodeId, referent) {
+        const normalized = typeof referent === 'string' ? referent.trim() : '';
+        if (!normalized) {
+            return;
+        }
+        const info = this.findProcessNodeById(nodeId);
+        if (!info) {
+            return;
+        }
+        const exists = info.node.referents && info.node.referents.some(ref => ref.toLowerCase() === normalized.toLowerCase());
+        if (exists) {
+            return;
+        }
+        this.pushProcessHistory();
+        if (!Array.isArray(info.node.referents)) {
+            info.node.referents = [];
+        }
+        info.node.referents.push(normalized);
+        this.commitProcessHierarchyChange({ focusNodeId: nodeId });
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Référent ajouté');
+        }
+    }
+
+    removeReferentFromNode(nodeId, referent) {
+        const info = this.findProcessNodeById(nodeId);
+        if (!info || !Array.isArray(info.node.referents)) {
+            return;
+        }
+        const beforeLength = info.node.referents.length;
+        info.node.referents = info.node.referents.filter(ref => ref !== referent);
+        if (info.node.referents.length === beforeLength) {
+            return;
+        }
+        this.pushProcessHistory();
+        this.commitProcessHierarchyChange({ focusNodeId: nodeId });
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Référent retiré');
+        }
+    }
+
+    updateReferentSuggestions(nodeId, query, inputElement) {
+        if (typeof document === 'undefined' || !inputElement) {
+            return;
+        }
+        const suggestionsContainer = inputElement.parentElement?.querySelector('.process-referent-suggestions');
+        if (!suggestionsContainer) {
+            return;
+        }
+
+        const normalizedQuery = typeof query === 'string' ? query.trim().toLowerCase() : '';
+        const info = this.findProcessNodeById(nodeId);
+        const assigned = info && Array.isArray(info.node.referents)
+            ? info.node.referents.map(ref => ref.toLowerCase())
+            : [];
+
+        const matches = normalizedQuery
+            ? (this.processManager.availableReferents || []).filter(ref => ref.toLowerCase().includes(normalizedQuery) && !assigned.includes(ref.toLowerCase()))
+            : [];
+
+        suggestionsContainer.innerHTML = '';
+        if (!matches.length) {
+            suggestionsContainer.hidden = true;
+            return;
+        }
+
+        matches.slice(0, 5).forEach(match => {
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'process-referent-suggestion';
+            button.dataset.action = 'pick-referent';
+            button.dataset.nodeId = nodeId;
+            button.dataset.referent = match;
+            button.textContent = match;
+            suggestionsContainer.appendChild(button);
+        });
+        suggestionsContainer.hidden = false;
+    }
+
+    closeReferentSuggestions(nodeId) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+        const container = document.querySelector(`.process-referent-suggestions[data-node-id="${nodeId}"]`);
+        if (container) {
+            container.hidden = true;
+            container.innerHTML = '';
+        }
     }
 
     ensureConfigStructure(defaultConfig = this.getDefaultConfig()) {
