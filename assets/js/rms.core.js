@@ -117,11 +117,25 @@ class RiskManagementSystem {
             referent: ''
         };
         this.collapsedProcesses = new Set();
+        this.initializeProcessCollapseState();
         this.activeInsertionForm = null;
         this.dragState = null;
         this.lastDashboardMetrics = null;
         this.charts = {};
         this.init();
+    }
+
+    initializeProcessCollapseState() {
+        if (!(this.collapsedProcesses instanceof Set)) {
+            this.collapsedProcesses = new Set();
+        }
+
+        this.config.processes
+            .map(process => process?.value)
+            .filter(value => typeof value === 'string' && value)
+            .forEach(value => {
+                this.collapsedProcesses.add(value);
+            });
     }
 
     init() {
@@ -2260,6 +2274,7 @@ class RiskManagementSystem {
         const entry = { value, label, referents: [] };
         this.config[key].push(entry);
         if (key === 'processes') {
+            this.setProcessCollapsed(value, true);
             this.config.subProcesses[value] = [];
             this.saveConfig();
             this.populateSelects();
