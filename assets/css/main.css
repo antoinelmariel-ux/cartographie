@@ -576,7 +576,10 @@ body {
 
 .net-slider-track {
     position: relative;
-    padding: 10px 0 22px;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 6px 4px 8px;
 }
 
 .net-slider-input {
@@ -623,30 +626,44 @@ body {
 }
 
 .net-slider-marks {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
+    position: relative;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 0 6px 6px;
+    gap: 4px;
+    margin-top: -4px;
 }
 
 .net-slider-mark {
-    position: absolute;
-    bottom: 0;
-    left: var(--mark-position, 0%);
-    transform: translateX(-50%);
+    position: relative;
+    display: flex;
+    justify-content: center;
+    text-align: center;
+    pointer-events: none;
+    flex: 1 1 0;
+    min-width: 60px;
+    max-width: 120px;
+}
+
+.net-slider-mark-button {
+    pointer-events: auto;
+    background: none;
+    border: none;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    font: inherit;
     font-size: 0.8rem;
     font-weight: 500;
     color: #566573;
-    text-align: center;
-    width: clamp(60px, 18%, 120px);
-    pointer-events: auto;
     cursor: pointer;
+    transition: color 0.2s ease;
 }
 
-.net-slider-mark::before {
+.net-slider-mark-button::before {
     content: '';
     width: 14px;
     height: 14px;
@@ -654,33 +671,43 @@ body {
     border: 2px solid rgba(44, 62, 80, 0.3);
     background: white;
     box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8);
-    transition: border-color 0.2s ease, background 0.2s ease;
+    transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
 }
 
-.net-slider-mark span {
+.net-slider-mark-button:hover::before {
+    box-shadow: 0 0 0 6px rgba(65, 105, 225, 0.12);
+}
+
+.net-slider-mark-button span {
     display: block;
 }
 
-.net-slider-mark .net-slider-mark-sub {
+.net-slider-mark-button .net-slider-mark-sub {
     font-size: 0.7rem;
     color: #7b8a8b;
 }
 
-.net-slider-mark.active::before {
-    border-color: var(--primary-color);
-    background: var(--primary-color);
+.net-slider-mark.active .net-slider-mark-button {
+    color: var(--primary-color);
+    font-weight: 600;
 }
 
-.net-slider-mark.passed::before {
+.net-slider-mark.active .net-slider-mark-button::before {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+    box-shadow: 0 0 0 6px rgba(65, 105, 225, 0.15);
+}
+
+.net-slider-mark.passed .net-slider-mark-button::before {
     border-color: rgba(65, 105, 225, 0.4);
     background: rgba(65, 105, 225, 0.2);
 }
 
-.net-slider-mark:focus {
-    outline: none;
+.net-slider-mark.passed .net-slider-mark-button {
+    color: #4f647b;
 }
 
-.net-slider-mark:focus-visible {
+.net-slider-mark-button:focus-visible {
     outline: 3px solid rgba(65, 105, 225, 0.4);
     outline-offset: 6px;
 }
