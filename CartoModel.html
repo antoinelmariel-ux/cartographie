@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.18</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.8.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -40,6 +40,9 @@
                 <button class="tab active" onclick="switchTab('dashboard')">
                     📊 Tableau de Bord
                     <span class="tab-badge">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('interviews')">
+                    🗣️ Interviews
                 </button>
                 <button class="tab" onclick="switchTab('matrix')">
                     📈 Matrice des Risques
@@ -202,6 +205,44 @@
                             </section>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+        <div id="interviews-tab" class="tab-content">
+            <div class="main-content">
+                <div class="toolbar">
+                    <div class="toolbar-title">Interviews référents</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-primary" onclick="rms.openInterviewModal()">
+                            + Nouveau compte-rendu
+                        </button>
+                    </div>
+                </div>
+                <div class="content-area">
+                    <div class="interview-filters">
+                        <div class="interview-filter">
+                            <label class="filter-label" for="interviewProcessFilter">Processus</label>
+                            <select id="interviewProcessFilter" class="filter-select" onchange="rms.setInterviewFilter('process', this.value)">
+                                <option value="">Tous les processus</option>
+                            </select>
+                        </div>
+                        <div class="interview-filter">
+                            <label class="filter-label" for="interviewSubProcessFilter">Sous-processus</label>
+                            <select id="interviewSubProcessFilter" class="filter-select" onchange="rms.setInterviewFilter('subProcess', this.value)">
+                                <option value="">Tous les sous-processus</option>
+                            </select>
+                        </div>
+                        <div class="interview-filter">
+                            <label class="filter-label" for="interviewReferentFilter">Référents</label>
+                            <select id="interviewReferentFilter" class="filter-select" onchange="rms.setInterviewFilter('referent', this.value)">
+                                <option value="">Tous les référents</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="interview-summary" id="interviewSummary">
+                        <span id="interviewCount">0 compte-rendu</span>
+                    </div>
+                    <div id="interviewList" class="interview-list"></div>
                 </div>
             </div>
         </div>
@@ -621,8 +662,64 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.18</span>
+            <span class="app-version">Version 2.8.0</span>
         </footer>
+    </div>
+
+    <div id="interviewModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 class="modal-title" id="interviewModalTitle">Nouveau compte-rendu</h3>
+                <button class="modal-close" onclick="rms.closeInterviewModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="interviewForm" onsubmit="rms.saveInterview(); return false;">
+                    <div class="form-section">
+                        <div class="form-section-title">Informations principales</div>
+                        <div class="form-grid">
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label" for="interviewTitle">Sujet de l'interview (optionnel)</label>
+                                <input class="form-input" type="text" id="interviewTitle" name="title" placeholder="Ex. Échanges avec le référent Achats">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required" for="interviewReferents">Référents interviewés</label>
+                                <select id="interviewReferents" class="form-select" multiple size="6" onchange="rms.handleInterviewReferentsChange(this)"></select>
+                                <div class="form-helper">Maintenez Ctrl (Windows) ou ⌘ (Mac) pour une sélection multiple.</div>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label required" for="interviewDate">Date de l'interview</label>
+                                <input class="form-input" type="date" id="interviewDate" name="date" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-section">
+                        <div class="form-section-title">Processus & sous-processus associés</div>
+                        <div class="interview-scope-helper" id="interviewScopeHelper">
+                            Sélectionnez un ou plusieurs référents pour afficher les sous-processus correspondants.
+                        </div>
+                        <div id="interviewScopeSelection" class="interview-scope-selection"></div>
+                    </div>
+                    <div class="form-section">
+                        <div class="form-section-title">Compte-rendu détaillé</div>
+                        <div class="wysiwyg-editor">
+                            <div class="wysiwyg-toolbar">
+                                <button type="button" class="wysiwyg-button" title="Gras" onclick="rms.applyInterviewFormat('bold')"><strong>B</strong></button>
+                                <button type="button" class="wysiwyg-button" title="Italique" onclick="rms.applyInterviewFormat('italic')"><em>I</em></button>
+                                <button type="button" class="wysiwyg-button" title="Liste à puces" onclick="rms.applyInterviewFormat('insertUnorderedList')">• Liste</button>
+                                <button type="button" class="wysiwyg-button" title="Liste numérotée" onclick="rms.applyInterviewFormat('insertOrderedList')">1. Liste</button>
+                                <button type="button" class="wysiwyg-button" title="Lien" onclick="rms.applyInterviewLink()">🔗</button>
+                                <button type="button" class="wysiwyg-button" title="Effacer la mise en forme" onclick="rms.clearInterviewFormatting()">🧹</button>
+                            </div>
+                            <div id="interviewNotes" class="wysiwyg-content" contenteditable="true" role="textbox" aria-multiline="true" data-placeholder="Renseignez ici la synthèse de votre échange..."></div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewModal()">Annuler</button>
+                <button class="btn btn-primary" type="submit" form="interviewForm">Enregistrer</button>
+            </div>
+        </div>
     </div>
 
     <!-- Control Form Modal -->

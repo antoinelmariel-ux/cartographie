@@ -869,6 +869,8 @@ function applyPatch() {
         set actionPlans(v){ if (RMS.actionPlans) RMS.actionPlans = v; else window.actionPlans = v; },
         get history(){ return RMS.history || window.historyLog || []; },
         set history(v){ if (RMS.history) RMS.history = v; else window.historyLog = v; },
+        get interviews(){ return RMS.interviews || window.interviews || []; },
+        set interviews(v){ if (RMS.interviews) RMS.interviews = v; else window.interviews = v; },
         save: (label="auto") => {
           try {
             if (RMS.saveData) { RMS.saveData(); }
