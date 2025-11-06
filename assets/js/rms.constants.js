@@ -22,24 +22,7 @@ const RISK_PROBABILITY_INFO = {
 const RISK_IMPACT_INFO = {
     1: {
         label: 'Faible',
-        text: "<p><strong>Impact financier</strong></p>
-<ul>
-<li>Sanction interne disciplinaire envers un collaborateur</li>
-</ul>
-<p><strong>Impact juridique / r&eacute;glementaire</strong></p>
-<ul>
-<li>Sanction interne disciplinaire envers un collaborateur</li>
-</ul>
-<p><strong>Impact r&eacute;putationnel</strong></p>
-<ul>
-<li>Impact nul, interne ou externe local (ex : Partenaire)</li>
-<li>Atteinte limit&eacute;e &agrave; quelques jours</li>
-</ul>
-<p><strong>Impact op&eacute;rationnel</strong></p>
-<ul>
-<li>Peu ou pas de perturbations</li>
-<li>Rallentissement des activit&eacute;s</li>
-</ul>"
+        text: "<p><strong>Impact financier</strong></p><ul><li>Sanction interne disciplinaire envers un collaborateur</li></ul><p><strong>Impact juridique / r&eacute;glementaire</strong></p><ul><li>Sanction interne disciplinaire envers un collaborateur</li></ul><p><strong>Impact r&eacute;putationnel</strong></p><ul><li>Impact nul, interne ou externe local (ex : Partenaire)</li><li>Atteinte limit&eacute;e &agrave; quelques jours</li></ul><p><strong>Impact op&eacute;rationnel</strong></p><ul><li>Peu ou pas de perturbations</li><li>Rallentissement des activit&eacute;s</li></ul>"
     },
     2: {
         label: 'Modéré',
