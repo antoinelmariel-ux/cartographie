@@ -662,7 +662,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.9.3</span>
+            <span class="app-version">Version 2.9.4</span>
         </footer>
     </div>
 
@@ -718,6 +718,34 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewModal()">Annuler</button>
                 <button class="btn btn-primary" type="submit" form="interviewForm">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="interviewViewModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="interviewViewModalTitle">Compte-rendu</h3>
+                <button class="modal-close" onclick="rms.closeInterviewViewModal()">&times;</button>
+            </div>
+            <div class="modal-body interview-view-body">
+                <div class="interview-view-meta" id="interviewViewDate"></div>
+                <div class="interview-view-meta" id="interviewViewUpdated"></div>
+                <div class="interview-view-section">
+                    <div class="interview-view-section-title">Référents interviewés</div>
+                    <div class="interview-view-section-content" id="interviewViewReferents"></div>
+                </div>
+                <div class="interview-view-section">
+                    <div class="interview-view-section-title">Processus & sous-processus</div>
+                    <div class="interview-view-section-content" id="interviewViewTags"></div>
+                </div>
+                <div class="interview-view-section">
+                    <div class="interview-view-section-title">Compte-rendu détaillé</div>
+                    <div class="interview-view-notes" id="interviewViewNotes"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewViewModal()">Fermer</button>
             </div>
         </div>
     </div>
