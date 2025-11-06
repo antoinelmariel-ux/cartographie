@@ -326,7 +326,7 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
             : `${Math.round((mitigationInfo?.coefficient || 0) * 100)}%`;
 
         const effectivenessDetails = [
-            `<p>Réduction appliquée : ${reductionLabel}. Faites glisser le marqueur horizontalement pour ajuster la maîtrise.</p>`
+            `<p>Réduction appliquée : ${reductionLabel}.</p>`
         ];
 
         if (mitigationDescription) {
