@@ -336,11 +336,10 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
         container.innerHTML = `
             <div class="matrix-description-header">${stateConfig.label}</div>
             <div class="matrix-description-section">
-                <h4>Niveau brut ${severityLabels[severity] || ''}</h4>
-                <p>Déterminé automatiquement en fonction du score brut et des facteurs aggravants appliqués.</p>
-            </div>
+                <h4>Risque brut ${severityLabels[severity] || ''}</h4>
+                           </div>
             <div class="matrix-description-section">
-                <h4>Efficacité ${mitigationInfo?.label || mitigationLevel}</h4>
+                <h4>Niveau de contrôle ${mitigationInfo?.label || mitigationLevel}</h4>
                 ${effectivenessDetails.join('')}
             </div>
         `;
