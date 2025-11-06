@@ -1621,6 +1621,16 @@ tbody tr:hover {
     flex-grow: 1;
 }
 
+.modal-secondary-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin: 15px 0;
+}
+
+.modal-secondary-actions .btn {
+    min-width: 220px;
+}
+
 .modal-footer {
     background: var(--light-bg);
     padding: 20px 30px;

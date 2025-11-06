@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.5</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.6</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -630,7 +630,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.5</span>
+            <span class="app-version">Version 2.6.6</span>
         </footer>
     </div>
 
@@ -853,6 +853,9 @@
                 <div class="search-box">
                     <input type="text" class="search-input" id="controlSearchInput" placeholder="Filtrer par ID ou nom..." onkeyup="filterControlsForRisk(this.value)">
                 </div>
+                <div class="modal-secondary-actions">
+                    <button type="button" class="btn btn-outline" onclick="createControlFromRisk()">+ Nouveau contrôle</button>
+                </div>
                 <div class="risk-list" id="controlList">
                     <!-- Control list populated by JavaScript -->
                 </div>
@@ -874,6 +877,9 @@
             <div class="modal-body">
                 <div class="search-box">
                     <input type="text" class="search-input" id="actionPlanSearchInput" placeholder="Filtrer par ID ou titre..." onkeyup="filterActionPlansForRisk(this.value)">
+                </div>
+                <div class="modal-secondary-actions">
+                    <button type="button" class="btn btn-outline" onclick="createActionPlanFromRisk()">+ Nouveau plan d'action</button>
                 </div>
                 <div class="risk-list" id="actionPlanList">
                     <!-- Action plan list populated by JavaScript -->
