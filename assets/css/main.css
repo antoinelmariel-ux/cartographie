@@ -575,6 +575,16 @@ body {
     display: none !important;
 }
 
+.matrix-container[data-view="net"] .matrix-net-row-labels,
+.matrix.edit-matrix.net .matrix-net-row-labels {
+    display: grid !important;
+}
+
+.matrix-container[data-view="net"] .matrix-net-col-labels,
+.matrix.edit-matrix.net .matrix-net-col-labels {
+    display: grid !important;
+}
+
 .risk-point {
     position: absolute;
     width: 24px;
