@@ -747,8 +747,8 @@ body {
 .mitigation-description {
     margin-top: 12px;
     color: #4a5560;
-    font-size: 0.95em;
-    line-height: 1.5;
+    font-size: 0.8em;
+    line-height: 1.2;
 }
 
 .mitigation-description ul {
