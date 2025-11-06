@@ -968,6 +968,10 @@ body {
     white-space: nowrap;
 }
 
+.matrix-container[data-view="net"] .axis-label.y-axis {
+    left: -8.5rem;
+}
+
 .axis-label.y-axis .axis-arrow {
     display: inline-block;
     transform: rotate(90deg);
