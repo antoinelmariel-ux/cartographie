@@ -621,7 +621,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.12</span>
+            <span class="app-version">Version 2.6.13</span>
         </footer>
     </div>
 
@@ -1049,7 +1049,6 @@
                                     <div class="net-slider-panel" data-state="net">
                                         <div class="net-slider-header">
                                             <div class="net-slider-title">Niveau de contrôle appliqué</div>
-                                            <div class="net-slider-badge" id="netMitigationValueLabel">Insuffisant</div>
                                         </div>
                                         <div class="net-slider-track">
                                             <input type="range" id="netMitigationSlider" class="net-slider-input" min="1" max="4" step="1" value="2" aria-label="Niveau de contrôle du risque net">
@@ -1057,7 +1056,7 @@
                                         </div>
                                         <div class="net-slider-footer">
                                             <span class="net-slider-percent" id="netMitigationPercentLabel">Réduction 25%</span>
-                                            <span class="net-severity-badge" id="netSeverityLabel" data-severity="faible">Risque brut Faible</span>
+                                            <span class="net-severity-badge" id="netSeverityLabel" data-severity="faible">Risque net Faible</span>
                                         </div>
                                     </div>
                                     <div id="matrixDescriptionNet" class="matrix-description">
@@ -1066,29 +1065,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="net-legend legend" id="netLegend">
-                                    <div class="legend-item" data-effectiveness="inefficace">
-                                        <div class="legend-color effectiveness-inefficace"></div>
-                                        <span>Inefficace</span>
-                                    </div>
-                                    <div class="legend-item" data-effectiveness="insuffisant">
-                                        <div class="legend-color effectiveness-insuffisant"></div>
-                                        <span>Insuffisant</span>
-                                    </div>
-                                    <div class="legend-item" data-effectiveness="ameliorable">
-                                        <div class="legend-color effectiveness-ameliorable"></div>
-                                        <span>Améliorable</span>
-                                    </div>
-                                    <div class="legend-item" data-effectiveness="efficace">
-                                        <div class="legend-color effectiveness-efficace"></div>
-                                        <span>Efficace</span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="risk-score-card net" data-state="net">
-                                <div class="risk-score-title">Risque Net</div>
-                                <div class="risk-score-value" id="scoreNet">Score: 1</div>
-                                <div class="risk-score-meta" id="coordNet">Brut 1 × Réduction 0%</div>
                             </div>
                         </div>
                     </div>

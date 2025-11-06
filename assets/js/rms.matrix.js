@@ -8,20 +8,6 @@ var currentPointerId = null;
 var lastDragCell = null;
 var netMitigationOptions = [];
 
-function updateNetLegendActive(effectiveness) {
-    const legend = document.getElementById('netLegend');
-    if (!legend) return;
-
-    const normalized = typeof normalizeMitigationEffectiveness === 'function'
-        ? normalizeMitigationEffectiveness(effectiveness)
-        : effectiveness;
-
-    legend.querySelectorAll('.legend-item').forEach(item => {
-        const value = item.dataset.effectiveness;
-        item.classList.toggle('active', value === normalized);
-    });
-}
-
 function updateNetSeverityBadge(impactValue) {
     const badge = document.getElementById('netSeverityLabel');
     if (!badge) return;
@@ -38,7 +24,7 @@ function updateNetSeverityBadge(impactValue) {
         faible: 'Faible'
     };
 
-    badge.textContent = `Risque brut ${severityLabels[severity] || ''}`;
+    badge.textContent = `Risque net ${severityLabels[severity] || ''}`;
     if (severity) {
         badge.dataset.severity = severity;
     } else {
@@ -90,18 +76,11 @@ function updateNetSliderUI(probValue) {
     }
 
     if (option) {
-        const badge = document.getElementById('netMitigationValueLabel');
-        if (badge) {
-            badge.textContent = option.label || option.value;
-        }
-
         const percentLabel = document.getElementById('netMitigationPercentLabel');
         if (percentLabel) {
             const percent = Math.round((Number(option.coefficient) || 0) * 100);
             percentLabel.textContent = `Réduction ${percent}%`;
         }
-
-        updateNetLegendActive(option.value);
     }
 
     const max = options.length > 1 ? options.length - 1 : 1;
@@ -305,7 +284,6 @@ function calculateScore(type) {
             impactInput.value = netImpactValue;
         }
 
-        updateNetLegendActive(mitigationLevel);
         updateNetSeverityBadge(netImpactValue);
         updateNetSliderUI(prob);
     }
@@ -315,13 +293,15 @@ function calculateScore(type) {
     }
     const safeScore = Number.isFinite(rawScore) ? rawScore : 0;
 
-    const scoreElement = document.getElementById(config.scoreElement);
+    const scoreElementId = config.scoreElement;
+    const scoreElement = scoreElementId ? document.getElementById(scoreElementId) : null;
     if (scoreElement) {
         const formattedScore = safeScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 });
         scoreElement.textContent = `Score: ${formattedScore}`;
     }
 
-    const coordElement = document.getElementById(config.coordElement);
+    const coordElementId = config.coordElement;
+    const coordElement = coordElementId ? document.getElementById(coordElementId) : null;
     if (coordElement) {
         if (stateKey === 'brut' && coefficient > 1) {
             const formattedCoef = typeof formatCoefficient === 'function'
@@ -461,51 +441,23 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
     if (!container) return;
 
     if (state === 'net') {
-        const severity = typeof getSeverityFromNetImpactValue === 'function'
-            ? getSeverityFromNetImpactValue(impact)
-            : (impact >= 4 ? 'critique' : impact === 3 ? 'fort' : impact === 2 ? 'modere' : 'faible');
         const mitigationLevel = typeof getMitigationLevelFromColumn === 'function'
             ? getMitigationLevelFromColumn(prob)
             : (typeof normalizeMitigationEffectiveness === 'function'
                 ? normalizeMitigationEffectiveness(prob)
                 : 'insuffisant');
 
-        const mitigationInfo = typeof MITIGATION_EFFECTIVENESS_SCALE === 'object'
-            ? MITIGATION_EFFECTIVENESS_SCALE[mitigationLevel]
-            : null;
         const mitigationDescription = typeof MITIGATION_EFFECTIVENESS_DESCRIPTIONS === 'object'
             ? MITIGATION_EFFECTIVENESS_DESCRIPTIONS[mitigationLevel]
             : '';
 
-        const severityLabels = {
-            critique: 'Critique',
-            fort: 'Fort',
-            modere: 'Modéré',
-            faible: 'Faible'
-        };
-
-        const reductionLabel = typeof formatMitigationCoefficient === 'function'
-            ? formatMitigationCoefficient(mitigationInfo?.coefficient)
-            : `${Math.round((mitigationInfo?.coefficient || 0) * 100)}%`;
-
-        const effectivenessDetails = [
-            `<p>Réduction appliquée : ${reductionLabel}.</p>`
-        ];
-
         if (mitigationDescription) {
-            effectivenessDetails.push(`<div class="mitigation-description">${mitigationDescription}</div>`);
+            container.innerHTML = `<div class="mitigation-description">${mitigationDescription}</div>`;
+        } else {
+            container.innerHTML = `
+                <div class="matrix-description-empty">Ajustez le niveau de contrôle pour visualiser l'efficacité appliquée au risque.</div>
+            `;
         }
-
-        container.innerHTML = `
-            <div class="matrix-description-header">${stateConfig.label}</div>
-            <div class="matrix-description-section">
-                <h4>Risque brut ${severityLabels[severity] || ''}</h4>
-                           </div>
-            <div class="matrix-description-section">
-                <h4>Niveau de contrôle ${mitigationInfo?.label || mitigationLevel}</h4>
-                ${effectivenessDetails.join('')}
-            </div>
-        `;
         return;
     }
 
@@ -571,10 +523,6 @@ function setActiveRiskState(state) {
     updateMatrixDescription(prob, impact, state);
 
     if (state === 'net') {
-        const mitigationValue = document.getElementById('mitigationEffectiveness')?.value;
-        if (mitigationValue) {
-            updateNetLegendActive(mitigationValue);
-        }
         const impactValue = document.getElementById('impactNet')?.value;
         if (impactValue) {
             updateNetSeverityBadge(impactValue);
