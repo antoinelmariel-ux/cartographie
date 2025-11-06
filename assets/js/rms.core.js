@@ -72,16 +72,43 @@ function ensureEmptyChartMessagePlugin() {
     }
 }
 
+function cloneDefaultEntry(entry) {
+    if (typeof structuredClone === 'function') {
+        try {
+            return structuredClone(entry);
+        } catch (error) {
+            // Fallback to JSON cloning below
+        }
+    }
+
+    try {
+        return JSON.parse(JSON.stringify(entry));
+    } catch (error) {
+        return entry && typeof entry === 'object' ? { ...entry } : entry;
+    }
+}
+
 
 class RiskManagementSystem {
     constructor() {
-        const storedRisks = this.loadData('risks') || this.getDefaultRisks();
-        this.risks = Array.isArray(storedRisks)
-            ? storedRisks.map(risk => this.normalizeRisk(risk))
+        const storedRisks = this.loadData('risks');
+        const defaultRisks = this.getDefaultRisks();
+        const initialRisks = Array.isArray(storedRisks) ? storedRisks : defaultRisks;
+        this.risks = Array.isArray(initialRisks)
+            ? initialRisks.map(risk => this.normalizeRisk(risk))
             : [];
-        this.controls = this.loadData('controls') || this.getDefaultControls();
-        this.actionPlans = this.loadData('actionPlans') || [];
-        this.history = this.loadData('history') || [];
+
+        const storedControls = this.loadData('controls');
+        const defaultControls = this.getDefaultControls();
+        this.controls = Array.isArray(storedControls) ? storedControls : defaultControls;
+
+        const storedActionPlans = this.loadData('actionPlans');
+        this.actionPlans = Array.isArray(storedActionPlans)
+            ? storedActionPlans
+            : this.getDefaultActionPlans();
+
+        const storedHistory = this.loadData('history');
+        this.history = Array.isArray(storedHistory) ? storedHistory : this.getDefaultHistory();
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
         this.readOnlyConfigKeys = new Set(['riskStatuses']);
@@ -163,171 +190,92 @@ class RiskManagementSystem {
     }
 
     getDefaultRisks() {
-        return [];
+        const defaults = window.RMS_DEFAULT_DATA?.risks;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+        return defaults.map(item => cloneDefaultEntry(item));
     }
 
     getDefaultControls() {
-        return [];
+        const defaults = window.RMS_DEFAULT_DATA?.controls;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+        return defaults.map(item => cloneDefaultEntry(item));
+    }
+
+    getDefaultActionPlans() {
+        const defaults = window.RMS_DEFAULT_DATA?.actionPlans;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+        return defaults.map(item => cloneDefaultEntry(item));
+    }
+
+    getDefaultHistory() {
+        const defaults = window.RMS_DEFAULT_DATA?.history;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+        return defaults.map(item => cloneDefaultEntry(item));
     }
 
     getDefaultConfig() {
+        const processConfig = window.RMS_DEFAULT_PROCESS_CONFIG || {};
+        const parameterConfig = window.RMS_DEFAULT_PARAMETER_CONFIG || {};
+
+        const cloneList = (list) => Array.isArray(list)
+            ? list.map(item => (item && typeof item === 'object') ? { ...item } : item)
+            : [];
+
+        const cloneReferentList = (list) => cloneList(list).map(entry => ({
+            ...entry,
+            referents: Array.isArray(entry?.referents)
+                ? entry.referents.filter(ref => typeof ref === 'string' && ref.trim())
+                : []
+        }));
+
+        const cloneSubProcessMap = (map) => {
+            if (!map || typeof map !== 'object' || Array.isArray(map)) {
+                return {};
+            }
+            return Object.entries(map).reduce((acc, [key, value]) => {
+                acc[key] = cloneReferentList(value);
+                return acc;
+            }, {});
+        };
+
         const config = {
-            processes: [
-                { value: 'R&D', label: 'R&D' },
-                { value: 'Achats', label: 'Achats' },
-                { value: 'Marketing', label: 'Marketing' },
-                { value: 'Ventes', label: 'Ventes' },
-                { value: 'RH', label: 'RH' },
-                { value: 'Production', label: 'Production' },
-                { value: 'Finance', label: 'Finance' },
-                { value: 'Juridique', label: 'Juridique' }
-            ],
-            subProcesses: {
-                'R&D': [
-                    { value: 'Recherche fondamentale', label: 'Recherche fondamentale' },
-                    { value: 'Développement préclinique', label: 'Développement préclinique' },
-                    { value: 'Études cliniques', label: 'Études cliniques' },
-                    { value: 'Affaires réglementaires', label: 'Affaires réglementaires' },
-                    { value: 'Pharmacovigilance', label: 'Pharmacovigilance' }
-                ],
-                'Achats': [
-                    { value: 'Sourcing fournisseurs', label: 'Sourcing fournisseurs' },
-                    { value: "Appels d'offres", label: "Appels d'offres" },
-                    { value: 'Négociation/contrats', label: 'Négociation/contrats' },
-                    { value: 'Gestion des commandes', label: 'Gestion des commandes' },
-                    { value: 'Réception et contrôles', label: 'Réception et contrôles' }
-                ],
-                'Marketing': [
-                    { value: 'Études de marché', label: 'Études de marché' },
-                    { value: 'Promotion médicale', label: 'Promotion médicale' },
-                    { value: 'Communication digitale', label: 'Communication digitale' },
-                    { value: "Organisation d’événements", label: "Organisation d’événements" },
-                    { value: 'Gestion de la marque', label: 'Gestion de la marque' }
-                ],
-                'Ventes': [
-                    { value: 'Prospection commerciale', label: 'Prospection commerciale' },
-                    { value: "Soumissions d’offres", label: "Soumissions d’offres" },
-                    { value: 'Négociation/contrats', label: 'Négociation/contrats' },
-                    { value: 'Distribution', label: 'Distribution' },
-                    { value: 'Suivi client', label: 'Suivi client' }
-                ],
-                'RH': [
-                    { value: 'Recrutement', label: 'Recrutement' },
-                    { value: 'Gestion des carrières', label: 'Gestion des carrières' },
-                    { value: 'Formation', label: 'Formation' },
-                    { value: 'Paie et avantages sociaux', label: 'Paie et avantages sociaux' },
-                    { value: 'Évaluation des performances', label: 'Évaluation des performances' }
-                ],
-                'Production': [
-                    { value: 'Planification', label: 'Planification' },
-                    { value: 'Approvisionnement en matières premières', label: 'Approvisionnement en matières premières' },
-                    { value: 'Fabrication', label: 'Fabrication' },
-                    { value: 'Contrôle qualité', label: 'Contrôle qualité' },
-                    { value: 'Libération des lots', label: 'Libération des lots' },
-                    { value: 'Maintenance des équipements', label: 'Maintenance des équipements' }
-                ],
-                'Finance': [
-                    { value: 'Comptabilité fournisseurs', label: 'Comptabilité fournisseurs' },
-                    { value: 'Comptabilité clients', label: 'Comptabilité clients' },
-                    { value: 'Trésorerie', label: 'Trésorerie' },
-                    { value: 'Paiements', label: 'Paiements' },
-                    { value: 'Contrôle de gestion', label: 'Contrôle de gestion' },
-                    { value: 'Fiscalité', label: 'Fiscalité' }
-                ],
-                'Juridique': [
-                    { value: 'Rédaction/gestion des contrats', label: 'Rédaction/gestion des contrats' },
-                    { value: 'Veille réglementaire', label: 'Veille réglementaire' },
-                    { value: 'Gestion des litiges', label: 'Gestion des litiges' },
-                    { value: 'Propriété intellectuelle', label: 'Propriété intellectuelle' },
-                    { value: 'Conformité & éthique', label: 'Conformité & éthique' }
-                ]
-            },
-            riskTypes: [
-                { value: 'active', label: 'Corruption active' },
-                { value: 'passive', label: 'Corruption passive' },
-                { value: 'trafic', label: "Trafic d'influence" },
-                { value: 'favoritisme', label: 'Favoritisme' },
-                { value: 'cadeaux', label: 'Cadeaux/avantages indus' }
-            ],
-            tiers: [
-                { value: 'AgentsCommerciaux', label: 'Agents commerciaux' },
-                { value: 'AssoCaritatives', label: 'Associations caritatives' },
-                { value: 'AssoPatients', label: 'Associations de patients' },
-                { value: 'AssoPDS', label: 'Associations de professionnels de santé' },
-                        { value: 'AssoIndus', label: "Associations représentatives de l'industrie pharmaceutique" },
-                        { value: 'AuditeursExternes', label: 'Auditeurs externes' },
-                        { value: 'AutoriteAgentPublic', label: 'Autorités ou agents publics' },
-                        { value: 'AutresOrgaHabiliteDons', label: 'Autres organismes habilités à percevoir des dons' },
-                        { value: 'Candidats', label: 'Candidats à un emploi' },
-                        { value: 'Certificateurs', label: 'Certificateurs' },
-                                   { value: 'Clients', label: 'Clients' },
-                                   { value: 'ClientsPrives', label: 'Clients privés' },
-                                   { value: 'ClientsPublics', label: 'Clients publics' },
-                                   { value: 'CliniquesHPrives', label: 'Cliniques et hôpitaux privés' },
-                                   { value: 'CollaborateursOccasionnelsInterim', label: 'Collaborateurs extérieurs occasionnels / intérimaires' },
-                 { value: 'ConsultantsExperts', label: 'Consultants experts' },
-                 { value: 'CRO', label: 'CRO' },
-                 { value: 'Distributeurs', label: 'Distributeurs' },
-                 { value: 'Fournisseurs', label: 'Fournisseurs' },
-                 { value: 'HopitauxPublics', label: 'Hôpitaux publics' },
-                             { value: 'PartenairesJV', label: 'Partenaires de JV' },
-                             { value: 'PartiesPrenantes', label: "Parties prenantes de l'environnement des produits du LFB" },
-                             { value: 'PrestatairesAutoriteAdmin', label: 'Prestataires en contact direct avec une autorité administrative' },
-                             { value: 'PrestatairesIT', label: 'Prestataires IT' },
-                             { value: 'PrestatairesIntermediaires', label: 'Prestataires intermédiaires (marketing/médical - ex : CRO)' },
-                             { value: 'PDS', label: 'Professionnels de santé' },
-                 { value: 'SocietesSavantes', label: 'Sociétés savantes' },
-                 { value: 'Universites', label: 'Universités' }
-            ],
-            riskStatuses: [
+            processes: cloneReferentList(processConfig.processes),
+            subProcesses: cloneSubProcessMap(processConfig.subProcesses)
+        };
+
+        const parameterKeys = [
+            'riskTypes',
+            'tiers',
+            'riskStatuses',
+            'actionPlanStatuses',
+            'controlTypes',
+            'controlOrigins',
+            'controlFrequencies',
+            'controlModes',
+            'controlEffectiveness',
+            'controlStatuses'
+        ];
+
+        parameterKeys.forEach(key => {
+            config[key] = cloneList(parameterConfig[key]);
+        });
+
+        if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
+            config.riskStatuses = [
                 { value: 'brouillon', label: 'Brouillon' },
                 { value: 'a-valider', label: 'A valider' },
                 { value: 'validé', label: 'Validé' },
                 { value: 'archive', label: 'Archivé' }
-            ],
-            actionPlanStatuses: [
-                { value: 'brouillon', label: 'Brouillon' },
-                { value: 'a-demarrer', label: 'À démarrer' },
-                { value: 'en-cours', label: 'En cours' },
-                { value: 'termine', label: 'Terminé' }
-            ],
-            controlTypes: [
-                { value: 'a-priori', label: 'A priori' },
-                { value: 'a-posteriori', label: 'A posteriori' }
-            ],
-            controlOrigins: [
-                { value: 'interne', label: 'Interne' },
-                { value: 'externe', label: 'Externe' }
-            ],
-            controlFrequencies: [
-                { value: 'quotidienne', label: 'Quotidienne' },
-                { value: 'mensuelle', label: 'Mensuelle' },
-                { value: 'annuelle', label: 'Annuelle' },
-                { value: 'ad-hoc', label: 'Ad hoc' }
-            ],
-            controlModes: [
-                { value: 'manuel', label: 'Manuel' },
-                { value: 'automatise', label: 'Automatisé' }
-            ],
-            controlEffectiveness: [
-                { value: 'forte', label: 'Forte' },
-                { value: 'moyenne', label: 'Moyenne' },
-                { value: 'faible', label: 'Faible' }
-            ],
-            controlStatuses: [
-                { value: 'actif', label: 'Actif' },
-                { value: 'en-mise-en-place', label: 'En mise en place' },
-                { value: 'en-revision', label: 'En cours de révision' },
-                { value: 'obsolete', label: 'Obsolète' }
-            ]
-        };
-
-        config.processes = (config.processes || []).map(process => ({
-            ...process,
-            referents: Array.isArray(process?.referents)
-                ? process.referents.filter(ref => typeof ref === 'string' && ref.trim())
-                : []
-        }));
+            ];
+        }
 
         const subProcesses = config.subProcesses && typeof config.subProcesses === 'object'
             ? config.subProcesses
@@ -342,6 +290,13 @@ class RiskManagementSystem {
                     : []
             }));
         });
+
+        config.processes = (config.processes || []).map(process => ({
+            ...process,
+            referents: Array.isArray(process?.referents)
+                ? process.referents.filter(ref => typeof ref === 'string' && ref.trim())
+                : []
+        }));
 
         return config;
     }
