@@ -829,6 +829,14 @@ body {
 
 }
 
+.risk-point.brut.aggravating-major {
+    background: linear-gradient(135deg, #ffb347, #ff8c00);
+}
+
+.risk-point.brut.aggravating-critical {
+    background: linear-gradient(135deg, #ff6b6b, #c62828);
+}
+
 .risk-point.inactive {
     background: linear-gradient(135deg, #d5d8dc, #bdc3c7);
     border-color: #f0f3f4;

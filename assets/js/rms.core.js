@@ -2939,6 +2939,19 @@ class RiskManagementSystem {
 
                 const point = document.createElement('div');
                 point.className = `risk-point ${viewKey}`;
+                if (viewKey === 'brut') {
+                    const aggravatingGroups = (typeof AGGRAVATING_FACTOR_GROUPS === 'object' && AGGRAVATING_FACTOR_GROUPS)
+                        ? AGGRAVATING_FACTOR_GROUPS
+                        : {};
+                    const criticalCoef = Number(aggravatingGroups?.group1?.coefficient) || 1.4;
+                    const majorCoef = Number(aggravatingGroups?.group2?.coefficient) || 1.2;
+                    const epsilon = 0.0001;
+                    if (coefficient >= criticalCoef - epsilon) {
+                        point.classList.add('aggravating-critical');
+                    } else if (coefficient >= majorCoef - epsilon) {
+                        point.classList.add('aggravating-major');
+                    }
+                }
                 point.dataset.riskId = risk.id;
                 const tooltipSegments = [];
                 if (risk.description) {
@@ -3135,7 +3148,8 @@ class RiskManagementSystem {
                     ? getRiskAggravatingCoefficient(risk)
                     : 1;
                 const prob = baseProb * coefficient;
-                return { risk, prob, impact, coefficient, score: prob * impact };
+                const baseScore = baseProb * impact;
+                return { risk, prob, impact, coefficient, baseScore, score: prob * impact };
             }).sort((a, b) => {
                 if (b.score !== a.score) return b.score - a.score;
                 if (mode === 'net') {
@@ -3182,7 +3196,13 @@ class RiskManagementSystem {
                     const coefficientTag = typeof formatCoefficient === 'function'
                         ? formatCoefficient(entry.coefficient)
                         : (Math.round(entry.coefficient * 10) / 10).toString().replace('.', ',');
+                    const baseScoreLabel = Number.isFinite(entry.baseScore)
+                        ? entry.baseScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                        : '0';
                     metaDetails += ` <span class="risk-item-coefficient">Coef ${coefficientTag}</span>`;
+                    metaDetails += ` • ${baseScoreLabel} × ${coefficientTag} = ${formattedScore}`;
+                } else if (mode === 'brut') {
+                    metaDetails += ` • Score brut ajusté ${formattedScore}`;
                 }
 
                 if (mode === 'net') {
