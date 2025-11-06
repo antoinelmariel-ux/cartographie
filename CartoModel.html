@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.8</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.11</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -26,11 +26,8 @@
                 <div class="header-actions">
                     <div class="last-save">Dernière sauvegarde: <span id="lastSaveTime">-</span></div>
                     <div class="header-buttons">
-                        <button class="btn btn-primary" onclick="downloadRmsData()">
+                        <button class="btn btn-primary" onclick="exportOperationalData()">
                             <span class="btn-icon">💾</span> Enregistrer
-                        </button>
-                        <button class="btn btn-secondary" onclick="loadRmsDataFromFile()">
-                            <span class="btn-icon">📂</span> Charger
                         </button>
                     </div>
                 </div>
@@ -361,9 +358,6 @@
                 <div class="toolbar">
                     <div class="toolbar-title">Registre des Risques</div>
                     <div class="toolbar-actions">
-                        <button class="btn btn-secondary" onclick="importRisks()">
-                            📥 Importer
-                        </button>
                         <button class="btn btn-secondary" onclick="exportRisks()">
                             📤 Exporter
                         </button>
@@ -609,20 +603,17 @@
                 <div class="toolbar">
                     <div class="toolbar-title">Configuration</div>
                     <div class="toolbar-actions">
-                        <button class="btn btn-outline" onclick="downloadRmsData()">
-                            💾 Exporter les données
-                        </button>
-                        <button class="btn btn-primary" onclick="loadRmsDataFromFile()">
-                            📂 Importer des données
+                        <button class="btn btn-outline" id="configExportButton" onclick="handleConfigExport()">
+                            💾 Exporter les processus
                         </button>
                     </div>
                 </div>
                 <div class="content-area">
                     <div class="config-helper" style="margin-bottom: 1.5rem;">
                         <p>
-                            💡 Exportez vos données pour les transférer manuellement vers un autre navigateur puis
-                            importez le fichier <code>cartographie-donnees.json</code> afin de restaurer l'état complet de votre
-                            cartographie.
+                            💡 Utilisez le bouton d'enregistrement de l'en-tête pour sauvegarder les risques, contrôles et plans
+                            d'actions. Depuis cet onglet, exportez spécifiquement vos processus ou les autres paramètres pour les
+                            partager ou les archiver.
                         </p>
                     </div>
                     <div id="configurationContainer"></div>
@@ -630,7 +621,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.10</span>
+            <span class="app-version">Version 2.6.11</span>
         </footer>
     </div>
 
