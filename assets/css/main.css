@@ -738,10 +738,25 @@ body {
     font-size: 1em;
 }
 
-.matrix-description-section p {
+.matrix-description-section p,
+.matrix-description-text {
     color: #596069;
     line-height: 1.45;
     font-size: 0.95em;
+}
+
+.matrix-description-text p {
+    margin-bottom: 8px;
+}
+
+.matrix-description-text ul {
+    margin: 0 0 8px 20px;
+    padding: 0;
+    color: inherit;
+}
+
+.matrix-description-text ul li {
+    margin-bottom: 4px;
 }
 
 .mitigation-description {
