@@ -78,6 +78,7 @@ class RiskManagementSystem {
         this.risks = this.loadData('risks') || this.getDefaultRisks();
         this.controls = this.loadData('controls') || this.getDefaultControls();
         this.actionPlans = this.loadData('actionPlans') || [];
+        this.interviews = this.loadData('interviews') || this.getDefaultInterviews();
         this.history = this.loadData('history') || [];
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
@@ -148,6 +149,10 @@ class RiskManagementSystem {
     }
 
     getDefaultControls() {
+        return [];
+    }
+
+    getDefaultInterviews() {
         return [];
     }
 
@@ -394,6 +399,7 @@ class RiskManagementSystem {
             risks: this.risks,
             controls: this.controls,
             actionPlans: this.actionPlans,
+            interviews: this.interviews,
             history: this.history,
             config: this.config
         }));
@@ -415,6 +421,7 @@ class RiskManagementSystem {
         this.risks = cloneArray(snapshot.risks);
         this.controls = cloneArray(snapshot.controls);
         this.actionPlans = cloneArray(snapshot.actionPlans);
+        this.interviews = cloneArray(snapshot.interviews);
         this.history = cloneArray(snapshot.history);
         this.config = cloneObject(snapshot.config);
 
@@ -1315,6 +1322,7 @@ class RiskManagementSystem {
         localStorage.setItem('rms_risks', JSON.stringify(this.risks));
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
         localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
+        localStorage.setItem('rms_interviews', JSON.stringify(this.interviews));
         localStorage.setItem('rms_history', JSON.stringify(this.history));
         this.updateLastSaveTime();
     }

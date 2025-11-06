@@ -661,6 +661,7 @@ function downloadRmsData() {
             risks: Array.isArray(snapshot.risks) ? snapshot.risks : [],
             controls: Array.isArray(snapshot.controls) ? snapshot.controls : [],
             actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : [],
+            interviews: Array.isArray(snapshot.interviews) ? snapshot.interviews : [],
             config: snapshot.config || {}
         };
 
@@ -742,6 +743,7 @@ function loadRmsDataFromFile() {
                     risks: Array.isArray(parsed.risks) ? parsed.risks : [],
                     controls: Array.isArray(parsed.controls) ? parsed.controls : [],
                     actionPlans: Array.isArray(parsed.actionPlans) ? parsed.actionPlans : [],
+                    interviews: Array.isArray(parsed.interviews) ? parsed.interviews : [],
                     config: parsed.config
                 };
 
@@ -781,6 +783,8 @@ function applyPatch() {
         set controls(v){ if (RMS.controls) RMS.controls = v; else window.controls = v; },
         get actionPlans(){ return RMS.actionPlans || window.actionPlans || []; },
         set actionPlans(v){ if (RMS.actionPlans) RMS.actionPlans = v; else window.actionPlans = v; },
+        get interviews(){ return RMS.interviews || window.interviews || []; },
+        set interviews(v){ if (RMS.interviews) RMS.interviews = v; else window.interviews = v; },
         get history(){ return RMS.history || window.historyLog || []; },
         set history(v){ if (RMS.history) RMS.history = v; else window.historyLog = v; },
         save: (label="auto") => {
@@ -888,11 +892,13 @@ function applyPatch() {
                 const obj = JSON.parse(text);
                 if (obj.risks) state.risks = mergeById(state.risks, obj.risks);
                 if (obj.controls) state.controls = mergeById(state.controls, obj.controls);
+                if (obj.interviews) state.interviews = mergeById(state.interviews, obj.interviews);
                 if (obj.history) state.history = [...state.history, ...obj.history];
                 const riskCount = obj.risks?.length || 0;
                 const controlCount = obj.controls?.length || 0;
-                const jsonImportDescription = `Import du fichier ${file.name} : ${riskCount} risque${riskCount > 1 ? 's' : ''} et ${controlCount} contrôle${controlCount > 1 ? 's' : ''}.`;
-                addHistoryItem("Import JSON", jsonImportDescription, {file: file.name, counts: {risks: riskCount, controls: controlCount}});
+                const interviewCount = obj.interviews?.length || 0;
+                const jsonImportDescription = `Import du fichier ${file.name} : ${riskCount} risque${riskCount > 1 ? 's' : ''}, ${controlCount} contrôle${controlCount > 1 ? 's' : ''} et ${interviewCount} interview${interviewCount > 1 ? 's' : ''}.`;
+                addHistoryItem("Import JSON", jsonImportDescription, {file: file.name, counts: {risks: riskCount, controls: controlCount, interviews: interviewCount}});
               } else {
                 const rows = csvParse(text);
                 if (rows.length){
