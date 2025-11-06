@@ -1570,6 +1570,11 @@ tbody tr:hover {
     z-index: 2100;
 }
 
+#controlModal,
+#actionPlanModal {
+    z-index: 2200;
+}
+
 .modal-content {
     background: white;
     border-radius: 15px;
