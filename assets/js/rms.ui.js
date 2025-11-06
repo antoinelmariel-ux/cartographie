@@ -269,6 +269,8 @@ var selectedRisksForPlan = [];
 var riskFilterQueryForPlan = '';
 var currentEditingActionPlanId = null;
 var actionPlanFilterQueryForRisk = '';
+var controlCreationContext = null;
+var actionPlanCreationContext = null;
 
 function setAggravatingFactorsSelection(factors) {
     const groups = (typeof AGGRAVATING_FACTOR_GROUPS === 'object' && AGGRAVATING_FACTOR_GROUPS)
@@ -539,6 +541,18 @@ function openControlSelector() {
 }
 window.openControlSelector = openControlSelector;
 
+function createControlFromRisk() {
+    controlCreationContext = {
+        fromRisk: true,
+        riskId: currentEditingRiskId != null ? currentEditingRiskId : null
+    };
+    closeControlSelector();
+    if (typeof addNewControl === 'function') {
+        addNewControl();
+    }
+}
+window.createControlFromRisk = createControlFromRisk;
+
 function renderControlSelectionList() {
     const list = document.getElementById('controlList');
     if (!list || !rms) return;
@@ -667,6 +681,18 @@ function openActionPlanSelector() {
 }
 window.openActionPlanSelector = openActionPlanSelector;
 
+function createActionPlanFromRisk() {
+    actionPlanCreationContext = {
+        fromRisk: true,
+        riskId: currentEditingRiskId != null ? currentEditingRiskId : null
+    };
+    closeActionPlanSelector();
+    if (typeof addNewActionPlan === 'function') {
+        addNewActionPlan();
+    }
+}
+window.createActionPlanFromRisk = createActionPlanFromRisk;
+
 function renderActionPlanSelectionList() {
     const list = document.getElementById('actionPlanList');
     if (!list) return;
@@ -750,6 +776,12 @@ function addNewActionPlan() {
             document.getElementById('planDescription').value = lastActionPlanData.description || '';
             selectedRisksForPlan = [...(lastActionPlanData.risks || [])];
         }
+        const contextRiskId = (actionPlanCreationContext && actionPlanCreationContext.riskId != null)
+            ? actionPlanCreationContext.riskId
+            : null;
+        if (contextRiskId != null && !selectedRisksForPlan.some(id => idsEqual(id, contextRiskId))) {
+            selectedRisksForPlan.push(contextRiskId);
+        }
         updateSelectedRisksForPlanDisplay();
     }
     document.getElementById('actionPlanModalTitle').textContent = "Nouveau Plan d'action";
@@ -796,6 +828,9 @@ window.deleteActionPlan = deleteActionPlan;
 
 function closeActionPlanModal() {
     document.getElementById('actionPlanModal').classList.remove('show');
+    if (actionPlanCreationContext && actionPlanCreationContext.fromRisk) {
+        actionPlanCreationContext = null;
+    }
 }
 window.closeActionPlanModal = closeActionPlanModal;
 
@@ -813,18 +848,23 @@ function saveActionPlan() {
     };
     if (!planData.title) { alert('Titre requis'); return; }
 
+    let resultingPlanId = currentEditingActionPlanId || null;
+    const context = (actionPlanCreationContext && actionPlanCreationContext.fromRisk)
+        ? actionPlanCreationContext
+        : null;
+
     if (currentEditingActionPlanId) {
         const idx = rms.actionPlans.findIndex(p => p.id == currentEditingActionPlanId);
         if (idx !== -1) {
             rms.actionPlans[idx] = { ...rms.actionPlans[idx], ...planData };
             rms.risks.forEach(risk => {
                 risk.actionPlans = risk.actionPlans || [];
-                if (planData.risks.includes(risk.id)) {
-                    if (!risk.actionPlans.includes(currentEditingActionPlanId)) {
+                if (planData.risks.some(id => idsEqual(id, risk.id))) {
+                    if (!risk.actionPlans.some(id => idsEqual(id, currentEditingActionPlanId))) {
                         risk.actionPlans.push(currentEditingActionPlanId);
                     }
                 } else {
-                    risk.actionPlans = risk.actionPlans.filter(id => id !== currentEditingActionPlanId);
+                    risk.actionPlans = risk.actionPlans.filter(id => !idsEqual(id, currentEditingActionPlanId));
                 }
             });
             showNotification('success', `Plan "${planData.title}" modifié`);
@@ -832,14 +872,43 @@ function saveActionPlan() {
     } else {
         const newPlan = { id: getNextSequentialId(rms.actionPlans), ...planData };
         rms.actionPlans.push(newPlan);
+        resultingPlanId = newPlan.id;
         planData.risks.forEach(rid => {
             const risk = rms.risks.find(r => idsEqual(r.id, rid));
             if (risk) {
                 risk.actionPlans = risk.actionPlans || [];
-                if (!risk.actionPlans.includes(newPlan.id)) risk.actionPlans.push(newPlan.id);
+                if (!risk.actionPlans.some(id => idsEqual(id, newPlan.id))) risk.actionPlans.push(newPlan.id);
             }
         });
         showNotification('success', `Plan "${planData.title}" créé`);
+    }
+
+    if (context && resultingPlanId != null) {
+        if (!selectedActionPlansForRisk.some(id => idsEqual(id, resultingPlanId))) {
+            selectedActionPlansForRisk.push(resultingPlanId);
+        }
+        updateSelectedActionPlansDisplay();
+
+        if (context.riskId != null) {
+            const targetRiskId = context.riskId;
+            const risk = rms.risks.find(r => idsEqual(r.id, targetRiskId));
+            if (risk) {
+                risk.actionPlans = risk.actionPlans || [];
+                if (!risk.actionPlans.some(id => idsEqual(id, resultingPlanId))) {
+                    risk.actionPlans.push(resultingPlanId);
+                }
+            }
+
+            const plan = rms.actionPlans.find(p => idsEqual(p.id, resultingPlanId));
+            if (plan) {
+                plan.risks = plan.risks || [];
+                if (!plan.risks.some(id => idsEqual(id, targetRiskId))) {
+                    plan.risks.push(targetRiskId);
+                }
+            }
+        }
+
+        actionPlanCreationContext = null;
     }
 
     lastActionPlanData = { ...planData };

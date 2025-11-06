@@ -1418,6 +1418,13 @@ function applyPatch() {
           selectedRisksForControl = [...(lastControlData.risks || [])];
         }
 
+        const contextRiskId = (window.controlCreationContext && window.controlCreationContext.riskId != null)
+          ? window.controlCreationContext.riskId
+          : null;
+        if (contextRiskId != null && !selectedRisksForControl.some(id => idsEqual(id, contextRiskId))) {
+          selectedRisksForControl.push(contextRiskId);
+        }
+
         document.getElementById('controlModalTitle').textContent = 'Nouveau Contrôle';
         updateSelectedRisksDisplay();
         populateControlOwnerSuggestions();
@@ -1479,6 +1486,9 @@ function applyPatch() {
 
       window.closeControlModal = function() {
         document.getElementById('controlModal').classList.remove('show');
+        if (window.controlCreationContext && window.controlCreationContext.fromRisk) {
+          window.controlCreationContext = null;
+        }
       };
 
       window.openRiskSelector = function() {
@@ -1589,6 +1599,11 @@ function applyPatch() {
           return;
         }
 
+        let resultingControlId = currentEditingControlId || null;
+        const context = (window.controlCreationContext && window.controlCreationContext.fromRisk)
+          ? window.controlCreationContext
+          : null;
+
         if (currentEditingControlId) {
           const controlIndex = state.controls.findIndex(c => c.id == currentEditingControlId);
           if (controlIndex !== -1) {
@@ -1607,8 +1622,39 @@ function applyPatch() {
           };
 
           state.controls.push(newControl);
+          resultingControlId = newControl.id;
           addHistoryItem("Nouveau contrôle", `Nouveau contrôle "${controlData.name}" créé (ID ${newControl.id}).`, {id: newControl.id, name: controlData.name});
           toast(`Contrôle "${controlData.name}" créé avec succès`);
+        }
+
+        if (context && resultingControlId != null) {
+          if (!selectedControlsForRisk.some(id => idsEqual(id, resultingControlId))) {
+            selectedControlsForRisk.push(resultingControlId);
+          }
+          if (typeof window.updateSelectedControlsDisplay === 'function') {
+            window.updateSelectedControlsDisplay();
+          }
+
+          if (context.riskId != null) {
+            const targetRiskId = context.riskId;
+            const risk = state.risks.find(r => idsEqual(r.id, targetRiskId));
+            if (risk) {
+              risk.controls = risk.controls || [];
+              if (!risk.controls.some(id => idsEqual(id, resultingControlId))) {
+                risk.controls.push(resultingControlId);
+              }
+            }
+
+            const control = state.controls.find(c => idsEqual(c.id, resultingControlId));
+            if (control) {
+              control.risks = control.risks || [];
+              if (!control.risks.some(id => idsEqual(id, targetRiskId))) {
+                control.risks.push(targetRiskId);
+              }
+            }
+          }
+
+          window.controlCreationContext = null;
         }
 
         lastControlData = { ...controlData, risks: [...controlData.risks] };
