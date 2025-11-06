@@ -491,10 +491,7 @@ body {
     left: 0;
     right: 0;
     top: -70px;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    justify-items: center;
-    align-items: end;
+    display: none;
     font-size: 0.85rem;
     font-weight: 600;
     color: #2c3e50;

@@ -2786,13 +2786,7 @@ class RiskManagementSystem {
             const colLabels = document.getElementById('matrixNetColLabels');
             if (colLabels) {
                 colLabels.innerHTML = '';
-                mitigationOptions.forEach(option => {
-                    const percent = Math.round((Number(option.coefficient) || 0) * 100);
-                    const label = document.createElement('div');
-                    label.className = 'matrix-net-col-label';
-                    label.innerHTML = `${option.label}<span>Réduction ${percent}%</span>`;
-                    colLabels.appendChild(label);
-                });
+                colLabels.style.display = 'none';
             }
         }
 
