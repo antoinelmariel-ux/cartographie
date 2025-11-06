@@ -79,8 +79,13 @@ function updateNetSliderUI(probValue) {
         const marks = marksContainer.querySelectorAll('.net-slider-mark');
         marks.forEach((mark, index) => {
             const markPosition = index + 1;
-            mark.classList.toggle('active', markPosition === numericValue);
+            const isActive = markPosition === numericValue;
+            mark.classList.toggle('active', isActive);
             mark.classList.toggle('passed', markPosition < numericValue);
+            const button = mark.querySelector('.net-slider-mark-button');
+            if (button) {
+                button.setAttribute('aria-pressed', isActive ? 'true' : 'false');
+            }
         });
     }
 
@@ -134,19 +139,17 @@ function initNetMitigationSlider() {
         const mark = document.createElement('div');
         mark.className = 'net-slider-mark';
         mark.dataset.value = option.value;
-        const percent = options.length > 1 ? Math.round((Number(option.coefficient) || 0) * 100) : Math.round((Number(option.coefficient) || 0) * 100);
-        const position = options.length > 1 ? (index / (options.length - 1)) * 100 : 0;
-        mark.style.setProperty('--mark-position', `${position}%`);
-        mark.innerHTML = `<span>${option.label || option.value}</span><span class="net-slider-mark-sub">Réduction ${percent}%</span>`;
-        mark.tabIndex = 0;
+        const percent = Math.round((Number(option.coefficient) || 0) * 100);
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'net-slider-mark-button';
+        const label = option.label || option.value;
+        button.innerHTML = `<span>${label}</span><span class="net-slider-mark-sub">Réduction ${percent}%</span>`;
+        button.setAttribute('aria-label', `${label} – réduction ${percent}%`);
+        button.setAttribute('aria-pressed', 'false');
         const targetValue = index + 1;
-        mark.addEventListener('click', () => applySliderValue(targetValue));
-        mark.addEventListener('keydown', event => {
-            if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
-                event.preventDefault();
-                applySliderValue(targetValue);
-            }
-        });
+        button.addEventListener('click', () => applySliderValue(targetValue));
+        mark.appendChild(button);
         marksContainer.appendChild(mark);
     });
 
