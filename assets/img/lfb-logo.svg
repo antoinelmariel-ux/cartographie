@@ -1,9 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 780 240" role="img" aria-labelledby="title desc">
-  <title id="title">Logo LFB Biomanufacturing</title>
-  <desc id="desc">Trois rectangles colorés suivis du texte LFB au dessus du mot Biomanufacturing.</desc>
-  <rect x="0" y="40" width="140" height="140" fill="#4A4A4C"/>
-  <rect x="160" y="40" width="140" height="140" fill="#D2232A"/>
-  <rect x="320" y="40" width="140" height="140" fill="#7AA4BF"/>
-  <text x="490" y="140" font-family="'Arial Black', 'Montserrat', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="700" fill="#4A4A4C">LFB</text>
-  <text x="0" y="210" font-family="'Arial Narrow', 'Montserrat', Arial, sans-serif" font-size="40" letter-spacing="6" fill="#4A4A4C">BIOMANUFACTURING</text>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
+  <title id="title">Logo du groupe LFB</title>
+  <desc id="desc">Trois rectangles rouges, gris et bleus suivis du texte LFB au dessus de la devise L'engagement éthique.</desc>
+  <g fill="none" fill-rule="evenodd">
+    <rect x="0" y="40" width="140" height="140" fill="#E2001A"/>
+    <rect x="160" y="40" width="140" height="140" fill="#6F6F72"/>
+    <rect x="320" y="40" width="140" height="140" fill="#7BC0DF"/>
+    <text x="500" y="140" font-family="'Montserrat', 'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="700" letter-spacing="4" fill="#6F6F72">LFB</text>
+    <text x="0" y="210" font-family="'Montserrat', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="40" letter-spacing="5" fill="#6F6F72">L&apos;ENGAGEMENT ÉTHIQUE</text>
+  </g>
 </svg>
