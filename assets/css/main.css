@@ -2447,6 +2447,10 @@ tbody tr:hover {
     transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
+.interview-action-btn.view {
+    background: #7f8c8d;
+}
+
 .interview-action-btn.edit {
     background: #3498db;
 }
@@ -2458,6 +2462,51 @@ tbody tr:hover {
 .interview-action-btn:hover {
     transform: translateY(-1px);
     box-shadow: 0 6px 14px rgba(0, 0, 0, 0.15);
+}
+
+.interview-view-body {
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+.interview-view-meta {
+    font-size: 0.9em;
+    color: #607080;
+}
+
+.interview-view-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.interview-view-section-title {
+    font-weight: 600;
+    color: #2c3e50;
+    font-size: 0.95em;
+}
+
+.interview-view-section-content {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.interview-view-notes {
+    background: #f9fbfd;
+    border: 1px solid #e3eaf1;
+    border-radius: 12px;
+    padding: 16px;
+    color: #34495e;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.interview-view-notes p:last-child,
+.interview-view-notes ul:last-child,
+.interview-view-notes ol:last-child {
+    margin-bottom: 0;
 }
 
 .interview-scope-helper {

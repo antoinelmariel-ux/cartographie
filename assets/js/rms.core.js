@@ -5806,6 +5806,130 @@ class RiskManagementSystem {
         this.interviewEditorState = null;
     }
 
+    openInterviewViewer(interviewId) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewViewModal');
+        const titleElement = document.getElementById('interviewViewModalTitle');
+        const dateElement = document.getElementById('interviewViewDate');
+        const updatedElement = document.getElementById('interviewViewUpdated');
+        const referentsContainer = document.getElementById('interviewViewReferents');
+        const tagsContainer = document.getElementById('interviewViewTags');
+        const notesContainer = document.getElementById('interviewViewNotes');
+
+        if (!modal || !titleElement || !notesContainer) {
+            return;
+        }
+
+        const interview = (this.interviews || []).find(entry => idsEqual(entry?.id, interviewId));
+
+        if (!interview) {
+            titleElement.textContent = 'Compte-rendu introuvable';
+            if (dateElement) {
+                dateElement.textContent = '';
+            }
+            if (updatedElement) {
+                updatedElement.textContent = '';
+            }
+            if (referentsContainer) {
+                referentsContainer.innerHTML = '<span class="interview-card-empty-selection">Interview non disponible.</span>';
+            }
+            if (tagsContainer) {
+                tagsContainer.innerHTML = '';
+            }
+            notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu à afficher.</p>';
+            modal.classList.add('show');
+            return;
+        }
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, match => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match] || match));
+
+        const title = interview.title ? escapeHtml(interview.title) : 'Compte-rendu sans titre';
+        const dateLabel = this.formatInterviewDate(interview.date);
+        const updatedLabel = this.formatInterviewDateTime(interview.updatedAt || interview.createdAt);
+
+        titleElement.textContent = title;
+        if (dateElement) {
+            dateElement.textContent = dateLabel ? `Interview réalisée le ${dateLabel}` : '';
+        }
+        if (updatedElement) {
+            updatedElement.textContent = updatedLabel ? `Dernière mise à jour : ${updatedLabel}` : '';
+        }
+
+        if (referentsContainer) {
+            const referentsChips = Array.isArray(interview.referents)
+                ? interview.referents.map(ref => `<span class="interview-referent-chip">${escapeHtml(ref)}</span>`).join('')
+                : '';
+            referentsContainer.innerHTML = referentsChips || '<span class="interview-card-empty-selection">Aucun référent renseigné.</span>';
+        }
+
+        if (tagsContainer) {
+            const tags = Array.isArray(interview.scopes)
+                ? interview.scopes.map(scope => {
+                    const colorClass = this.getProcessColorClass(scope.processValue);
+                    const label = scope.subProcessValue
+                        ? (scope.subProcessLabel || this.getSubProcessLabel(scope.processValue, scope.subProcessValue) || scope.subProcessValue)
+                        : 'Processus complet';
+                    return `<span class="interview-tag ${colorClass}">${escapeHtml(label)}</span>`;
+                }).join('')
+                : '';
+            tagsContainer.innerHTML = tags || '<span class="interview-card-empty-selection">Aucun processus associé.</span>';
+        }
+
+        notesContainer.innerHTML = interview.notes
+            ? interview.notes
+            : '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+
+        modal.classList.add('show');
+    }
+
+    closeInterviewViewModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewViewModal');
+        const notesContainer = document.getElementById('interviewViewNotes');
+        const titleElement = document.getElementById('interviewViewModalTitle');
+        const dateElement = document.getElementById('interviewViewDate');
+        const updatedElement = document.getElementById('interviewViewUpdated');
+        const referentsContainer = document.getElementById('interviewViewReferents');
+        const tagsContainer = document.getElementById('interviewViewTags');
+
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('show');
+
+        if (notesContainer) {
+            notesContainer.innerHTML = '';
+        }
+        if (titleElement) {
+            titleElement.textContent = 'Compte-rendu';
+        }
+        if (dateElement) {
+            dateElement.textContent = '';
+        }
+        if (updatedElement) {
+            updatedElement.textContent = '';
+        }
+        if (referentsContainer) {
+            referentsContainer.innerHTML = '';
+        }
+        if (tagsContainer) {
+            tagsContainer.innerHTML = '';
+        }
+    }
+
     getTodayDateString() {
         const now = new Date();
         const year = now.getFullYear();
@@ -6114,7 +6238,6 @@ class RiskManagementSystem {
             const referentsChips = Array.isArray(interview.referents)
                 ? interview.referents.map(ref => `<span class="interview-referent-chip">${escapeHtml(ref)}</span>`).join('')
                 : '';
-            const notesContent = interview.notes ? interview.notes : '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
 
             const tags = Array.isArray(interview.scopes)
                 ? interview.scopes.map(scope => {
@@ -6139,10 +6262,10 @@ class RiskManagementSystem {
                     </header>
                     <div class="interview-card-meta interview-referents">${referentsChips}</div>
                     <div class="interview-card-tags">${tags}</div>
-                    <div class="interview-card-notes">${notesContent}</div>
                     <footer class="interview-card-footer">
                         <div class="interview-card-meta">Dernière mise à jour : ${escapeHtml(updatedLabel || 'Date inconnue')}</div>
                         <div class="interview-card-actions">
+                            <button class="interview-action-btn view" onclick="rms.openInterviewViewer(${idAttribute})">Lire</button>
                             <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Modifier</button>
                             <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Supprimer</button>
                         </div>
