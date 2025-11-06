@@ -289,6 +289,14 @@ function highlightCell(prob, impact, state = activeRiskEditState) {
     }
 }
 
+function formatMatrixDescriptionContent(text) {
+    if (!text) return '';
+    const trimmed = text.toString().trim();
+    if (!trimmed) return '';
+    const hasHtml = /<[a-z][\s\S]*>/i.test(trimmed);
+    return hasHtml ? trimmed : `<p>${trimmed}</p>`;
+}
+
 function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
     const stateConfig = RISK_STATE_CONFIG[state];
     if (!stateConfig) return;
@@ -358,15 +366,18 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
         return;
     }
 
+    const probabilityContent = formatMatrixDescriptionContent(probability.text);
+    const impactContent = formatMatrixDescriptionContent(impactInfo.text);
+
     container.innerHTML = `
         <div class="matrix-description-header">${stateConfig.label}</div>
         <div class="matrix-description-section">
             <h4>Probabilité ${prob} – ${probability.label}</h4>
-            <p>${probability.text}</p>
+            <div class="matrix-description-text">${probabilityContent}</div>
         </div>
         <div class="matrix-description-section">
             <h4>Impact ${impact} – ${impactInfo.label}</h4>
-            <p>${impactInfo.text}</p>
+            <div class="matrix-description-text">${impactContent}</div>
         </div>
     `;
 }
