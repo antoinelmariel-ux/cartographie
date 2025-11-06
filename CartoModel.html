@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.5.0</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.6.1</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -86,33 +86,35 @@
                 <div class="content-area">
                     <!-- KPI Cards -->
                     <div class="dashboard-grid">
-                        <div class="stat-card danger">
-                            <div class="stat-header">
-                                <span class="stat-title">Risques Critiques</span>
-                                <span class="stat-icon">⚠️</span>
+                        <div class="dashboard-stats-column">
+                            <div class="stat-card danger">
+                                <div class="stat-header">
+                                    <span class="stat-title">Risques Critiques</span>
+                                    <span class="stat-icon">⚠️</span>
+                                </div>
+                                <div class="stat-value danger">2</div>
+                                <div class="stat-change negative">↑ +1 vs mois dernier</div>
                             </div>
-                            <div class="stat-value danger">2</div>
-                            <div class="stat-change negative">↑ +1 vs mois dernier</div>
-                        </div>
-                        
-                        <div class="stat-card warning">
-                            <div class="stat-header">
-                                <span class="stat-title">Risques Élevés</span>
-                                <span class="stat-icon">⚡</span>
+
+                            <div class="stat-card warning">
+                                <div class="stat-header">
+                                    <span class="stat-title">Risques Élevés</span>
+                                    <span class="stat-icon">⚡</span>
+                                </div>
+                                <div class="stat-value warning">5</div>
+                                <div class="stat-change">→ Stable</div>
                             </div>
-                            <div class="stat-value warning">5</div>
-                            <div class="stat-change">→ Stable</div>
-                        </div>
-                        
-                        <div class="stat-card success">
-                            <div class="stat-header">
-                                <span class="stat-title">Contrôles Actifs</span>
-                                <span class="stat-icon">✓</span>
+
+                            <div class="stat-card success">
+                                <div class="stat-header">
+                                    <span class="stat-title">Contrôles Actifs</span>
+                                    <span class="stat-icon">✓</span>
+                                </div>
+                                <div class="stat-value success">24</div>
+                                <div class="stat-change positive">↑ +3 nouveaux</div>
                             </div>
-                            <div class="stat-value success">24</div>
-                            <div class="stat-change positive">↑ +3 nouveaux</div>
                         </div>
-                        
+
                         <div class="stat-card plan-status-card">
                             <div class="stat-header">
                                 <span class="stat-title">Plans d'actions par statut</span>
@@ -628,7 +630,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.0</span>
+            <span class="app-version">Version 2.6.1</span>
         </footer>
     </div>
 
