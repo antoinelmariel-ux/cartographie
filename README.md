@@ -1,6 +1,6 @@
 # cartographie
 
-Application monopage de cartographie des risques de corruption. Elle fournit un tableau de bord interactif, un registre des risques et des contrôles ainsi qu'un moteur d'export/import autonome fonctionnant entièrement côté navigateur.
+Application monopage de cartographie des risques de corruption. Elle fournit un tableau de bord interactif, un registre des risques et des contrôles ainsi qu'un moteur d'export autonome fonctionnant entièrement côté navigateur.
 
 ## Table des matières
 
@@ -19,7 +19,6 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
   - [Qualité du code](#qualité-du-code)
 - [Tests manuels](#tests-manuels)
   - [Export CSV avec un registre vide](#export-csv-avec-un-registre-vide)
-  - [Import JSON/CSV](#import-jsoncsv)
 - [Limitations connues & pistes d'amélioration](#limitations-connues--pistes-damélioration)
 - [Support & contributions](#support--contributions)
 - [Ressources](#ressources)
@@ -31,7 +30,7 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 - **Registre des risques** : création, édition et suppression des risques avec liens vers les contrôles et plans d'actions associés, filtres texte/processus/statut et export CSV.
 - **Gestion des contrôles & plans** : fiches détaillées, modales d'édition, suivi des responsabilités et de l'efficacité des mesures.
 - **Historique & alertes** : timeline chronologique des actions, notifications utilisateur et badges d'alerte sur le tableau de bord.
-- **Import / Export autonome** : export JSON/CSV (boutons 💾 Enregistrer / 📂 Charger dans l'en-tête), capture de la matrice, export PDF du tableau de bord (avec ou sans jsPDF) et import depuis fichiers CSV ou JSON sans dépendance serveur.
+- **Export autonome** : export JSON/CSV (bouton 💾 Enregistrer dans l'en-tête et exports dédiés dans la configuration), capture de la matrice, export PDF du tableau de bord (avec ou sans jsPDF).
 - **Configuration fonctionnelle** : administration des listes déroulantes (processus, types, statuts, tiers, etc.) avec persistance automatique dans le navigateur.
 
 ## Structure du projet
@@ -66,7 +65,6 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 - Toutes les données sont stockées côté navigateur via `localStorage` (`rms_risks`, `rms_controls`, `rms_actionPlans`, `rms_history`, `rms_config`).
 - Les modifications sont enregistrées immédiatement dans le navigateur et la date de dernière sauvegarde est affichée dans l'en-tête.
 - Les exports sont effectués côté client : `exportRisks()` produit un CSV et `exportDashboard()` génère un PDF de synthèse du tableau de bord (avec un moteur jsPDF si présent, sinon via un générateur minimaliste intégré).
-- L'import accepte des fichiers CSV (colonnes libres, mappées automatiquement) ou JSON (structure `{ risks, controls, history }`). Chaque import ajoute un événement dans l'historique.
 
 ## Démarrage rapide
 
@@ -111,31 +109,6 @@ Application monopage de cartographie des risques de corruption. Elle fournit un 
 2. Supprimez tous les risques (icône corbeille sur chaque ligne) jusqu'à ce que le tableau soit vide.
 3. Cliquez sur le bouton "📤 Exporter" du registre.
 4. Vérifiez qu'une notification "Aucune donnée disponible pour l'export CSV." s'affiche, qu'aucun fichier n'est téléchargé et qu'aucune erreur n'apparaît dans la console du navigateur.
-
-### Import JSON/CSV
-1. Préparez un fichier `import_risks.json` contenant par exemple :
-   ```json
-   {
-     "risks": [{
-       "id": "demo-1",
-       "description": "Test import",
-       "processus": "Achats",
-       "sousProcessus": "Appels d'offres",
-       "typeCorruption": "favoritisme",
-       "tiers": ["Acheteurs"],
-       "probBrut": 2,
-       "impactBrut": 3,
-       "probNet": 2,
-       "impactNet": 2,
-       "statut": "brouillon",
-       "controls": [],
-       "actionPlans": []
-     }],
-     "history": []
-   }
-   ```
-2. Depuis l'onglet **📋 Liste des Risques**, cliquez sur "📥 Importer" et sélectionnez le fichier.
-3. Contrôlez qu'un toast "Import réussi" apparaît, que le risque est ajouté au tableau, qu'une entrée "Import JSON" est visible dans l'onglet **📜 Historique** et qu'aucune erreur n'est levée dans la console.
 
 ## Limitations connues & pistes d'amélioration
 

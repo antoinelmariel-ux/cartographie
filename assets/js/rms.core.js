@@ -743,6 +743,15 @@ class RiskManagementSystem {
             this.currentConfigSection = 'processManager';
         }
 
+        const exportButton = document.getElementById('configExportButton');
+        if (exportButton) {
+            const isProcessSection = this.currentConfigSection === 'processManager';
+            exportButton.textContent = isProcessSection
+                ? '💾 Exporter les processus'
+                : '💾 Exporter les autres paramètres';
+            exportButton.setAttribute('data-scope', isProcessSection ? 'processes' : 'parameters');
+        }
+
         this.closeActiveInsertionForm();
         this.dragState = null;
 

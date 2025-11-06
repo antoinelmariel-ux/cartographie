@@ -639,7 +639,7 @@ function exportRisks() {
 }
 window.exportRisks = exportRisks;
 
-function downloadRmsData() {
+function exportOperationalData() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
         if (typeof showNotification === 'function') {
@@ -661,32 +661,18 @@ function downloadRmsData() {
             exportedAt: new Date().toISOString(),
             risks: Array.isArray(snapshot.risks) ? snapshot.risks : [],
             controls: Array.isArray(snapshot.controls) ? snapshot.controls : [],
-            actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : [],
-            config: snapshot.config || {}
+            actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : []
         };
 
-        if (Array.isArray(snapshot.history)) {
-            payload.history = snapshot.history;
-        }
-
         const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const anchor = document.createElement('a');
-        anchor.href = url;
-        anchor.download = 'cartographie-donnees.json';
-        document.body.appendChild(anchor);
-        anchor.click();
-        setTimeout(() => {
-            document.body.removeChild(anchor);
-            URL.revokeObjectURL(url);
-        }, 0);
+        triggerBlobDownload(blob, 'cartographie-donnees-operationnelles.json');
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Sauvegarde JSON générée');
+            showNotification('success', 'Sauvegarde des risques, contrôles et plans générée');
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde JSON', error);
-        const message = "Erreur lors de l'export des données";
+        const message = "Erreur lors de l'export des données opérationnelles";
         if (typeof showNotification === 'function') {
             showNotification('error', message);
         } else {
@@ -694,7 +680,106 @@ function downloadRmsData() {
         }
     }
 }
-window.downloadRmsData = downloadRmsData;
+window.exportOperationalData = exportOperationalData;
+window.downloadRmsData = exportOperationalData;
+
+function exportProcessConfiguration() {
+    if (!window.rms) {
+        console.warn('RiskManagementSystem indisponible pour exporter les processus.');
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Export impossible : instance non initialisée");
+        }
+        return;
+    }
+
+    try {
+        const snapshot = rms.getSnapshot();
+        const rawConfig = snapshot && snapshot.config ? JSON.parse(JSON.stringify(snapshot.config)) : {};
+        const processes = Array.isArray(rawConfig.processes) ? rawConfig.processes : [];
+        const subProcesses = rawConfig.subProcesses && typeof rawConfig.subProcesses === 'object'
+            ? rawConfig.subProcesses
+            : {};
+
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            processes,
+            subProcesses
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        triggerBlobDownload(blob, 'cartographie-processus.json');
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Export des processus généré');
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'export des processus', error);
+        const message = "Erreur lors de l'export des processus";
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(`${message} : ${error.message}`);
+        }
+    }
+}
+window.exportProcessConfiguration = exportProcessConfiguration;
+
+function exportOtherParameters() {
+    if (!window.rms) {
+        console.warn('RiskManagementSystem indisponible pour exporter les paramètres.');
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Export impossible : instance non initialisée");
+        }
+        return;
+    }
+
+    try {
+        const snapshot = rms.getSnapshot();
+        const rawConfig = snapshot && snapshot.config ? JSON.parse(JSON.stringify(snapshot.config)) : {};
+        const otherParameters = { ...rawConfig };
+        delete otherParameters.processes;
+        delete otherParameters.subProcesses;
+
+        const payload = {
+            exportedAt: new Date().toISOString(),
+            parameters: otherParameters
+        };
+
+        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+        triggerBlobDownload(blob, 'cartographie-autres-parametres.json');
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Export des autres paramètres généré');
+        }
+    } catch (error) {
+        console.error('Erreur lors de l\'export des paramètres', error);
+        const message = "Erreur lors de l'export des autres paramètres";
+        if (typeof showNotification === 'function') {
+            showNotification('error', message);
+        } else {
+            alert(`${message} : ${error.message}`);
+        }
+    }
+}
+window.exportOtherParameters = exportOtherParameters;
+
+function handleConfigExport() {
+    if (!window.rms) {
+        console.warn('RiskManagementSystem indisponible pour exporter la configuration.');
+        if (typeof showNotification === 'function') {
+            showNotification('error', "Export impossible : instance non initialisée");
+        }
+        return;
+    }
+
+    const section = rms.currentConfigSection;
+    if (section === 'processManager') {
+        exportProcessConfiguration();
+    } else {
+        exportOtherParameters();
+    }
+}
+window.handleConfigExport = handleConfigExport;
 
 function loadRmsDataFromFile() {
     if (!window.rms) {
