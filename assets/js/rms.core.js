@@ -500,6 +500,20 @@ class RiskManagementSystem {
                     : 'insuffisant'));
         normalized.mitigationEffectiveness = mitigationLevel;
 
+        if (typeof getMitigationColumnFromLevel === 'function') {
+            normalized.probNet = getMitigationColumnFromLevel(mitigationLevel);
+        }
+
+        const brutScore = typeof getRiskBrutScore === 'function'
+            ? getRiskBrutScore(normalized)
+            : (Number(normalized.probBrut) || 0) * (Number(normalized.impactBrut) || 0);
+        const severity = typeof getRiskSeverityFromScore === 'function'
+            ? getRiskSeverityFromScore(brutScore)
+            : (brutScore >= 12 ? 'critique' : brutScore >= 6 ? 'fort' : brutScore >= 3 ? 'modere' : 'faible');
+        if (typeof getNetImpactValueFromSeverity === 'function') {
+            normalized.impactNet = getNetImpactValueFromSeverity(severity);
+        }
+
         return normalized;
     }
 
@@ -594,15 +608,6 @@ class RiskManagementSystem {
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
         fill('statut', this.config.riskStatuses, 'Sélectionner...');
         fill('tiers', this.config.tiers);
-        const mitigationOptions = typeof getMitigationEffectivenessOptions === 'function'
-            ? getMitigationEffectivenessOptions()
-            : [
-                { value: 'inefficace', label: 'Inefficace' },
-                { value: 'insuffisant', label: 'Insuffisant' },
-                { value: 'ameliorable', label: 'Améliorable' },
-                { value: 'efficace', label: 'Efficace' }
-            ];
-        fill('mitigationEffectiveness', mitigationOptions, 'Sélectionner...');
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -614,6 +619,18 @@ class RiskManagementSystem {
         fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
         fill('planStatus', this.config.actionPlanStatuses, 'Sélectionner...');
         fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'Tous les statuts');
+
+        const mitigationInput = document.getElementById('mitigationEffectiveness');
+        if (mitigationInput) {
+            const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                ? DEFAULT_MITIGATION_EFFECTIVENESS
+                : 'insuffisant';
+            mitigationInput.value = defaultMitigation;
+            const probNetInput = document.getElementById('probNet');
+            if (probNetInput && typeof getMitigationColumnFromLevel === 'function') {
+                probNetInput.value = getMitigationColumnFromLevel(defaultMitigation);
+            }
+        }
 
         const syncFilterValue = (filterKey, value, options = {}) => {
             if (typeof document === 'undefined') return;
@@ -4728,26 +4745,23 @@ class RiskManagementSystem {
             document.getElementById('description').value = risk.description || '';
             document.getElementById('probBrut').value = risk.probBrut;
             document.getElementById('impactBrut').value = risk.impactBrut;
-            document.getElementById('probNet').value = risk.probNet;
-            document.getElementById('impactNet').value = risk.impactNet;
-
-            const mitigationSelect = document.getElementById('mitigationEffectiveness');
-            if (mitigationSelect) {
-                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
-                    ? DEFAULT_MITIGATION_EFFECTIVENESS
-                    : 'insuffisant';
-                const mitigationLevel = risk.mitigationEffectiveness || defaultMitigation;
-                if (mitigationLevel) {
-                    const normalized = String(mitigationLevel);
-                    if (!Array.from(mitigationSelect.options).some(opt => opt.value === normalized)) {
-                        const option = document.createElement('option');
-                        option.value = normalized;
-                        option.textContent = normalized;
-                        mitigationSelect.appendChild(option);
-                    }
-                    mitigationSelect.value = normalized;
-                }
-                mitigationSelect.onchange = () => calculateScore('net');
+            const probNetInput = document.getElementById('probNet');
+            const impactNetInput = document.getElementById('impactNet');
+            const mitigationInput = document.getElementById('mitigationEffectiveness');
+            const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                ? DEFAULT_MITIGATION_EFFECTIVENESS
+                : 'insuffisant';
+            const mitigationLevel = risk.mitigationEffectiveness || defaultMitigation;
+            if (mitigationInput) {
+                mitigationInput.value = mitigationLevel;
+            }
+            if (probNetInput && typeof getMitigationColumnFromLevel === 'function') {
+                probNetInput.value = getMitigationColumnFromLevel(mitigationLevel);
+            } else if (probNetInput) {
+                probNetInput.value = risk.probNet || probNetInput.value || 1;
+            }
+            if (impactNetInput) {
+                impactNetInput.value = risk.impactNet || impactNetInput.value || 1;
             }
 
             if (typeof setAggravatingFactorsSelection === 'function') {

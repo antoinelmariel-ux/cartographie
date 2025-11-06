@@ -628,7 +628,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.5.1</span>
+            <span class="app-version">Version 2.6.0</span>
         </footer>
     </div>
 
@@ -958,19 +958,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="edit-matrix-group" data-state="net">
-                                    <div class="edit-matrix-heading">Risque Net</div>
-                                    <div class="edit-matrix-container">
-                                        <div class="matrix edit-matrix" id="riskMatrixEditNet" data-state="net">
-                                            <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
-                                            <div class="axis-label x-axis">Probabilité →</div>
-                                            <div class="axis-label y-axis">
-                                                <span class="axis-text">Impact</span>
-                                                <span class="axis-arrow" aria-hidden="true">↑</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                             <div id="matrixDescription" class="matrix-description">
                                 <div class="matrix-description-empty">
@@ -1034,21 +1021,8 @@
                                     <div class="risk-score-value" id="scoreBrut">Score: 1</div>
                                     <div class="risk-score-meta" id="coordBrut">P1 × I1</div>
                                 </div>
-                                <div class="risk-score-card net" data-state="net">
-                                    <div class="risk-score-title">Risque Net</div>
-                                    <div class="risk-score-value" id="scoreNet">Score: 1</div>
-                                    <div class="risk-score-meta" id="coordNet">P1 × I1</div>
-                                </div>
                             </div>
-                            <div class="form-grid" style="margin-top: 10px;">
-                                <div class="form-group" style="grid-column: 1 / -1;">
-                                    <label class="form-label required" for="mitigationEffectiveness">Efficacité des mesures de maîtrise</label>
-                                    <select class="form-select" id="mitigationEffectiveness" required>
-                                        <option value="">Sélectionner...</option>
-                                    </select>
-                                    <p class="form-helper">Indiquez le niveau d'efficacité des dispositifs existants pour calculer le risque net.</p>
-                                </div>
-                            </div>
+                            <input type="hidden" id="mitigationEffectiveness" value="">
                             <input type="hidden" id="probBrut" value="1">
                             <input type="hidden" id="impactBrut" value="1">
                             <input type="hidden" id="probNet" value="1">
@@ -1064,6 +1038,52 @@
                             </button>
                             <div class="controls-grid" id="riskControls" style="margin-top: 15px;">
                                 <!-- Selected controls will appear here -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-section net-evaluation-section">
+                        <div class="form-section-title">Évaluation du Risque Net</div>
+                        <div class="net-matrix-editor">
+                            <div class="net-matrix-wrapper">
+                                <div class="edit-matrix-group" data-state="net">
+                                    <div class="edit-matrix-heading">Positionnement du risque net</div>
+                                    <div class="edit-matrix-container">
+                                        <div class="matrix edit-matrix net" id="riskMatrixEditNet" data-state="net">
+                                            <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
+                                            <div class="matrix-net-row-labels" id="riskMatrixEditNetRowLabels"></div>
+                                            <div class="matrix-net-col-labels" id="riskMatrixEditNetColLabels"></div>
+                                            <div class="axis-label x-axis">Efficacité des mesures →</div>
+                                            <div class="axis-label y-axis">
+                                                <span class="axis-text">Niveau de risque brut</span>
+                                                <span class="axis-arrow" aria-hidden="true">↑</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="net-legend legend" id="netLegend">
+                                    <div class="legend-item" data-effectiveness="inefficace">
+                                        <div class="legend-color effectiveness-inefficace"></div>
+                                        <span>Inefficace</span>
+                                    </div>
+                                    <div class="legend-item" data-effectiveness="insuffisant">
+                                        <div class="legend-color effectiveness-insuffisant"></div>
+                                        <span>Insuffisant</span>
+                                    </div>
+                                    <div class="legend-item" data-effectiveness="ameliorable">
+                                        <div class="legend-color effectiveness-ameliorable"></div>
+                                        <span>Améliorable</span>
+                                    </div>
+                                    <div class="legend-item" data-effectiveness="efficace">
+                                        <div class="legend-color effectiveness-efficace"></div>
+                                        <span>Efficace</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="risk-score-card net" data-state="net">
+                                <div class="risk-score-title">Risque Net</div>
+                                <div class="risk-score-value" id="scoreNet">Score: 1</div>
+                                <div class="risk-score-meta" id="coordNet">Brut 1 × Réduction 0%</div>
                             </div>
                         </div>
                     </div>
