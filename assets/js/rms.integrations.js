@@ -1629,6 +1629,9 @@ function applyPatch() {
         } else {
           selectedRisksForControl.push(riskId);
         }
+        if (RMS && typeof RMS.markUnsavedChange === 'function') {
+          RMS.markUnsavedChange('controlForm');
+        }
       };
 
       window.confirmRiskSelection = function() {
@@ -1661,6 +1664,9 @@ function applyPatch() {
       window.removeRiskFromSelection = function(riskId) {
         selectedRisksForControl = selectedRisksForControl.filter(id => !idsEqual(id, riskId));
         updateSelectedRisksDisplay();
+        if (RMS && typeof RMS.markUnsavedChange === 'function') {
+          RMS.markUnsavedChange('controlForm');
+        }
       };
 
       window.saveControl = function() {
@@ -1744,12 +1750,19 @@ function applyPatch() {
           window.controlCreationContext = null;
         }
 
+        if (context && RMS && typeof RMS.markUnsavedChange === 'function') {
+          RMS.markUnsavedChange('riskForm');
+        }
+
         lastControlData = { ...controlData, risks: [...controlData.risks] };
 
         state.save("contrôle");
         state.renderAll();
         populateControlOwnerSuggestions();
         closeControlModal();
+        if (RMS && typeof RMS.clearUnsavedChanges === 'function') {
+          RMS.clearUnsavedChanges('controlForm');
+        }
       };
 
       function toast(msg){
