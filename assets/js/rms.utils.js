@@ -180,6 +180,19 @@ const MITIGATION_EFFECTIVENESS_SCALE = Object.freeze({
 
 const DEFAULT_MITIGATION_EFFECTIVENESS = 'insuffisant';
 
+const NET_IMPACT_SEVERITY_MAP = Object.freeze({
+    critique: 4,
+    fort: 3,
+    modere: 2,
+    faible: 1
+});
+
+const NET_IMPACT_TO_SEVERITY = Object.freeze(Object.entries(NET_IMPACT_SEVERITY_MAP)
+    .reduce((acc, [severity, value]) => {
+        acc[value] = severity;
+        return acc;
+    }, {}));
+
 function normalizeMitigationEffectiveness(value) {
     if (typeof value === 'string') {
         const normalized = value.trim().toLowerCase();
@@ -227,6 +240,35 @@ function getRiskMitigationCoefficient(input) {
     const entry = MITIGATION_EFFECTIVENESS_SCALE[level];
     const coefficient = entry?.coefficient;
     return Number.isFinite(coefficient) ? coefficient : 0;
+}
+
+function getMitigationColumnFromLevel(level) {
+    const normalized = normalizeMitigationEffectiveness(level);
+    const index = MITIGATION_EFFECTIVENESS_ORDER.indexOf(normalized);
+    return index >= 0 ? index + 1 : 1;
+}
+
+function getMitigationLevelFromColumn(column) {
+    const index = Math.min(
+        Math.max(parseInt(column, 10) - 1, 0),
+        MITIGATION_EFFECTIVENESS_ORDER.length - 1
+    );
+    return MITIGATION_EFFECTIVENESS_ORDER[index] || DEFAULT_MITIGATION_EFFECTIVENESS;
+}
+
+function getNetImpactValueFromSeverity(severity) {
+    if (typeof severity === 'string') {
+        const normalized = severity.trim().toLowerCase();
+        if (NET_IMPACT_SEVERITY_MAP[normalized]) {
+            return NET_IMPACT_SEVERITY_MAP[normalized];
+        }
+    }
+    return NET_IMPACT_SEVERITY_MAP.faible;
+}
+
+function getSeverityFromNetImpactValue(value) {
+    const numeric = parseInt(value, 10);
+    return NET_IMPACT_TO_SEVERITY[numeric] || 'faible';
 }
 
 function getRiskNetScore(risk) {
@@ -284,3 +326,7 @@ window.getRiskSeverityFromScore = getRiskSeverityFromScore;
 window.getRiskBrutLevel = getRiskBrutLevel;
 window.getRiskNetInfo = getRiskNetInfo;
 window.formatMitigationCoefficient = formatMitigationCoefficient;
+window.getMitigationColumnFromLevel = getMitigationColumnFromLevel;
+window.getMitigationLevelFromColumn = getMitigationLevelFromColumn;
+window.getNetImpactValueFromSeverity = getNetImpactValueFromSeverity;
+window.getSeverityFromNetImpactValue = getSeverityFromNetImpactValue;

@@ -324,15 +324,21 @@ function addNewRisk() {
             document.getElementById('description').value = lastRiskData.description || '';
             document.getElementById('probBrut').value = lastRiskData.probBrut || 1;
             document.getElementById('impactBrut').value = lastRiskData.impactBrut || 1;
-            document.getElementById('probNet').value = lastRiskData.probNet || 1;
-            document.getElementById('impactNet').value = lastRiskData.impactNet || 1;
-            const mitigationSelect = document.getElementById('mitigationEffectiveness');
-            if (mitigationSelect) {
-                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
-                    ? DEFAULT_MITIGATION_EFFECTIVENESS
-                    : 'insuffisant';
-                mitigationSelect.value = lastRiskData.mitigationEffectiveness || defaultMitigation;
-                mitigationSelect.onchange = () => calculateScore('net');
+            const mitigationInput = document.getElementById('mitigationEffectiveness');
+            const probNetInput = document.getElementById('probNet');
+            const impactNetInput = document.getElementById('impactNet');
+            const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                ? DEFAULT_MITIGATION_EFFECTIVENESS
+                : 'insuffisant';
+            const mitigationLevel = lastRiskData.mitigationEffectiveness || defaultMitigation;
+            if (mitigationInput) {
+                mitigationInput.value = mitigationLevel;
+            }
+            if (probNetInput && typeof getMitigationColumnFromLevel === 'function') {
+                probNetInput.value = getMitigationColumnFromLevel(mitigationLevel);
+            }
+            if (impactNetInput) {
+                impactNetInput.value = lastRiskData.impactNet || impactNetInput.value || 1;
             }
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
@@ -342,13 +348,20 @@ function addNewRisk() {
             selectedControlsForRisk = [];
             selectedActionPlansForRisk = [];
             setAggravatingFactorsSelection(null);
-            const mitigationSelect = document.getElementById('mitigationEffectiveness');
-            if (mitigationSelect) {
-                const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
-                    ? DEFAULT_MITIGATION_EFFECTIVENESS
-                    : 'insuffisant';
-                mitigationSelect.value = defaultMitigation;
-                mitigationSelect.onchange = () => calculateScore('net');
+            const mitigationInput = document.getElementById('mitigationEffectiveness');
+            const probNetInput = document.getElementById('probNet');
+            const impactNetInput = document.getElementById('impactNet');
+            const defaultMitigation = typeof DEFAULT_MITIGATION_EFFECTIVENESS === 'string'
+                ? DEFAULT_MITIGATION_EFFECTIVENESS
+                : 'insuffisant';
+            if (mitigationInput) {
+                mitigationInput.value = defaultMitigation;
+            }
+            if (probNetInput && typeof getMitigationColumnFromLevel === 'function') {
+                probNetInput.value = getMitigationColumnFromLevel(defaultMitigation);
+            }
+            if (impactNetInput) {
+                impactNetInput.value = impactNetInput.value || 1;
             }
         }
 
@@ -430,11 +443,6 @@ function saveRisk() {
     // Validate form
     if (!formData.processus || !formData.description || !formData.typeCorruption || !formData.statut) {
         showNotification('error', 'Veuillez remplir tous les champs obligatoires');
-        return;
-    }
-
-    if (formData.probNet > formData.probBrut || formData.impactNet > formData.impactBrut) {
-        showNotification('error', 'La probabilité et l\'impact nets doivent être inférieurs ou égaux aux valeurs brutes');
         return;
     }
 
@@ -977,26 +985,27 @@ function bindEvents() {
     });
 
     const probBrut = document.getElementById('probBrut');
-    const probNet = document.getElementById('probNet');
     const impactBrut = document.getElementById('impactBrut');
+    const probNet = document.getElementById('probNet');
     const impactNet = document.getElementById('impactNet');
 
-    const enforceNetLimits = () => {
-        if (parseInt(probNet.value) > parseInt(probBrut.value)) {
-            probNet.value = probBrut.value;
+    const refreshBrutScores = () => {
+        if (typeof calculateScore === 'function') {
+            calculateScore('brut');
         }
-        if (parseInt(impactNet.value) > parseInt(impactBrut.value)) {
-            impactNet.value = impactBrut.value;
-        }
-        calculateScore('net');
     };
 
-    if (probBrut && probNet && impactBrut && impactNet) {
-        probBrut.addEventListener('change', enforceNetLimits);
-        probNet.addEventListener('change', enforceNetLimits);
-        impactBrut.addEventListener('change', enforceNetLimits);
-        impactNet.addEventListener('change', enforceNetLimits);
-        enforceNetLimits();
+    if (probBrut && impactBrut) {
+        probBrut.addEventListener('change', refreshBrutScores);
+        impactBrut.addEventListener('change', refreshBrutScores);
+    }
+
+    if (probNet) {
+        probNet.addEventListener('change', () => calculateScore('net'));
+    }
+
+    if (impactNet) {
+        impactNet.addEventListener('change', () => calculateScore('net'));
     }
 
     const aggravatingInputs = document.querySelectorAll('input[name="aggravatingGroup1"], input[name="aggravatingGroup2"]');

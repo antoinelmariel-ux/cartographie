@@ -473,6 +473,65 @@ body {
     gap: 0;
 }
 
+.matrix-net-row-label {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    transition: color 0.2s ease;
+}
+
+.matrix-net-row-label.active {
+    color: var(--primary-color);
+}
+
+.matrix-net-row-label.active span {
+    color: var(--primary-color);
+}
+
+.net-evaluation-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+.net-matrix-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.net-matrix-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.matrix.edit-matrix.net {
+    width: min(520px, 100%);
+}
+
+.legend-color.effectiveness-inefficace {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.4), rgba(192, 57, 43, 0.6));
+}
+
+.legend-color.effectiveness-insuffisant {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(211, 84, 0, 0.6));
+}
+
+.legend-color.effectiveness-ameliorable {
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(243, 156, 18, 0.6));
+}
+
+.legend-color.effectiveness-efficace {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.6));
+}
+
+.net-matrix-editor .risk-score-card.net {
+    align-self: center;
+    min-width: 240px;
+}
+
 .matrix-net-row-labels .matrix-net-row-label span {
     display: block;
     font-size: 0.8rem;
@@ -995,6 +1054,21 @@ body {
     height: 20px;
     border-radius: 4px;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.legend.net-legend {
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.legend.net-legend .legend-item {
+    cursor: default;
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.legend.net-legend .legend-item.active {
+    transform: translateY(-2px);
+    font-weight: 600;
 }
 
 /* Dashboard Tab */
