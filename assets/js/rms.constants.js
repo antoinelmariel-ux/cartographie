@@ -65,6 +65,38 @@ const RISK_STATE_CONFIG = {
     }
 };
 
+const MITIGATION_EFFECTIVENESS_DESCRIPTIONS = Object.freeze({
+    inefficace: `
+        <p>Les contrôles sont inexistants ou ne sont pas réalisés. Aucun dispositif ne permet de réduire le risque.</p>
+        <ul>
+            <li>Absence de procédures documentées ou de responsabilités formalisées.</li>
+            <li>Actions correctives non engagées malgré les constats d'audit ou de revue.</li>
+        </ul>
+    `,
+    insuffisant: `
+        <p>Les contrôles existent mais demeurent lacunaires et ne couvrent pas l'ensemble du périmètre exposé.</p>
+        <ul>
+            <li>Application ponctuelle ou dépendante d'acteurs clés sans supervision.</li>
+            <li>Preuves d'exécution partielles ou non conservées.</li>
+        </ul>
+    `,
+    ameliorable: `
+        <p>Les contrôles sont structurés et suivis, mais présentent encore des faiblesses mesurables.</p>
+        <ul>
+            <li>Dispositif documenté, toutefois des améliorations restent nécessaires pour fiabiliser l'exécution.</li>
+            <li>Suivi périodique en place avec des plans d'actions pour combler les écarts.</li>
+        </ul>
+    `,
+    efficace: `
+        <p>Les contrôles sont pleinement opérationnels et démontrent leur efficacité dans la réduction du risque.</p>
+        <ul>
+            <li>Procédures formalisées, formation des intervenants et supervision démontrable.</li>
+            <li>Indicateurs de performance suivis avec amélioration continue du dispositif.</li>
+        </ul>
+    `
+});
+
 window.RISK_PROBABILITY_INFO = RISK_PROBABILITY_INFO;
 window.RISK_IMPACT_INFO = RISK_IMPACT_INFO;
 window.RISK_STATE_CONFIG = RISK_STATE_CONFIG;
+window.MITIGATION_EFFECTIVENESS_DESCRIPTIONS = MITIGATION_EFFECTIVENESS_DESCRIPTIONS;

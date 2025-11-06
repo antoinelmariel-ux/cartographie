@@ -310,6 +310,9 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
         const mitigationInfo = typeof MITIGATION_EFFECTIVENESS_SCALE === 'object'
             ? MITIGATION_EFFECTIVENESS_SCALE[mitigationLevel]
             : null;
+        const mitigationDescription = typeof MITIGATION_EFFECTIVENESS_DESCRIPTIONS === 'object'
+            ? MITIGATION_EFFECTIVENESS_DESCRIPTIONS[mitigationLevel]
+            : '';
 
         const severityLabels = {
             critique: 'Critique',
@@ -322,6 +325,14 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
             ? formatMitigationCoefficient(mitigationInfo?.coefficient)
             : `${Math.round((mitigationInfo?.coefficient || 0) * 100)}%`;
 
+        const effectivenessDetails = [
+            `<p>Réduction appliquée : ${reductionLabel}. Faites glisser le marqueur horizontalement pour ajuster la maîtrise.</p>`
+        ];
+
+        if (mitigationDescription) {
+            effectivenessDetails.push(`<div class="mitigation-description">${mitigationDescription}</div>`);
+        }
+
         container.innerHTML = `
             <div class="matrix-description-header">${stateConfig.label}</div>
             <div class="matrix-description-section">
@@ -330,7 +341,7 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
             </div>
             <div class="matrix-description-section">
                 <h4>Efficacité ${mitigationInfo?.label || mitigationLevel}</h4>
-                <p>Réduction appliquée : ${reductionLabel}. Faites glisser le marqueur horizontalement pour ajuster la maîtrise.</p>
+                ${effectivenessDetails.join('')}
             </div>
         `;
         return;
