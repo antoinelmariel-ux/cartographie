@@ -272,11 +272,14 @@ function getSeverityFromNetImpactValue(value) {
 }
 
 function getRiskNetScore(risk) {
+    const aggravatingCoefficient = typeof getRiskAggravatingCoefficient === 'function'
+        ? getRiskAggravatingCoefficient(risk)
+        : 1;
     const brutScore = typeof getRiskBrutScore === 'function'
         ? getRiskBrutScore(risk)
-        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
-    const coefficient = getRiskMitigationCoefficient(risk);
-    return brutScore * coefficient;
+        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0) * aggravatingCoefficient;
+    const mitigationCoefficient = getRiskMitigationCoefficient(risk);
+    return brutScore * mitigationCoefficient;
 }
 
 function getRiskSeverityFromScore(score) {
@@ -295,17 +298,34 @@ function getRiskBrutLevel(risk) {
 }
 
 function getRiskNetInfo(risk) {
-    const coefficient = getRiskMitigationCoefficient(risk);
+    const aggravatingCoefficient = typeof getRiskAggravatingCoefficient === 'function'
+        ? getRiskAggravatingCoefficient(risk)
+        : 1;
+    const mitigationCoefficient = getRiskMitigationCoefficient(risk);
     const brutScore = typeof getRiskBrutScore === 'function'
         ? getRiskBrutScore(risk)
-        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0);
-    const score = brutScore * coefficient;
+        : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0) * aggravatingCoefficient;
+    const safeAggravatingCoefficient = Number.isFinite(aggravatingCoefficient) && aggravatingCoefficient > 0
+        ? aggravatingCoefficient
+        : 1;
+    const baseBrutScore = brutScore / safeAggravatingCoefficient;
+    const score = brutScore * mitigationCoefficient;
     const level = getRiskSeverityFromScore(score);
     const effectiveness = getRiskMitigationEffectiveness(risk);
     const label = MITIGATION_EFFECTIVENESS_SCALE[effectiveness]?.label || effectiveness;
-    const reduction = Math.round(coefficient * 100);
+    const reduction = Math.round(mitigationCoefficient * 100);
 
-    return { score, brutScore, coefficient, level, effectiveness, label, reduction };
+    return {
+        score,
+        brutScore,
+        baseBrutScore,
+        coefficient: mitigationCoefficient,
+        aggravatingCoefficient: safeAggravatingCoefficient,
+        level,
+        effectiveness,
+        label,
+        reduction
+    };
 }
 
 function formatMitigationCoefficient(value) {
