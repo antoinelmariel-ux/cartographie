@@ -241,7 +241,14 @@ class RiskManagementSystem {
     }
 
     getDefaultInterviews() {
-        return [];
+        const defaults = window.RMS_DEFAULT_DATA?.interviews;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+
+        return defaults
+            .map(entry => this.normalizeInterview(entry))
+            .filter(Boolean);
     }
 
     getDefaultConfig() {
@@ -3434,6 +3441,25 @@ class RiskManagementSystem {
                 return;
             }
 
+            const typeMap = (Array.isArray(this.config?.riskTypes) ? this.config.riskTypes : []).reduce((acc, item) => {
+                if (!item || item.value === undefined || item.value === null) {
+                    return acc;
+                }
+                const rawValue = String(item.value);
+                const label = item.label || rawValue;
+                acc[rawValue] = label;
+                acc[rawValue.toLowerCase()] = label;
+                return acc;
+            }, {});
+
+            const resolveTypeLabel = (value) => {
+                if (value == null) {
+                    return 'Non défini';
+                }
+                const rawValue = String(value);
+                return typeMap[rawValue] || typeMap[rawValue.toLowerCase()] || rawValue;
+            };
+
             container.innerHTML = scoredRisks.map(entry => {
                 const { risk, score } = entry;
                 let scoreClass = 'low';
@@ -3447,9 +3473,7 @@ class RiskManagementSystem {
                 const sp = risk?.sousProcessus && String(risk.sousProcessus).trim()
                     ? ` > ${String(risk.sousProcessus).trim()}`
                     : '';
-                const typeLabel = risk?.typeCorruption && String(risk.typeCorruption).trim()
-                    ? String(risk.typeCorruption).trim()
-                    : 'Non défini';
+                const typeLabel = resolveTypeLabel(risk?.typeCorruption);
                 const formattedScore = Number.isFinite(score)
                     ? score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                     : '0';
@@ -4732,6 +4756,30 @@ class RiskManagementSystem {
         const allRisks = Array.isArray(this.risks) ? this.risks : [];
         const filteredRisks = this.getFilteredRisks(allRisks);
 
+        const buildLabelMap = (list) => {
+            return (Array.isArray(list) ? list : []).reduce((acc, item) => {
+                if (!item || item.value === undefined || item.value === null) {
+                    return acc;
+                }
+                const rawValue = String(item.value);
+                const label = item.label || rawValue;
+                acc[rawValue] = label;
+                acc[rawValue.toLowerCase()] = label;
+                return acc;
+            }, {});
+        };
+
+        const typeMap = buildLabelMap(this.config?.riskTypes);
+        const tierMap = buildLabelMap(this.config?.tiers);
+
+        const resolveLabel = (map, value) => {
+            if (value == null) {
+                return value;
+            }
+            const rawValue = String(value);
+            return map[rawValue] || map[rawValue.toLowerCase()] || value;
+        };
+
         if (!allRisks.length) {
             tbody.innerHTML = `
                 <tr>
@@ -4770,14 +4818,19 @@ class RiskManagementSystem {
             const reductionLabel = `${reductionPercent}%`;
             const effectivenessLabel = netInfo.label ? ` (${netInfo.label})` : '';
 
+            const typeLabel = resolveLabel(typeMap, risk.typeCorruption);
+            const tierLabels = Array.isArray(risk.tiers)
+                ? risk.tiers.map(tier => resolveLabel(tierMap, tier))
+                : [];
+
             return `
                 <tr>
                     <td>#${risk.id}</td>
                     <td>${risk.description}</td>
                     <td>${risk.processus}</td>
                     <td>${risk.sousProcessus || ''}</td>
-                    <td>${risk.typeCorruption}</td>
-                    <td>${(risk.tiers || []).join(', ')}</td>
+                    <td>${typeLabel}</td>
+                    <td>${tierLabels.join(', ')}</td>
                     <td>${brutLabel}</td>
                     <td title="Réduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
                     <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
