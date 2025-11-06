@@ -473,71 +473,17 @@ body {
     gap: 0;
 }
 
-.matrix-net-row-label {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-    transition: color 0.2s ease;
-}
-
-.matrix-net-row-label.active {
-    color: var(--primary-color);
-}
-
-.matrix-net-row-label.active span {
-    color: var(--primary-color);
-}
-
-.net-evaluation-section {
-    background: white;
-    border-radius: var(--border-radius);
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-}
-
-.net-matrix-editor {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-}
-
-.net-matrix-wrapper {
-    display: flex;
-    flex-direction: column;
-    gap: 16px;
-}
-
-.matrix.edit-matrix.net {
-    width: min(520px, 100%);
-}
-
-.legend-color.effectiveness-inefficace {
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.4), rgba(192, 57, 43, 0.6));
-}
-
-.legend-color.effectiveness-insuffisant {
-    background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(211, 84, 0, 0.6));
-}
-
-.legend-color.effectiveness-ameliorable {
-    background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(243, 156, 18, 0.6));
-}
-
-.legend-color.effectiveness-efficace {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.6));
-}
-
-.net-matrix-editor .risk-score-card.net {
-    align-self: center;
-    min-width: 240px;
-}
-
 .matrix-net-row-labels .matrix-net-row-label span {
     display: block;
     font-size: 0.8rem;
     font-weight: 500;
     color: #566573;
     text-transform: none;
+}
+
+.matrix-net-row-labels .matrix-net-row-label.active,
+.matrix-net-row-labels .matrix-net-row-label.active span {
+    color: var(--primary-color);
 }
 
 .matrix-net-col-labels {
@@ -570,9 +516,258 @@ body {
     text-transform: none;
 }
 
-.matrix-net-row-labels,
-.matrix-net-col-labels {
-    display: none !important;
+.net-evaluation-section {
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+.net-matrix-editor {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.net-matrix-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.net-slider-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.net-slider-panel {
+    background: linear-gradient(135deg, rgba(236, 240, 241, 0.6), rgba(236, 240, 241, 0.9));
+    border-radius: var(--border-radius);
+    padding: 24px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.7);
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.net-slider-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.net-slider-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: #2c3e50;
+}
+
+.net-slider-badge {
+    background: var(--primary-color);
+    color: white;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    white-space: nowrap;
+    box-shadow: 0 6px 14px rgba(65, 105, 225, 0.25);
+}
+
+.net-slider-track {
+    position: relative;
+    padding: 10px 0 22px;
+}
+
+.net-slider-input {
+    --slider-progress: 33%;
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, var(--primary-color) var(--slider-progress), rgba(44, 62, 80, 0.15) var(--slider-progress));
+    outline: none;
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.net-slider-input::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 6px 18px rgba(65, 105, 225, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.net-slider-input::-moz-range-thumb {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: white;
+    border: 3px solid var(--primary-color);
+    box-shadow: 0 6px 18px rgba(65, 105, 225, 0.35);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.net-slider-input:focus-visible::-webkit-slider-thumb,
+.net-slider-input:active::-webkit-slider-thumb,
+.net-slider-input:focus-visible::-moz-range-thumb,
+.net-slider-input:active::-moz-range-thumb {
+    transform: scale(1.08);
+    box-shadow: 0 10px 24px rgba(65, 105, 225, 0.45);
+}
+
+.net-slider-marks {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.net-slider-mark {
+    position: absolute;
+    bottom: 0;
+    left: var(--mark-position, 0%);
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #566573;
+    text-align: center;
+    width: clamp(60px, 18%, 120px);
+    pointer-events: auto;
+    cursor: pointer;
+}
+
+.net-slider-mark::before {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid rgba(44, 62, 80, 0.3);
+    background: white;
+    box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.8);
+    transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.net-slider-mark span {
+    display: block;
+}
+
+.net-slider-mark .net-slider-mark-sub {
+    font-size: 0.7rem;
+    color: #7b8a8b;
+}
+
+.net-slider-mark.active::before {
+    border-color: var(--primary-color);
+    background: var(--primary-color);
+}
+
+.net-slider-mark.passed::before {
+    border-color: rgba(65, 105, 225, 0.4);
+    background: rgba(65, 105, 225, 0.2);
+}
+
+.net-slider-mark:focus {
+    outline: none;
+}
+
+.net-slider-mark:focus-visible {
+    outline: 3px solid rgba(65, 105, 225, 0.4);
+    outline-offset: 6px;
+}
+
+.net-slider-footer {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    color: #2c3e50;
+}
+
+.net-slider-percent {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.net-severity-badge {
+    background: rgba(44, 62, 80, 0.08);
+    color: #2c3e50;
+    border-radius: 999px;
+    padding: 6px 16px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.net-severity-badge[data-severity="critique"] {
+    background: rgba(231, 76, 60, 0.15);
+    color: #c0392b;
+}
+
+.net-severity-badge[data-severity="fort"] {
+    background: rgba(230, 126, 34, 0.15);
+    color: #d35400;
+}
+
+.net-severity-badge[data-severity="modere"] {
+    background: rgba(241, 196, 15, 0.18);
+    color: #b9770e;
+}
+
+.net-severity-badge[data-severity="faible"] {
+    background: rgba(46, 204, 113, 0.18);
+    color: #239b56;
+}
+
+.legend-color.effectiveness-inefficace {
+    background: linear-gradient(135deg, rgba(231, 76, 60, 0.4), rgba(192, 57, 43, 0.6));
+}
+
+.legend-color.effectiveness-insuffisant {
+    background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(211, 84, 0, 0.6));
+}
+
+.legend-color.effectiveness-ameliorable {
+    background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(243, 156, 18, 0.6));
+}
+
+.legend-color.effectiveness-efficace {
+    background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(39, 174, 96, 0.6));
+}
+
+.net-matrix-editor .risk-score-card.net {
+    align-self: center;
+    min-width: 240px;
+}
+
+
+.net-slider-layout .matrix-description {
+    flex: 1;
+    min-height: 100%;
+}
+
+@media (min-width: 992px) {
+    .net-slider-layout {
+        flex-direction: row;
+        align-items: stretch;
+    }
+
+    .net-slider-panel {
+        flex: 1;
+    }
+
+    .net-slider-layout .matrix-description {
+        flex: 1;
+    }
 }
 
 .risk-point {
