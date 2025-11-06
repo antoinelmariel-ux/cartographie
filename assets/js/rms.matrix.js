@@ -269,9 +269,11 @@ function calculateScore(type) {
             ? getRiskMitigationCoefficient(mitigationLevel)
             : 0;
 
-        coefficient = Number.isFinite(mitigationCoefficient) ? mitigationCoefficient : 0;
+        coefficient = typeof clampMitigationReduction === 'function'
+            ? clampMitigationReduction(mitigationCoefficient)
+            : (Number.isFinite(mitigationCoefficient) ? Math.min(Math.max(mitigationCoefficient, 0), 1) : 0);
         adjustedProb = brutScoreReference;
-        rawScore = brutScoreReference * coefficient;
+        rawScore = brutScoreReference * (1 - coefficient);
 
         const severity = typeof getRiskSeverityFromScore === 'function'
             ? getRiskSeverityFromScore(brutScoreReference)

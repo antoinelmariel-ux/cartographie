@@ -242,6 +242,14 @@ function getRiskMitigationCoefficient(input) {
     return Number.isFinite(coefficient) ? coefficient : 0;
 }
 
+function clampMitigationReduction(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) {
+        return 0;
+    }
+    return Math.min(Math.max(numeric, 0), 1);
+}
+
 function getMitigationColumnFromLevel(level) {
     const normalized = normalizeMitigationEffectiveness(level);
     const index = MITIGATION_EFFECTIVENESS_ORDER.indexOf(normalized);
@@ -278,8 +286,8 @@ function getRiskNetScore(risk) {
     const brutScore = typeof getRiskBrutScore === 'function'
         ? getRiskBrutScore(risk)
         : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0) * aggravatingCoefficient;
-    const mitigationCoefficient = getRiskMitigationCoefficient(risk);
-    return brutScore * mitigationCoefficient;
+    const mitigationReduction = clampMitigationReduction(getRiskMitigationCoefficient(risk));
+    return brutScore * (1 - mitigationReduction);
 }
 
 function getRiskSeverityFromScore(score) {
@@ -301,7 +309,8 @@ function getRiskNetInfo(risk) {
     const aggravatingCoefficient = typeof getRiskAggravatingCoefficient === 'function'
         ? getRiskAggravatingCoefficient(risk)
         : 1;
-    const mitigationCoefficient = getRiskMitigationCoefficient(risk);
+    const rawMitigationCoefficient = getRiskMitigationCoefficient(risk);
+    const mitigationCoefficient = clampMitigationReduction(rawMitigationCoefficient);
     const brutScore = typeof getRiskBrutScore === 'function'
         ? getRiskBrutScore(risk)
         : (Number(risk?.probBrut) || 0) * (Number(risk?.impactBrut) || 0) * aggravatingCoefficient;
@@ -309,7 +318,7 @@ function getRiskNetInfo(risk) {
         ? aggravatingCoefficient
         : 1;
     const baseBrutScore = brutScore / safeAggravatingCoefficient;
-    const score = brutScore * mitigationCoefficient;
+    const score = brutScore * (1 - mitigationCoefficient);
     const level = getRiskSeverityFromScore(score);
     const effectiveness = getRiskMitigationEffectiveness(risk);
     const label = MITIGATION_EFFECTIVENESS_SCALE[effectiveness]?.label || effectiveness;
@@ -329,8 +338,7 @@ function getRiskNetInfo(risk) {
 }
 
 function formatMitigationCoefficient(value) {
-    const numeric = Number(value);
-    const safe = Number.isFinite(numeric) ? Math.max(0, numeric) : 0;
+    const safe = clampMitigationReduction(value);
     return `${Math.round(safe * 100)}%`;
 }
 
@@ -346,6 +354,7 @@ window.getRiskSeverityFromScore = getRiskSeverityFromScore;
 window.getRiskBrutLevel = getRiskBrutLevel;
 window.getRiskNetInfo = getRiskNetInfo;
 window.formatMitigationCoefficient = formatMitigationCoefficient;
+window.clampMitigationReduction = clampMitigationReduction;
 window.getMitigationColumnFromLevel = getMitigationColumnFromLevel;
 window.getMitigationLevelFromColumn = getMitigationLevelFromColumn;
 window.getNetImpactValueFromSeverity = getNetImpactValueFromSeverity;
