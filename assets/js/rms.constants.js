@@ -67,11 +67,26 @@ const RISK_STATE_CONFIG = {
 
 const MITIGATION_EFFECTIVENESS_DESCRIPTIONS = Object.freeze({
     inefficace: `
-        <p>Les contrôles sont inexistants ou ne sont pas réalisés. Aucun dispositif ne permet de réduire le risque.</p>
+        <p>Gouvernance</p>
         <ul>
-            <li>Absence de procédures documentées ou de responsabilités formalisées.</li>
-            <li>Actions correctives non engagées malgré les constats d'audit ou de revue.</li>
+<li>Aucun engagement du management</li>
+<li>Aucun principe d'&eacute;thique et de conformit&eacute; communiqu&eacute; ou non appliqu&eacute;</li>
+<li>Pas de prise en charge de la fonction Ethique et Conformit&eacute;</li>
+<li>Aucun reporting / suivi des sujets en mati&egrave;re d'&eacute;thique et de conformit&eacute;</li>
         </ul>
+             <p>Proc&eacute;dures et contr&ocirc;les</p>
+             <ul>
+             <li>Absence de proc&eacute;dure / processus</li>
+<li>Processus inefficaces/non pertinents, non appliqu&eacute;s ou non diffus&eacute;s</li>
+<li>Absence de contr&ocirc;le</li>
+<li>Contr&ocirc;les inefficaces/non pertinent ou non appliqu&eacute;s</li>
+</ul>
+<p>Formation</p>
+<ul>
+<li>Absence de formation ou de sensibilisation</li>
+<li>Formation inefficace/non pertinente</li>
+<li>Taux de formation tr&egrave;s faible (&le; 20%)</li>
+</ul>
     `,
     insuffisant: `
         <p>Les contrôles existent mais demeurent lacunaires et ne couvrent pas l'ensemble du périmètre exposé.</p>
