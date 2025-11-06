@@ -109,6 +109,14 @@ class RiskManagementSystem {
 
         const storedHistory = this.loadData('history');
         this.history = Array.isArray(storedHistory) ? storedHistory : this.getDefaultHistory();
+
+        const storedInterviews = this.loadData('interviews');
+        const defaultInterviews = this.getDefaultInterviews();
+        this.interviews = Array.isArray(storedInterviews)
+            ? storedInterviews
+                .map(entry => this.normalizeInterview(entry))
+                .filter(Boolean)
+            : defaultInterviews;
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
         this.readOnlyConfigKeys = new Set(['riskStatuses']);
@@ -143,12 +151,19 @@ class RiskManagementSystem {
             query: '',
             referent: ''
         };
+        this.interviewFilters = {
+            process: '',
+            subProcess: '',
+            referent: ''
+        };
         this.collapsedProcesses = new Set();
         this.initializeProcessCollapseState();
         this.activeInsertionForm = null;
         this.dragState = null;
         this.lastDashboardMetrics = null;
         this.charts = {};
+        this.processColorMap = new Map();
+        this.interviewEditorState = null;
         this.init();
     }
 
@@ -166,6 +181,7 @@ class RiskManagementSystem {
     }
 
     init() {
+        this.refreshProcessColorMap();
         this.populateSelects();
         this.renderAll();
         if (this.needsConfigStructureRerender) {
@@ -183,6 +199,7 @@ class RiskManagementSystem {
         this.updateControlsList();
         this.updateActionPlansList();
         this.updateHistory();
+        this.updateInterviewsList();
 
         if (this.currentTab === 'config') {
             this.renderConfiguration();
@@ -219,6 +236,10 @@ class RiskManagementSystem {
             return [];
         }
         return defaults.map(item => cloneDefaultEntry(item));
+    }
+
+    getDefaultInterviews() {
+        return [];
     }
 
     getDefaultConfig() {
@@ -495,12 +516,172 @@ class RiskManagementSystem {
         return normalized;
     }
 
+    normalizeInterviewDate(value) {
+        if (value == null) {
+            return '';
+        }
+
+        const asString = String(value).trim();
+        if (!asString) {
+            return '';
+        }
+
+        if (/^\d{4}-\d{2}-\d{2}$/.test(asString)) {
+            return asString;
+        }
+
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(asString)) {
+            const [day, month, year] = asString.split('/');
+            return `${year}-${month}-${day}`;
+        }
+
+        const parsed = new Date(asString);
+        if (!Number.isNaN(parsed.getTime())) {
+            const year = parsed.getFullYear();
+            const month = String(parsed.getMonth() + 1).padStart(2, '0');
+            const day = String(parsed.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        return '';
+    }
+
+    normalizeInterviewScopes(scopes) {
+        if (!Array.isArray(scopes)) {
+            return [];
+        }
+
+        const seen = new Set();
+        const normalized = [];
+
+        scopes.forEach(scope => {
+            if (!scope || typeof scope !== 'object') {
+                return;
+            }
+
+            const processValueRaw = scope.processValue ?? scope.process;
+            const subProcessValueRaw = scope.subProcessValue ?? scope.subProcess ?? scope.value;
+
+            const processValue = typeof processValueRaw === 'string'
+                ? processValueRaw.trim()
+                : '';
+            const subProcessValue = typeof subProcessValueRaw === 'string'
+                ? subProcessValueRaw.trim()
+                : '';
+
+            if (!processValue && !subProcessValue) {
+                return;
+            }
+
+            const key = `${processValue}::${subProcessValue}`;
+            if (seen.has(key)) {
+                return;
+            }
+            seen.add(key);
+
+            const processLabelRaw = scope.processLabel ?? scope.processName ?? scope.label ?? '';
+            const subProcessLabelRaw = scope.subProcessLabel ?? scope.label ?? scope.subLabel ?? '';
+
+            const processLabel = processValue
+                ? (processLabelRaw || this.getProcessLabel(processValue) || processValue)
+                : (processLabelRaw || 'Processus');
+            const subProcessLabel = subProcessValue
+                ? (subProcessLabelRaw || this.getSubProcessLabel(processValue, subProcessValue) || subProcessValue)
+                : '';
+
+            normalized.push({
+                key,
+                processValue,
+                processLabel,
+                subProcessValue,
+                subProcessLabel,
+                type: subProcessValue ? 'subProcess' : 'process'
+            });
+        });
+
+        return normalized;
+    }
+
+    normalizeInterview(interview) {
+        if (!interview || typeof interview !== 'object') {
+            return null;
+        }
+
+        const title = typeof interview.title === 'string' ? interview.title.trim() : '';
+
+        const referents = Array.isArray(interview.referents)
+            ? interview.referents
+                .map(ref => (typeof ref === 'string' ? ref.trim() : ''))
+                .filter(Boolean)
+            : [];
+        const uniqueReferents = Array.from(new Set(referents));
+
+        const normalizedDate = this.normalizeInterviewDate(interview.date);
+        const notes = typeof interview.notes === 'string' ? interview.notes : '';
+
+        const rawScopes = Array.isArray(interview.scopes)
+            ? interview.scopes
+            : Array.isArray(interview.subProcesses)
+                ? interview.subProcesses.map(sub => ({
+                    processValue: sub.processValue ?? sub.process,
+                    processLabel: sub.processLabel ?? sub.processName,
+                    subProcessValue: sub.value ?? sub.subProcessValue ?? sub.subProcess,
+                    subProcessLabel: sub.label ?? sub.subProcessLabel ?? sub.name
+                }))
+                : [];
+
+        const normalizedScopes = this.normalizeInterviewScopes(rawScopes);
+
+        const processesMap = new Map();
+        normalizedScopes.forEach(scope => {
+            if (!scope || !scope.processValue) {
+                return;
+            }
+            if (!processesMap.has(scope.processValue)) {
+                processesMap.set(scope.processValue, {
+                    value: scope.processValue,
+                    label: scope.processLabel || this.getProcessLabel(scope.processValue) || scope.processValue
+                });
+            }
+        });
+
+        const subProcesses = normalizedScopes
+            .filter(scope => scope.subProcessValue)
+            .map(scope => ({
+                processValue: scope.processValue,
+                processLabel: scope.processLabel,
+                value: scope.subProcessValue,
+                label: scope.subProcessLabel
+            }));
+
+        const createdAt = typeof interview.createdAt === 'string' && interview.createdAt
+            ? interview.createdAt
+            : new Date().toISOString();
+        const updatedAt = typeof interview.updatedAt === 'string' && interview.updatedAt
+            ? interview.updatedAt
+            : createdAt;
+
+        return {
+            id: interview.id,
+            title,
+            referents: uniqueReferents,
+            date: normalizedDate,
+            notes,
+            scopes: normalizedScopes,
+            processes: Array.from(processesMap.values()),
+            subProcesses,
+            createdAt,
+            updatedAt
+        };
+    }
+
     getSnapshot() {
         return JSON.parse(JSON.stringify({
             risks: this.risks,
             controls: this.controls,
             actionPlans: this.actionPlans,
             history: this.history,
+            interviews: this.interviews,
             config: this.config
         }));
     }
@@ -522,6 +703,9 @@ class RiskManagementSystem {
         this.controls = cloneArray(snapshot.controls);
         this.actionPlans = cloneArray(snapshot.actionPlans);
         this.history = cloneArray(snapshot.history);
+        this.interviews = cloneArray(snapshot.interviews)
+            .map(entry => this.normalizeInterview(entry))
+            .filter(Boolean);
         this.config = cloneObject(snapshot.config);
 
         this.ensureConfigStructure();
@@ -546,6 +730,7 @@ class RiskManagementSystem {
     }
 
     populateSelects() {
+        this.refreshProcessColorMap();
         const fill = (ids, options, placeholder) => {
             const targetIds = Array.isArray(ids) ? ids : [ids];
             const optionList = Array.isArray(options) ? options : [];
@@ -578,7 +763,7 @@ class RiskManagementSystem {
             });
         };
 
-        fill(['matrixProcessFilter', 'risksProcessFilter'], this.config.processes, 'Tous les processus');
+        fill(['matrixProcessFilter', 'risksProcessFilter', 'interviewProcessFilter'], this.config.processes, 'Tous les processus');
         fill(['matrixRiskTypeFilter', 'risksTypeFilter'], this.config.riskTypes, 'Tous les types');
         fill(['matrixStatusFilter', 'risksStatusFilter'], this.config.riskStatuses, 'Tous les statuts');
         fill('processus', this.config.processes, 'Sélectionner...');
@@ -597,6 +782,11 @@ class RiskManagementSystem {
         fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
         fill('planStatus', this.config.actionPlanStatuses, 'Sélectionner...');
         fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'Tous les statuts');
+
+        const referentOptions = this.getAllKnownReferents().map(ref => ({ value: ref, label: ref }));
+
+        fill('interviewReferentFilter', referentOptions, 'Tous les référents');
+        this.updateInterviewReferentSelect(referentOptions);
 
         const mitigationInput = document.getElementById('mitigationEffectiveness');
         if (mitigationInput) {
@@ -675,6 +865,32 @@ class RiskManagementSystem {
                     element.value = normalizedValue;
                 }
             });
+        }
+
+        this.populateInterviewSubProcessFilterOptions();
+
+        const processFilterSelect = document.getElementById('interviewProcessFilter');
+        if (processFilterSelect) {
+            const expected = this.interviewFilters?.process || '';
+            if (processFilterSelect.value !== expected) {
+                processFilterSelect.value = expected;
+            }
+        }
+
+        const referentFilterSelect = document.getElementById('interviewReferentFilter');
+        if (referentFilterSelect) {
+            const expected = this.interviewFilters?.referent || '';
+            if (referentFilterSelect.value !== expected) {
+                referentFilterSelect.value = expected;
+            }
+        }
+
+        const subProcessFilterSelect = document.getElementById('interviewSubProcessFilter');
+        if (subProcessFilterSelect) {
+            const expected = this.interviewFilters?.subProcess || '';
+            if (subProcessFilterSelect.value !== expected) {
+                subProcessFilterSelect.value = expected;
+            }
         }
     }
 
@@ -2685,6 +2901,7 @@ class RiskManagementSystem {
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
         localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
         localStorage.setItem('rms_history', JSON.stringify(this.history));
+        localStorage.setItem('rms_interviews', JSON.stringify(this.interviews));
         this.updateLastSaveTime();
     }
 
@@ -4870,6 +5087,977 @@ class RiskManagementSystem {
         this.saveData();
         this.updateHistory();
     }
+
+    // Interview management
+    refreshProcessColorMap() {
+        if (!(this.processColorMap instanceof Map)) {
+            this.processColorMap = new Map();
+        } else {
+            this.processColorMap.clear();
+        }
+
+        const processes = Array.isArray(this.config?.processes) ? this.config.processes : [];
+        const paletteSize = 8;
+
+        processes.forEach((process, index) => {
+            const value = process?.value;
+            if (!value) {
+                return;
+            }
+            const colorClass = `process-color-${index % paletteSize}`;
+            this.processColorMap.set(value, colorClass);
+        });
+    }
+
+    getProcessColorClass(processValue) {
+        if (!processValue) {
+            return 'process-color-0';
+        }
+
+        if (this.processColorMap instanceof Map && this.processColorMap.has(processValue)) {
+            return this.processColorMap.get(processValue);
+        }
+
+        return 'process-color-0';
+    }
+
+    getProcessLabel(processValue) {
+        if (!processValue) {
+            return '';
+        }
+
+        const processes = Array.isArray(this.config?.processes) ? this.config.processes : [];
+        const match = processes.find(process => process && process.value === processValue);
+        if (match) {
+            return match.label || match.value || processValue;
+        }
+
+        return processValue;
+    }
+
+    getSubProcessLabel(processValue, subProcessValue) {
+        if (!processValue || !subProcessValue) {
+            return subProcessValue || '';
+        }
+
+        const subProcesses = this.config?.subProcesses?.[processValue];
+        if (!Array.isArray(subProcesses)) {
+            return subProcessValue;
+        }
+
+        const match = subProcesses.find(subProcess => subProcess && subProcess.value === subProcessValue);
+        if (match) {
+            return match.label || match.value || subProcessValue;
+        }
+
+        return subProcessValue;
+    }
+
+    getAllKnownReferents() {
+        const referentSet = new Set(this.collectAllReferents());
+
+        if (Array.isArray(this.interviews)) {
+            this.interviews.forEach(interview => {
+                if (!interview || !Array.isArray(interview.referents)) {
+                    return;
+                }
+
+                interview.referents.forEach(ref => {
+                    if (typeof ref === 'string' && ref.trim()) {
+                        referentSet.add(ref.trim());
+                    }
+                });
+            });
+        }
+
+        return Array.from(referentSet).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+    }
+
+    updateInterviewReferentSelect(options) {
+        const select = document.getElementById('interviewReferents');
+        if (!select) {
+            return;
+        }
+
+        const currentSelection = Array.isArray(this.interviewEditorState?.referents)
+            ? [...this.interviewEditorState.referents]
+            : Array.from(select.selectedOptions || []).map(option => option.value);
+
+        select.innerHTML = '';
+
+        const normalizedOptions = Array.isArray(options) ? options : [];
+
+        normalizedOptions.forEach(option => {
+            if (!option || typeof option !== 'object') {
+                return;
+            }
+
+            const value = option.value;
+            const label = option.label ?? value;
+
+            if (value == null) {
+                return;
+            }
+
+            const opt = document.createElement('option');
+            opt.value = value;
+            opt.textContent = label;
+            if (currentSelection.includes(value)) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+    }
+
+    populateInterviewSubProcessFilterOptions() {
+        const select = document.getElementById('interviewSubProcessFilter');
+        if (!select) {
+            return;
+        }
+
+        const previousValue = this.interviewFilters?.subProcess || '';
+        const processFilter = this.interviewFilters?.process || '';
+
+        select.innerHTML = '';
+        const placeholder = document.createElement('option');
+        placeholder.value = '';
+        placeholder.textContent = 'Tous les sous-processus';
+        select.appendChild(placeholder);
+
+        const optionsMap = new Map();
+        const addOption = (scope) => {
+            if (!scope || !scope.subProcessValue) {
+                return;
+            }
+
+            if (processFilter && scope.processValue !== processFilter) {
+                return;
+            }
+
+            const key = `${scope.processValue}::${scope.subProcessValue}`;
+            if (optionsMap.has(key)) {
+                return;
+            }
+
+            const label = `${scope.processLabel || this.getProcessLabel(scope.processValue)} • ${scope.subProcessLabel || this.getSubProcessLabel(scope.processValue, scope.subProcessValue)}`;
+            optionsMap.set(key, { value: key, label });
+        };
+
+        (Array.isArray(this.interviews) ? this.interviews : []).forEach(interview => {
+            if (!interview || !Array.isArray(interview.scopes)) {
+                return;
+            }
+            interview.scopes.forEach(scope => addOption(scope));
+        });
+
+        const sortedOptions = Array.from(optionsMap.values())
+            .sort((a, b) => a.label.localeCompare(b.label, 'fr', { sensitivity: 'base' }));
+
+        sortedOptions.forEach(option => {
+            const opt = document.createElement('option');
+            opt.value = option.value;
+            opt.textContent = option.label;
+            if (option.value === previousValue) {
+                opt.selected = true;
+            }
+            select.appendChild(opt);
+        });
+
+        if (previousValue && !optionsMap.has(previousValue)) {
+            select.value = '';
+            if (this.interviewFilters) {
+                this.interviewFilters.subProcess = '';
+            }
+        }
+    }
+
+    setInterviewFilter(filterKey, value) {
+        if (!this.interviewFilters || typeof filterKey !== 'string') {
+            return;
+        }
+
+        const normalizedKey = filterKey.trim();
+        if (!normalizedKey || !(normalizedKey in this.interviewFilters)) {
+            return;
+        }
+
+        const normalizedValue = value == null ? '' : String(value);
+        this.interviewFilters[normalizedKey] = normalizedValue;
+
+        if (normalizedKey === 'process') {
+            this.populateInterviewSubProcessFilterOptions();
+        }
+
+        this.updateInterviewsList();
+    }
+
+    handleInterviewReferentsChange(element) {
+        if (!this.interviewEditorState) {
+            this.interviewEditorState = {
+                editingId: null,
+                referents: [],
+                selectedScopeKeys: new Set(),
+                availableScopes: [],
+                fallbackScopes: []
+            };
+        }
+
+        const values = element
+            ? Array.from(element.selectedOptions || []).map(option => option.value).filter(value => typeof value === 'string' && value.trim())
+            : [];
+
+        this.interviewEditorState.referents = values;
+        this.renderInterviewScopeSelection();
+    }
+
+    computeInterviewScopesForReferents(referents) {
+        const normalizedReferents = Array.isArray(referents)
+            ? referents
+                .map(ref => typeof ref === 'string' ? ref.trim().toLowerCase() : '')
+                .filter(Boolean)
+            : [];
+
+        if (!normalizedReferents.length) {
+            return [];
+        }
+
+        const seen = new Set();
+        const scopes = [];
+        const processes = Array.isArray(this.config?.processes) ? this.config.processes : [];
+
+        processes.forEach(process => {
+            if (!process || !process.value) {
+                return;
+            }
+
+            const processValue = process.value;
+            const processLabel = process.label || process.value;
+            const processReferents = Array.isArray(process.referents)
+                ? process.referents.map(ref => typeof ref === 'string' ? ref.trim().toLowerCase() : '').filter(Boolean)
+                : [];
+
+            const includeAllSubProcesses = processReferents.some(ref => normalizedReferents.includes(ref));
+            const subProcesses = Array.isArray(this.config?.subProcesses?.[processValue])
+                ? this.config.subProcesses[processValue]
+                : [];
+
+            if (includeAllSubProcesses && subProcesses.length === 0) {
+                const key = `${processValue}::`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    scopes.push({
+                        key,
+                        processValue,
+                        processLabel,
+                        subProcessValue: '',
+                        subProcessLabel: '',
+                        type: 'process'
+                    });
+                }
+            }
+
+            if (subProcesses.length) {
+                subProcesses.forEach(subProcess => {
+                    if (!subProcess || !subProcess.value) {
+                        return;
+                    }
+
+                    const subProcessValue = subProcess.value;
+                    const subProcessLabel = subProcess.label || subProcess.value;
+                    const subReferents = Array.isArray(subProcess.referents)
+                        ? subProcess.referents.map(ref => typeof ref === 'string' ? ref.trim().toLowerCase() : '').filter(Boolean)
+                        : [];
+
+                    if (includeAllSubProcesses || subReferents.some(ref => normalizedReferents.includes(ref))) {
+                        const key = `${processValue}::${subProcessValue}`;
+                        if (!seen.has(key)) {
+                            seen.add(key);
+                            scopes.push({
+                                key,
+                                processValue,
+                                processLabel,
+                                subProcessValue,
+                                subProcessLabel,
+                                type: 'subProcess'
+                            });
+                        }
+                    }
+                });
+            }
+
+            if (!includeAllSubProcesses && subProcesses.length === 0 && processReferents.some(ref => normalizedReferents.includes(ref))) {
+                const key = `${processValue}::`;
+                if (!seen.has(key)) {
+                    seen.add(key);
+                    scopes.push({
+                        key,
+                        processValue,
+                        processLabel,
+                        subProcessValue: '',
+                        subProcessLabel: '',
+                        type: 'process'
+                    });
+                }
+            }
+        });
+
+        return scopes;
+    }
+
+    renderInterviewScopeSelection(options = {}) {
+        const container = document.getElementById('interviewScopeSelection');
+        const helper = document.getElementById('interviewScopeHelper');
+
+        if (!container || !helper) {
+            return;
+        }
+
+        if (!this.interviewEditorState) {
+            this.interviewEditorState = {
+                editingId: null,
+                referents: [],
+                selectedScopeKeys: new Set(),
+                availableScopes: [],
+                fallbackScopes: []
+            };
+        }
+
+        const state = this.interviewEditorState;
+        if (!(state.selectedScopeKeys instanceof Set)) {
+            state.selectedScopeKeys = new Set();
+        }
+
+        const referents = Array.isArray(state.referents) ? state.referents : [];
+        const preserveSelection = Boolean(options.preserveSelection);
+
+        if (!referents.length) {
+            helper.textContent = 'Sélectionnez un ou plusieurs référents pour afficher les sous-processus correspondants.';
+            container.innerHTML = '<div class="interview-scope-empty">Aucun référent sélectionné.</div>';
+            state.availableScopes = [];
+            return;
+        }
+
+        let availableScopes = this.computeInterviewScopesForReferents(referents);
+        if (!availableScopes.length && Array.isArray(state.fallbackScopes) && state.fallbackScopes.length) {
+            availableScopes = [...state.fallbackScopes];
+        }
+
+        state.availableScopes = availableScopes;
+
+        if (!availableScopes.length) {
+            helper.textContent = 'Aucun processus ou sous-processus n’est associé aux référents sélectionnés.';
+            container.innerHTML = '<div class="interview-scope-empty">Aucun élément disponible pour ces référents.</div>';
+            state.selectedScopeKeys.clear();
+            return;
+        }
+
+        const availableKeys = new Set(availableScopes.map(scope => scope.key));
+        Array.from(state.selectedScopeKeys).forEach(key => {
+            if (!availableKeys.has(key)) {
+                state.selectedScopeKeys.delete(key);
+            }
+        });
+
+        if (!preserveSelection && state.selectedScopeKeys.size === 0) {
+            availableScopes.forEach(scope => state.selectedScopeKeys.add(scope.key));
+        }
+
+        const selectedCount = state.selectedScopeKeys.size;
+        const totalCount = availableScopes.length;
+
+        if (selectedCount === 0) {
+            helper.textContent = 'Aucun élément sélectionné. Sélectionnez au moins un sous-processus.';
+        } else if (selectedCount === totalCount) {
+            helper.textContent = 'Tous les sous-processus correspondant aux référents sont sélectionnés.';
+        } else {
+            helper.textContent = `${selectedCount} élément${selectedCount > 1 ? 's' : ''} sélectionné${selectedCount > 1 ? 's' : ''} sur ${totalCount}.`;
+        }
+
+        const groups = new Map();
+        availableScopes.forEach(scope => {
+            const processValue = scope.processValue || '';
+            if (!groups.has(processValue)) {
+                groups.set(processValue, {
+                    processValue,
+                    processLabel: scope.processLabel || this.getProcessLabel(processValue) || processValue || 'Processus',
+                    items: []
+                });
+            }
+            groups.get(processValue).items.push(scope);
+        });
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, match => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match] || match));
+
+        const escapeAttribute = (value) => String(value ?? '').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+        container.innerHTML = Array.from(groups.values()).map(group => {
+            const colorClass = this.getProcessColorClass(group.processValue);
+            const chips = group.items.map(scope => {
+                const isSelected = state.selectedScopeKeys.has(scope.key);
+                const label = scope.subProcessValue
+                    ? (scope.subProcessLabel || this.getSubProcessLabel(scope.processValue, scope.subProcessValue) || scope.subProcessValue)
+                    : 'Processus complet';
+                const escapedKey = escapeAttribute(scope.key);
+                return `<div class="interview-subprocess-chip ${isSelected ? '' : 'deselected'}" tabindex="0" role="button" aria-pressed="${isSelected}" onclick="rms.toggleInterviewScope('${escapedKey}')" onkeydown="rms.handleInterviewScopeKey(event, '${escapedKey}')">${escapeHtml(label)}</div>`;
+            }).join('');
+
+            const itemCountLabel = `${group.items.length} élément${group.items.length > 1 ? 's' : ''}`;
+
+            return `<div class="interview-scope-group ${colorClass}"><div class="interview-scope-group-header"><div class="interview-scope-group-title">${escapeHtml(group.processLabel)}</div><div class="interview-scope-group-count">${itemCountLabel}</div></div><div class="interview-scope-chips">${chips}</div></div>`;
+        }).join('');
+    }
+
+    toggleInterviewScope(scopeKey) {
+        if (!this.interviewEditorState) {
+            return;
+        }
+
+        const key = scopeKey == null ? '' : String(scopeKey);
+        if (!key) {
+            return;
+        }
+
+        if (!(this.interviewEditorState.selectedScopeKeys instanceof Set)) {
+            this.interviewEditorState.selectedScopeKeys = new Set();
+        }
+
+        if (this.interviewEditorState.selectedScopeKeys.has(key)) {
+            this.interviewEditorState.selectedScopeKeys.delete(key);
+        } else {
+            this.interviewEditorState.selectedScopeKeys.add(key);
+        }
+
+        this.renderInterviewScopeSelection({ preserveSelection: true });
+    }
+
+    handleInterviewScopeKey(event, scopeKey) {
+        if (!event) {
+            return;
+        }
+
+        const key = event.key || event.code;
+        if (key === 'Enter' || key === ' ' || key === 'Spacebar') {
+            event.preventDefault();
+            this.toggleInterviewScope(scopeKey);
+        }
+    }
+
+    applyInterviewFormat(command) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const notes = document.getElementById('interviewNotes');
+        if (!notes) {
+            return;
+        }
+
+        notes.focus();
+        try {
+            document.execCommand(command, false, null);
+        } catch (error) {
+            console.warn('Unsupported formatting command', command, error);
+        }
+    }
+
+    applyInterviewLink() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const notes = document.getElementById('interviewNotes');
+        if (!notes) {
+            return;
+        }
+
+        const url = prompt('Adresse du lien', 'https://');
+        if (!url) {
+            return;
+        }
+
+        let normalized = url.trim();
+        if (!/^https?:\/\//i.test(normalized)) {
+            normalized = `https://${normalized}`;
+        }
+
+        notes.focus();
+        try {
+            document.execCommand('createLink', false, normalized);
+        } catch (error) {
+            console.warn('Unable to create link', error);
+        }
+    }
+
+    clearInterviewFormatting() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const notes = document.getElementById('interviewNotes');
+        if (!notes) {
+            return;
+        }
+
+        notes.focus();
+        try {
+            document.execCommand('removeFormat', false, null);
+            document.execCommand('unlink', false, null);
+        } catch (error) {
+            console.warn('Unable to clear formatting', error);
+        }
+    }
+
+    openInterviewModal(interviewId = null) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewModal');
+        const form = document.getElementById('interviewForm');
+        const titleInput = document.getElementById('interviewTitle');
+        const dateInput = document.getElementById('interviewDate');
+        const notesElement = document.getElementById('interviewNotes');
+        const modalTitle = document.getElementById('interviewModalTitle');
+
+        if (!modal || !form || !notesElement) {
+            return;
+        }
+
+        let targetInterview = null;
+        if (interviewId != null) {
+            targetInterview = (this.interviews || []).find(interview => idsEqual(interview.id, interviewId)) || null;
+        }
+
+        form.reset();
+        notesElement.innerHTML = '';
+
+        const referents = targetInterview && Array.isArray(targetInterview.referents)
+            ? [...targetInterview.referents]
+            : [];
+
+        const selectedScopeKeys = targetInterview && Array.isArray(targetInterview.scopes)
+            ? new Set(targetInterview.scopes.map(scope => scope.key))
+            : new Set();
+
+        const fallbackScopes = targetInterview && Array.isArray(targetInterview.scopes)
+            ? [...targetInterview.scopes]
+            : [];
+
+        this.interviewEditorState = {
+            editingId: targetInterview ? targetInterview.id : null,
+            referents,
+            selectedScopeKeys,
+            availableScopes: [],
+            fallbackScopes
+        };
+
+        const referentOptions = this.getAllKnownReferents().map(ref => ({ value: ref, label: ref }));
+        this.updateInterviewReferentSelect(referentOptions);
+
+        if (titleInput) {
+            titleInput.value = targetInterview?.title || '';
+        }
+
+        if (dateInput) {
+            const dateValue = targetInterview?.date || this.getTodayDateString();
+            dateInput.value = dateValue;
+        }
+
+        notesElement.innerHTML = targetInterview?.notes || '';
+
+        if (modalTitle) {
+            modalTitle.textContent = targetInterview ? 'Modifier le compte-rendu' : 'Nouveau compte-rendu';
+        }
+
+        this.renderInterviewScopeSelection();
+
+        modal.classList.add('show');
+
+        setTimeout(() => {
+            if (titleInput) {
+                titleInput.focus();
+            } else {
+                const referentSelect = document.getElementById('interviewReferents');
+                referentSelect && referentSelect.focus();
+            }
+        }, 50);
+    }
+
+    closeInterviewModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('show');
+
+        const form = document.getElementById('interviewForm');
+        const notes = document.getElementById('interviewNotes');
+        if (form) {
+            form.reset();
+        }
+        if (notes) {
+            notes.innerHTML = '';
+        }
+
+        this.interviewEditorState = null;
+    }
+
+    getTodayDateString() {
+        const now = new Date();
+        const year = now.getFullYear();
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const day = String(now.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    formatInterviewDate(value) {
+        if (!value) {
+            return '';
+        }
+
+        if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) {
+            const [year, month, day] = value.split('-');
+            return `${day}/${month}/${year}`;
+        }
+
+        if (typeof value === 'string' && /^\d{2}\/\d{2}\/\d{4}$/.test(value)) {
+            return value;
+        }
+
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleDateString('fr-FR');
+        }
+
+        return String(value);
+    }
+
+    formatInterviewDateTime(value) {
+        if (!value) {
+            return '';
+        }
+
+        const parsed = new Date(value);
+        if (!Number.isNaN(parsed.getTime())) {
+            return parsed.toLocaleString('fr-FR');
+        }
+
+        return this.formatInterviewDate(value);
+    }
+
+    saveInterview() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const form = document.getElementById('interviewForm');
+        if (!form) {
+            return;
+        }
+
+        const titleInput = document.getElementById('interviewTitle');
+        const dateInput = document.getElementById('interviewDate');
+        const notesElement = document.getElementById('interviewNotes');
+        const referentSelect = document.getElementById('interviewReferents');
+
+        const title = titleInput ? titleInput.value.trim() : '';
+        const dateValue = dateInput ? this.normalizeInterviewDate(dateInput.value) : '';
+
+        const referents = referentSelect
+            ? Array.from(referentSelect.selectedOptions || []).map(option => option.value).filter(value => typeof value === 'string' && value.trim())
+            : [];
+
+        if (!referents.length) {
+            alert('Sélectionnez au moins un référent pour le compte-rendu.');
+            return;
+        }
+
+        if (!dateValue) {
+            alert('Indiquez une date valide pour le compte-rendu.');
+            return;
+        }
+
+        const notes = notesElement ? notesElement.innerHTML.trim() : '';
+
+        if (!this.interviewEditorState) {
+            this.interviewEditorState = {
+                editingId: null,
+                referents,
+                selectedScopeKeys: new Set(),
+                availableScopes: [],
+                fallbackScopes: []
+            };
+        }
+
+        this.interviewEditorState.referents = referents;
+
+        const scopeMap = new Map();
+        (Array.isArray(this.interviewEditorState.availableScopes) ? this.interviewEditorState.availableScopes : []).forEach(scope => {
+            if (scope && scope.key) {
+                scopeMap.set(scope.key, scope);
+            }
+        });
+        (Array.isArray(this.interviewEditorState.fallbackScopes) ? this.interviewEditorState.fallbackScopes : []).forEach(scope => {
+            if (scope && scope.key && !scopeMap.has(scope.key)) {
+                scopeMap.set(scope.key, scope);
+            }
+        });
+
+        const selectedKeys = Array.from(this.interviewEditorState.selectedScopeKeys instanceof Set
+            ? this.interviewEditorState.selectedScopeKeys
+            : new Set());
+        const selectedScopes = selectedKeys.map(key => scopeMap.get(key)).filter(Boolean);
+
+        if (!selectedScopes.length) {
+            alert('Sélectionnez au moins un processus ou sous-processus lié à cette interview.');
+            return;
+        }
+
+        let existingInterview = null;
+        if (this.interviewEditorState.editingId != null && Array.isArray(this.interviews)) {
+            existingInterview = this.interviews.find(entry => idsEqual(entry.id, this.interviewEditorState.editingId)) || null;
+        }
+
+        const processesMap = new Map();
+        selectedScopes.forEach(scope => {
+            if (!scope || !scope.processValue) {
+                return;
+            }
+            if (!processesMap.has(scope.processValue)) {
+                processesMap.set(scope.processValue, {
+                    value: scope.processValue,
+                    label: scope.processLabel || this.getProcessLabel(scope.processValue) || scope.processValue
+                });
+            }
+        });
+
+        const subProcesses = selectedScopes
+            .filter(scope => scope.subProcessValue)
+            .map(scope => ({
+                processValue: scope.processValue,
+                processLabel: scope.processLabel || this.getProcessLabel(scope.processValue) || scope.processValue,
+                value: scope.subProcessValue,
+                label: scope.subProcessLabel || this.getSubProcessLabel(scope.processValue, scope.subProcessValue) || scope.subProcessValue
+            }));
+
+        const timestamp = new Date().toISOString();
+
+        const interviewPayload = {
+            id: this.interviewEditorState.editingId != null
+                ? this.interviewEditorState.editingId
+                : getNextSequentialId(this.interviews),
+            title,
+            referents,
+            date: dateValue,
+            notes,
+            scopes: selectedScopes,
+            processes: Array.from(processesMap.values()),
+            subProcesses,
+            createdAt: existingInterview?.createdAt || timestamp,
+            updatedAt: timestamp
+        };
+
+        const normalizedInterview = this.normalizeInterview(interviewPayload);
+
+        if (this.interviewEditorState.editingId != null) {
+            const index = Array.isArray(this.interviews)
+                ? this.interviews.findIndex(entry => idsEqual(entry.id, this.interviewEditorState.editingId))
+                : -1;
+            if (index > -1) {
+                this.interviews[index] = normalizedInterview;
+            }
+        } else {
+            if (!Array.isArray(this.interviews)) {
+                this.interviews = [];
+            }
+            this.interviews.push(normalizedInterview);
+        }
+
+        this.interviewEditorState = null;
+        this.saveData();
+        this.updateInterviewsList();
+        this.closeInterviewModal();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', existingInterview ? 'Compte-rendu mis à jour avec succès' : 'Compte-rendu créé avec succès');
+        }
+    }
+
+    deleteInterview(interviewId) {
+        if (!Array.isArray(this.interviews)) {
+            return;
+        }
+
+        const targetIndex = this.interviews.findIndex(interview => idsEqual(interview.id, interviewId));
+        if (targetIndex === -1) {
+            alert('Compte-rendu introuvable.');
+            return;
+        }
+
+        if (!confirm('Confirmez-vous la suppression de ce compte-rendu ?')) {
+            return;
+        }
+
+        this.interviews.splice(targetIndex, 1);
+        this.saveData();
+        this.updateInterviewsList();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Compte-rendu supprimé.');
+        }
+    }
+
+    updateInterviewsList() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const container = document.getElementById('interviewList');
+        const countElement = document.getElementById('interviewCount');
+
+        if (!container) {
+            return;
+        }
+
+        this.populateInterviewSubProcessFilterOptions();
+
+        const interviews = Array.isArray(this.interviews) ? [...this.interviews] : [];
+        const filters = this.interviewFilters || { process: '', subProcess: '', referent: '' };
+
+        const processFilter = filters.process || '';
+        const subProcessFilter = filters.subProcess || '';
+        const referentFilter = (filters.referent || '').trim().toLowerCase();
+
+        let subProcessFilterProcess = '';
+        let subProcessFilterValue = '';
+
+        if (subProcessFilter) {
+            const [proc, sub] = subProcessFilter.split('::');
+            subProcessFilterProcess = proc || '';
+            subProcessFilterValue = sub || '';
+        }
+
+        const filtered = interviews.filter(interview => {
+            if (!interview) {
+                return false;
+            }
+
+            if (processFilter) {
+                const matchesProcess = Array.isArray(interview.scopes)
+                    ? interview.scopes.some(scope => scope?.processValue === processFilter)
+                    : false;
+                if (!matchesProcess) {
+                    return false;
+                }
+            }
+
+            if (subProcessFilterValue) {
+                const matchesSub = Array.isArray(interview.scopes)
+                    ? interview.scopes.some(scope => scope?.processValue === subProcessFilterProcess && scope?.subProcessValue === subProcessFilterValue)
+                    : false;
+                if (!matchesSub) {
+                    return false;
+                }
+            }
+
+            if (referentFilter) {
+                const hasReferent = Array.isArray(interview.referents)
+                    ? interview.referents.some(ref => typeof ref === 'string' && ref.trim().toLowerCase() === referentFilter)
+                    : false;
+                if (!hasReferent) {
+                    return false;
+                }
+            }
+
+            return true;
+        }).sort((a, b) => {
+            const dateA = a?.date || '';
+            const dateB = b?.date || '';
+            if (dateA && dateB && dateA !== dateB) {
+                return dateA > dateB ? -1 : 1;
+            }
+            const updatedA = a?.updatedAt || '';
+            const updatedB = b?.updatedAt || '';
+            if (updatedA && updatedB && updatedA !== updatedB) {
+                return updatedA > updatedB ? -1 : 1;
+            }
+            return 0;
+        });
+
+        if (countElement) {
+            const total = filtered.length;
+            const label = total <= 1 ? `${total} compte-rendu` : `${total} comptes-rendus`;
+            countElement.textContent = label;
+        }
+
+        if (!filtered.length) {
+            container.innerHTML = '<div class="interview-empty">Aucun compte-rendu ne correspond aux filtres sélectionnés.</div>';
+            return;
+        }
+
+        const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, match => ({
+            '&': '&amp;',
+            '<': '&lt;',
+            '>': '&gt;',
+            '"': '&quot;',
+            "'": '&#39;'
+        }[match] || match));
+
+        container.innerHTML = filtered.map(interview => {
+            const title = interview.title ? escapeHtml(interview.title) : 'Compte-rendu sans titre';
+            const dateLabel = this.formatInterviewDate(interview.date);
+            const referentsChips = Array.isArray(interview.referents)
+                ? interview.referents.map(ref => `<span class="interview-referent-chip">${escapeHtml(ref)}</span>`).join('')
+                : '';
+            const notesContent = interview.notes ? interview.notes : '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+
+            const tags = Array.isArray(interview.scopes)
+                ? interview.scopes.map(scope => {
+                    const colorClass = this.getProcessColorClass(scope.processValue);
+                    const label = scope.subProcessValue
+                        ? (scope.subProcessLabel || this.getSubProcessLabel(scope.processValue, scope.subProcessValue) || scope.subProcessValue)
+                        : 'Processus complet';
+                    return `<span class="interview-tag ${colorClass}">${escapeHtml(label)}</span>`;
+                }).join('')
+                : '';
+
+            const updatedLabel = this.formatInterviewDateTime(interview.updatedAt || interview.createdAt);
+            const idAttribute = JSON.stringify(interview.id);
+
+            return `
+                <article class="interview-card">
+                    <header class="interview-card-header">
+                        <div class="interview-card-title">${title}</div>
+                        <div class="interview-card-meta">
+                            ${dateLabel ? `<span class="interview-date-badge">${escapeHtml(dateLabel)}</span>` : ''}
+                        </div>
+                    </header>
+                    <div class="interview-card-meta interview-referents">${referentsChips}</div>
+                    <div class="interview-card-tags">${tags}</div>
+                    <div class="interview-card-notes">${notesContent}</div>
+                    <footer class="interview-card-footer">
+                        <div class="interview-card-meta">Dernière mise à jour : ${escapeHtml(updatedLabel || 'Date inconnue')}</div>
+                        <div class="interview-card-actions">
+                            <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Modifier</button>
+                            <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Supprimer</button>
+                        </div>
+                    </footer>
+                </article>
+            `;
+        }).join('');
+    }
+
 
     // CRUD operations
     addRisk(riskData) {
