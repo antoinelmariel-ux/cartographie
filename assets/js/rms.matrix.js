@@ -114,9 +114,18 @@ function initNetMitigationSlider() {
         slider.dispatchEvent(new Event('change', { bubbles: true }));
     };
 
+    const lastIndex = options.length - 1;
+
     options.forEach((option, index) => {
         const mark = document.createElement('div');
         mark.className = 'net-slider-mark';
+        const progress = lastIndex > 0 ? (index / lastIndex) * 100 : 0;
+        mark.style.setProperty('--mark-position', `${progress}%`);
+        if (index === 0) {
+            mark.dataset.edge = 'start';
+        } else if (index === lastIndex) {
+            mark.dataset.edge = 'end';
+        }
         mark.dataset.value = option.value;
         const percent = Math.round((Number(option.coefficient) || 0) * 100);
         const button = document.createElement('button');
