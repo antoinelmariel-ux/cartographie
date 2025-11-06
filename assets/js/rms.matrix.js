@@ -32,48 +32,6 @@ function updateNetRowHighlight(impactValue) {
     });
 }
 
-function buildMatrixLegend(type, activeValue) {
-    const source = type === 'probability'
-        ? (typeof RISK_PROBABILITY_INFO === 'object' ? RISK_PROBABILITY_INFO : null)
-        : (typeof RISK_IMPACT_INFO === 'object' ? RISK_IMPACT_INFO : null);
-
-    if (!source) {
-        return '';
-    }
-
-    const prefix = type === 'probability' ? 'P' : 'I';
-    const title = type === 'probability' ? 'Probabilité' : 'Impact';
-
-    const legendItems = Object.entries(source).map(([value, info]) => {
-        const numericValue = Number(value);
-        const isActive = numericValue === Number(activeValue);
-        const label = info?.label || '';
-        const description = info?.text || '';
-        const formattedDescription = type === 'probability'
-            ? `<p>${description}</p>`
-            : description;
-
-        return `
-            <div class="legend-item ${isActive ? 'active' : ''}" data-${type}="${numericValue}">
-                <div class="legend-color severity-level-${numericValue}"></div>
-                <div class="legend-content">
-                    <div class="legend-label">${prefix}${numericValue} – ${label}</div>
-                    <div class="legend-text">${formattedDescription}</div>
-                </div>
-            </div>
-        `;
-    }).join('');
-
-    return `
-        <div class="matrix-description-group">
-            <div class="matrix-description-group-title">${title}</div>
-            <div class="legend matrix-legend matrix-${type}-legend">
-                ${legendItems}
-            </div>
-        </div>
-    `;
-}
-
 function changeMatrixView(view) {
     if (!window.rms) return;
 
@@ -389,10 +347,8 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
         return;
     }
 
-    const probabilitySource = typeof RISK_PROBABILITY_INFO === 'object' ? RISK_PROBABILITY_INFO : null;
-    const impactSource = typeof RISK_IMPACT_INFO === 'object' ? RISK_IMPACT_INFO : null;
-    const probability = probabilitySource ? probabilitySource[prob] : null;
-    const impactInfo = impactSource ? impactSource[impact] : null;
+    const probability = RISK_PROBABILITY_INFO[prob];
+    const impactInfo = RISK_IMPACT_INFO[impact];
 
     if (!probability || !impactInfo) {
         container.innerHTML = `
@@ -402,17 +358,16 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
         return;
     }
 
-    const probabilityLegend = buildMatrixLegend('probability', prob);
-    const impactLegend = buildMatrixLegend('impact', impact);
-
     container.innerHTML = `
         <div class="matrix-description-header">${stateConfig.label}</div>
-        <div class="matrix-description-summary">
-            <span class="matrix-chip probability-chip">P${prob} – ${probability.label}</span>
-            <span class="matrix-chip impact-chip">I${impact} – ${impactInfo.label}</span>
+        <div class="matrix-description-section">
+            <h4>Probabilité ${prob} – ${probability.label}</h4>
+            <p>${probability.text}</p>
         </div>
-        ${probabilityLegend}
-        ${impactLegend}
+        <div class="matrix-description-section">
+            <h4>Impact ${impact} – ${impactInfo.label}</h4>
+            <p>${impactInfo.text}</p>
+        </div>
     `;
 }
 

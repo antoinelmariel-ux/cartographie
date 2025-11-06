@@ -733,7 +733,7 @@ body {
     box-shadow: 0 6px 20px rgba(0,0,0,0.08);
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 12px;
 }
 
 .matrix-description-header {
@@ -754,36 +754,6 @@ body {
     font-size: 0.95em;
 }
 
-.matrix-description-summary {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.matrix-chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: #f4f8fb;
-    color: #2c3e50;
-    font-weight: 600;
-    border-radius: 999px;
-    padding: 6px 14px;
-    font-size: 0.9em;
-    border: 1px solid rgba(44, 62, 80, 0.08);
-    box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.6);
-}
-
-.probability-chip {
-    border-color: rgba(52, 152, 219, 0.25);
-    background: rgba(52, 152, 219, 0.1);
-}
-
-.impact-chip {
-    border-color: rgba(231, 76, 60, 0.25);
-    background: rgba(231, 76, 60, 0.1);
-}
-
 .mitigation-description {
     margin-top: 12px;
     color: #4a5560;
@@ -798,20 +768,6 @@ body {
 
 .mitigation-description li {
     margin-bottom: 6px;
-}
-
-.matrix-description-group {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.matrix-description-group-title {
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    font-size: 0.78em;
-    color: #7f8c8d;
-    font-weight: 600;
 }
 
 .matrix-description-empty {
@@ -1142,22 +1098,6 @@ body {
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.legend-color.severity-level-1 {
-    background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.7));
-}
-
-.legend-color.severity-level-2 {
-    background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.7));
-}
-
-.legend-color.severity-level-3 {
-    background: linear-gradient(135deg, rgba(230, 126, 34, 0.45), rgba(230, 126, 34, 0.75));
-}
-
-.legend-color.severity-level-4 {
-    background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.75));
-}
-
 .legend.net-legend {
     justify-content: space-between;
     gap: 18px;
@@ -1171,79 +1111,6 @@ body {
 .legend.net-legend .legend-item.active {
     transform: translateY(-2px);
     font-weight: 600;
-}
-
-.legend.matrix-legend {
-    flex-direction: column;
-    justify-content: flex-start;
-    align-items: stretch;
-    gap: 14px;
-    margin-top: 0;
-    padding: 0;
-    background: transparent;
-    border-radius: 0;
-    flex-wrap: nowrap;
-    box-shadow: none;
-}
-
-.legend.matrix-legend .legend-item {
-    align-items: flex-start;
-    background: #ffffff;
-    border-radius: 12px;
-    padding: 16px;
-    border: 1px solid rgba(44, 62, 80, 0.08);
-    box-shadow: 0 6px 16px rgba(15, 32, 50, 0.08);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.legend.matrix-legend .legend-item:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 8px 20px rgba(15, 32, 50, 0.12);
-}
-
-.legend.matrix-legend .legend-item.active {
-    border-color: rgba(52, 152, 219, 0.45);
-    box-shadow: 0 10px 24px rgba(15, 32, 50, 0.16);
-}
-
-.legend.matrix-legend .legend-color {
-    width: 16px;
-    min-width: 16px;
-    height: 100%;
-    min-height: 48px;
-    border-radius: 6px;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
-}
-
-.legend.matrix-legend .legend-content {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    color: #2c3e50;
-}
-
-.legend.matrix-legend .legend-label {
-    font-weight: 600;
-    font-size: 0.95em;
-}
-
-.legend.matrix-legend .legend-text {
-    color: #4a5560;
-    font-size: 0.9em;
-    line-height: 1.5;
-}
-
-.legend.matrix-legend .legend-text p {
-    margin: 0 0 6px;
-}
-
-.legend.matrix-legend .legend-text ul {
-    margin: 0;
-    padding-left: 18px;
-}
-
-.legend.matrix-legend .legend-text li {
-    margin-bottom: 4px;
 }
 
 /* Dashboard Tab */
