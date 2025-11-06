@@ -744,6 +744,22 @@ body {
     font-size: 0.95em;
 }
 
+.mitigation-description {
+    margin-top: 12px;
+    color: #4a5560;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+.mitigation-description ul {
+    margin-top: 8px;
+    padding-left: 20px;
+}
+
+.mitigation-description li {
+    margin-bottom: 6px;
+}
+
 .matrix-description-empty {
     color: #7f8c8d;
     font-style: italic;
@@ -1553,8 +1569,8 @@ tbody tr:hover {
 .modal-content {
     background: white;
     border-radius: 15px;
-    max-width: 900px;
-    width: 95%;
+    max-width: 1200px;
+    width: min(95%, 1200px);
     max-height: 90vh;
     overflow: hidden;
     display: flex;
