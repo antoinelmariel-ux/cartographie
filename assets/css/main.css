@@ -1074,9 +1074,16 @@ body {
 /* Dashboard Tab */
 .dashboard-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
     gap: 20px;
     margin-bottom: 30px;
+    align-items: stretch;
+}
+
+.dashboard-stats-column {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 20px;
 }
 
 .stat-card {
@@ -1097,7 +1104,36 @@ body {
 .stat-card.success { border-left-color: var(--success-color); }
 .stat-card.warning { border-left-color: var(--warning-color); }
 .stat-card.danger { border-left-color: var(--danger-color); }
-.stat-card.plan-status-card { border-left-color: var(--primary-color); }
+.stat-card.plan-status-card {
+    border-left-color: var(--primary-color);
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-card.plan-status-card .plan-status-chart,
+.stat-card.plan-status-card .plan-status-summary {
+    margin-top: 15px;
+}
+
+.stat-card.plan-status-card .plan-status-chart {
+    flex: 1;
+}
+
+.stat-card.plan-status-card .plan-status-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .dashboard-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .stat-card.plan-status-card {
+        height: auto;
+    }
+}
 
 .stat-header {
     display: flex;
