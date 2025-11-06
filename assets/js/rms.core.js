@@ -332,8 +332,23 @@ class RiskManagementSystem {
     }
 
     loadConfig() {
-        const data = localStorage.getItem('rms_config');
-        return data ? JSON.parse(data) : null;
+        const storageKey = 'rms_config';
+        const data = localStorage.getItem(storageKey);
+        if (!data) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.warn('Configuration locale invalide : réinitialisation', error);
+            try {
+                localStorage.removeItem(storageKey);
+            } catch (cleanupError) {
+                console.warn(`Impossible de supprimer la configuration corrompue (${storageKey})`, cleanupError);
+            }
+            return null;
+        }
     }
 
     saveConfig() {
@@ -2916,8 +2931,23 @@ class RiskManagementSystem {
     }
 
     loadData(key) {
-        const data = localStorage.getItem(`rms_${key}`);
-        return data ? JSON.parse(data) : null;
+        const storageKey = `rms_${key}`;
+        const data = localStorage.getItem(storageKey);
+        if (!data) {
+            return null;
+        }
+
+        try {
+            return JSON.parse(data);
+        } catch (error) {
+            console.warn(`Données locales invalides pour ${storageKey} : réinitialisation`, error);
+            try {
+                localStorage.removeItem(storageKey);
+            } catch (cleanupError) {
+                console.warn(`Impossible de supprimer la clé ${storageKey} corrompue`, cleanupError);
+            }
+            return null;
+        }
     }
 
     markUnsavedChange(context = 'global') {
@@ -5884,9 +5914,12 @@ class RiskManagementSystem {
             tagsContainer.innerHTML = tags || '<span class="interview-card-empty-selection">Aucun processus associé.</span>';
         }
 
-        notesContainer.innerHTML = interview.notes
-            ? interview.notes
-            : '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+        if (interview.notes && String(interview.notes).trim()) {
+            const sanitizedNotes = escapeHtml(interview.notes).replace(/\r?\n/g, '<br>');
+            notesContainer.innerHTML = `<div class="interview-notes-content">${sanitizedNotes}</div>`;
+        } else {
+            notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+        }
 
         modal.classList.add('show');
     }

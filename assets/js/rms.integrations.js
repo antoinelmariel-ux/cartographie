@@ -860,6 +860,17 @@ window.loadRmsDataFromFile = loadRmsDataFromFile;
 function applyPatch() {
     (function(){
       const RMS = window.rms || window.RMS || window.RiskSystem || {};
+      const updateLastSaveTimestamp = () => {
+        try {
+          if (RMS && typeof RMS.updateLastSaveTime === 'function') {
+            RMS.updateLastSaveTime();
+          } else if (typeof window.updateLastSaveTime === 'function') {
+            window.updateLastSaveTime();
+          }
+        } catch (error) {
+          console.warn('Impossible de mettre à jour la dernière heure de sauvegarde', error);
+        }
+      };
       const state = {
         get risks(){ return RMS.risks || window.risks || []; },
         set risks(v){ if (RMS.risks) RMS.risks = v; else window.risks = v; },
@@ -880,7 +891,7 @@ function applyPatch() {
               ? `Sauvegarde "${effectiveLabel}" enregistrée.`
               : 'Sauvegarde automatique enregistrée.';
             addHistoryItem(`Sauvegarde ${effectiveLabel}`, description, { label: effectiveLabel });
-            updateLastSaveTime && updateLastSaveTime();
+            updateLastSaveTimestamp();
           } catch(e){ console.warn("save error", e); }
         },
         renderAll: () => {
@@ -891,7 +902,8 @@ function applyPatch() {
             if (window.updateKPI) window.updateKPI();
             if (window.updateCharts) window.updateCharts();
           } catch(e){ console.warn("renderAll error", e); }
-        }
+        },
+        updateLastSaveTime: updateLastSaveTimestamp
       };
 
       function addHistoryItem(action, descriptionOrMeta, meta){
