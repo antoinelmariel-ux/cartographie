@@ -630,7 +630,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.8</span>
+            <span class="app-version">Version 2.6.9</span>
         </footer>
     </div>
 
@@ -1030,10 +1030,10 @@
                                     <div class="risk-score-meta" id="coordBrut">P1 × I1</div>
                                 </div>
                             </div>
-                            <input type="hidden" id="mitigationEffectiveness" value="">
+                            <input type="hidden" id="mitigationEffectiveness" value="insuffisant">
                             <input type="hidden" id="probBrut" value="1">
                             <input type="hidden" id="impactBrut" value="1">
-                            <input type="hidden" id="probNet" value="1">
+                            <input type="hidden" id="probNet" value="2">
                             <input type="hidden" id="impactNet" value="1">
                         </div>
                     </div>
@@ -1054,20 +1054,24 @@
                         <div class="form-section-title">Évaluation du Risque Net</div>
                         <div class="net-matrix-editor">
                             <div class="net-matrix-wrapper">
-                                <div class="matrix-info-row">
-                                    <div class="edit-matrix-group" data-state="net">
-                                        <div class="edit-matrix-heading">Positionnement du risque net</div>
-                                        <div class="edit-matrix-container">
-                                            <div class="matrix edit-matrix net" id="riskMatrixEditNet" data-state="net">
-                                                <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
-                                                <div class="matrix-net-row-labels" id="riskMatrixEditNetRowLabels"></div>
-                                                <div class="matrix-net-col-labels" id="riskMatrixEditNetColLabels"></div>
-                                            </div>
+                                <div class="net-slider-layout">
+                                    <div class="net-slider-panel" data-state="net">
+                                        <div class="net-slider-header">
+                                            <div class="net-slider-title">Niveau de contrôle appliqué</div>
+                                            <div class="net-slider-badge" id="netMitigationValueLabel">Insuffisant</div>
+                                        </div>
+                                        <div class="net-slider-track">
+                                            <input type="range" id="netMitigationSlider" class="net-slider-input" min="1" max="4" step="1" value="2" aria-label="Niveau de contrôle du risque net">
+                                            <div class="net-slider-marks" id="netMitigationMarks"></div>
+                                        </div>
+                                        <div class="net-slider-footer">
+                                            <span class="net-slider-percent" id="netMitigationPercentLabel">Réduction 25%</span>
+                                            <span class="net-severity-badge" id="netSeverityLabel" data-severity="faible">Risque brut Faible</span>
                                         </div>
                                     </div>
                                     <div id="matrixDescriptionNet" class="matrix-description">
                                         <div class="matrix-description-empty">
-                                            Sélectionnez une position dans la matrice pour afficher le niveau de maîtrise appliqué au risque.
+                                            Ajustez le niveau de contrôle pour visualiser l'efficacité appliquée au risque.
                                         </div>
                                     </div>
                                 </div>

@@ -6,6 +6,7 @@ var highlightedEditCells = {};
 var currentDragState = null;
 var currentPointerId = null;
 var lastDragCell = null;
+var netMitigationOptions = [];
 
 function updateNetLegendActive(effectiveness) {
     const legend = document.getElementById('netLegend');
@@ -21,15 +22,169 @@ function updateNetLegendActive(effectiveness) {
     });
 }
 
-function updateNetRowHighlight(impactValue) {
-    const rowContainer = document.getElementById('riskMatrixEditNetRowLabels');
-    if (!rowContainer) return;
+function updateNetSeverityBadge(impactValue) {
+    const badge = document.getElementById('netSeverityLabel');
+    if (!badge) return;
 
-    const numericImpact = parseInt(impactValue, 10);
-    rowContainer.querySelectorAll('.matrix-net-row-label').forEach((label, index) => {
-        const expectedImpact = 4 - index;
-        label.classList.toggle('active', expectedImpact === numericImpact);
+    const numericImpact = parseInt(impactValue, 10) || 1;
+    const severity = typeof getSeverityFromNetImpactValue === 'function'
+        ? getSeverityFromNetImpactValue(numericImpact)
+        : (numericImpact >= 4 ? 'critique' : numericImpact === 3 ? 'fort' : numericImpact === 2 ? 'modere' : 'faible');
+
+    const severityLabels = {
+        critique: 'Critique',
+        fort: 'Fort',
+        modere: 'Modéré',
+        faible: 'Faible'
+    };
+
+    badge.textContent = `Risque brut ${severityLabels[severity] || ''}`;
+    if (severity) {
+        badge.dataset.severity = severity;
+    } else {
+        badge.removeAttribute('data-severity');
+    }
+}
+
+function ensureNetMitigationOptions() {
+    if (netMitigationOptions.length) {
+        return netMitigationOptions;
+    }
+
+    netMitigationOptions = typeof getMitigationEffectivenessOptions === 'function'
+        ? getMitigationEffectivenessOptions()
+        : [
+            { value: 'inefficace', label: 'Inefficace', coefficient: 0 },
+            { value: 'insuffisant', label: 'Insuffisant', coefficient: 0.25 },
+            { value: 'ameliorable', label: 'Améliorable', coefficient: 0.5 },
+            { value: 'efficace', label: 'Efficace', coefficient: 0.75 }
+        ];
+
+    return netMitigationOptions;
+}
+
+function updateNetSliderUI(probValue) {
+    const slider = document.getElementById('netMitigationSlider');
+    if (!slider) return;
+
+    const options = ensureNetMitigationOptions();
+    const numericValue = Math.min(
+        Math.max(parseInt(probValue, 10) || 1, 1),
+        options.length || 1
+    );
+    const option = options[numericValue - 1] || options[0];
+
+    const marksContainer = document.getElementById('netMitigationMarks');
+    if (marksContainer) {
+        const marks = marksContainer.querySelectorAll('.net-slider-mark');
+        marks.forEach((mark, index) => {
+            const markPosition = index + 1;
+            mark.classList.toggle('active', markPosition === numericValue);
+            mark.classList.toggle('passed', markPosition < numericValue);
+        });
+    }
+
+    if (option) {
+        const badge = document.getElementById('netMitigationValueLabel');
+        if (badge) {
+            badge.textContent = option.label || option.value;
+        }
+
+        const percentLabel = document.getElementById('netMitigationPercentLabel');
+        if (percentLabel) {
+            const percent = Math.round((Number(option.coefficient) || 0) * 100);
+            percentLabel.textContent = `Réduction ${percent}%`;
+        }
+
+        updateNetLegendActive(option.value);
+    }
+
+    const max = options.length > 1 ? options.length - 1 : 1;
+    const progress = max ? ((numericValue - 1) / max) * 100 : 0;
+    slider.style.setProperty('--slider-progress', `${progress}%`);
+    slider.value = numericValue;
+}
+
+function handleNetSliderChange(event) {
+    const sliderValue = parseInt(event.target?.value, 10) || 1;
+    const state = 'net';
+    const { impact } = getStateValues(state);
+    setStateValues(state, sliderValue, impact);
+    const updatedImpact = document.getElementById('impactNet')?.value || impact;
+    updateNetSliderUI(sliderValue);
+    updateNetSeverityBadge(updatedImpact);
+    setActiveRiskState(state);
+}
+
+function initNetMitigationSlider() {
+    const slider = document.getElementById('netMitigationSlider');
+    const marksContainer = document.getElementById('netMitigationMarks');
+    if (!slider || !marksContainer) return;
+
+    const options = ensureNetMitigationOptions();
+    marksContainer.innerHTML = '';
+
+    const applySliderValue = value => {
+        slider.value = value;
+        slider.dispatchEvent(new Event('input', { bubbles: true }));
+        slider.dispatchEvent(new Event('change', { bubbles: true }));
+    };
+
+    options.forEach((option, index) => {
+        const mark = document.createElement('div');
+        mark.className = 'net-slider-mark';
+        mark.dataset.value = option.value;
+        const percent = options.length > 1 ? Math.round((Number(option.coefficient) || 0) * 100) : Math.round((Number(option.coefficient) || 0) * 100);
+        const position = options.length > 1 ? (index / (options.length - 1)) * 100 : 0;
+        mark.style.setProperty('--mark-position', `${position}%`);
+        mark.innerHTML = `<span>${option.label || option.value}</span><span class="net-slider-mark-sub">Réduction ${percent}%</span>`;
+        mark.tabIndex = 0;
+        const targetValue = index + 1;
+        mark.addEventListener('click', () => applySliderValue(targetValue));
+        mark.addEventListener('keydown', event => {
+            if (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar') {
+                event.preventDefault();
+                applySliderValue(targetValue);
+            }
+        });
+        marksContainer.appendChild(mark);
     });
+
+    const hiddenMitigation = document.getElementById('mitigationEffectiveness');
+    const hiddenProb = document.getElementById('probNet');
+    const normalized = hiddenMitigation && typeof normalizeMitigationEffectiveness === 'function'
+        ? normalizeMitigationEffectiveness(hiddenMitigation.value)
+        : null;
+    const defaultLevel = normalized || options[1]?.value || options[0]?.value;
+    const fallbackColumn = typeof getMitigationColumnFromLevel === 'function'
+        ? getMitigationColumnFromLevel(defaultLevel)
+        : 1;
+    const sliderValue = Math.min(
+        Math.max(parseInt(hiddenProb?.value, 10) || fallbackColumn, 1),
+        options.length || 1
+    );
+
+    slider.min = 1;
+    slider.max = options.length || 1;
+    slider.step = 1;
+    slider.value = sliderValue;
+
+    if (hiddenProb) {
+        hiddenProb.value = sliderValue;
+    }
+    if (hiddenMitigation && !hiddenMitigation.value) {
+        const optionAtValue = options[sliderValue - 1];
+        if (optionAtValue && optionAtValue.value) {
+            hiddenMitigation.value = optionAtValue.value;
+        }
+    }
+
+    slider.removeEventListener('input', handleNetSliderChange);
+    slider.removeEventListener('change', handleNetSliderChange);
+    slider.addEventListener('input', handleNetSliderChange);
+    slider.addEventListener('change', handleNetSliderChange);
+
+    updateNetSliderUI(sliderValue);
 }
 
 function changeMatrixView(view) {
@@ -148,7 +303,8 @@ function calculateScore(type) {
         }
 
         updateNetLegendActive(mitigationLevel);
-        updateNetRowHighlight(netImpactValue);
+        updateNetSeverityBadge(netImpactValue);
+        updateNetSliderUI(prob);
     }
 
     if (rawScore === undefined) {
@@ -226,7 +382,9 @@ function positionRiskPointIfExists(state, prob, impact) {
 function positionRiskPoint(state, prob, impact) {
     const config = RISK_STATE_CONFIG[state];
     if (!config) return;
-    const matrix = document.getElementById(config.matrixId);
+    const matrixId = config.matrixId;
+    if (!matrixId) return;
+    const matrix = document.getElementById(matrixId);
     const point = editMatrixPoints[state];
     if (!matrix || !point) return;
 
@@ -276,7 +434,9 @@ function highlightCell(prob, impact, state = activeRiskEditState) {
     const config = RISK_STATE_CONFIG[state];
     if (!config) return;
 
-    const grid = document.getElementById(config.gridId);
+    const gridId = config.gridId;
+    if (!gridId) return;
+    const grid = document.getElementById(gridId);
     if (!grid) return;
 
     clearHighlightedCell(state);
@@ -406,6 +566,7 @@ function setActiveRiskState(state) {
     const { prob, impact } = getStateValues(state);
     highlightCell(prob, impact, state);
     updateMatrixDescription(prob, impact, state);
+
     if (state === 'net') {
         const mitigationValue = document.getElementById('mitigationEffectiveness')?.value;
         if (mitigationValue) {
@@ -413,7 +574,11 @@ function setActiveRiskState(state) {
         }
         const impactValue = document.getElementById('impactNet')?.value;
         if (impactValue) {
-            updateNetRowHighlight(impactValue);
+            updateNetSeverityBadge(impactValue);
+        }
+        const probValue = document.getElementById('probNet')?.value;
+        if (probValue) {
+            updateNetSliderUI(probValue);
         }
     }
     positionAllPoints();
@@ -465,7 +630,9 @@ function handlePointMove(event) {
     if (!currentDragState || event.pointerId !== currentPointerId) return;
     const config = RISK_STATE_CONFIG[currentDragState];
     if (!config) return;
-    const matrix = document.getElementById(config.matrixId);
+    const matrixId = config.matrixId;
+    if (!matrixId) return;
+    const matrix = document.getElementById(matrixId);
     const cell = getCellFromEvent(event, matrix);
     if (!cell) return;
 
@@ -483,7 +650,8 @@ function finishPointDrag(event) {
     point.classList.remove('dragging');
 
     const config = RISK_STATE_CONFIG[state];
-    const matrix = config ? document.getElementById(config.matrixId) : null;
+    const matrixId = config?.matrixId;
+    const matrix = matrixId ? document.getElementById(matrixId) : null;
     const cell = getCellFromEvent(event, matrix) || lastDragCell || getStateValues(state);
     if (cell) {
         setStateValues(state, cell.prob, cell.impact);
@@ -520,98 +688,39 @@ function initRiskEditMatrix() {
         delete editMatrixPoints[state];
     });
 
+    initNetMitigationSlider();
+
     Object.entries(RISK_STATE_CONFIG).forEach(([state, config]) => {
-        const matrix = document.getElementById(config.matrixId);
-        const grid = document.getElementById(config.gridId);
+        if (state === 'net') {
+            highlightedEditCells[state] = null;
+            return;
+        }
+
+        const matrixId = config.matrixId;
+        const gridId = config.gridId;
+        const matrix = matrixId ? document.getElementById(matrixId) : null;
+        const grid = gridId ? document.getElementById(gridId) : null;
         if (!matrix || !grid) {
+            highlightedEditCells[state] = null;
             return;
         }
 
         grid.innerHTML = '';
 
-        if (state === 'net') {
-            const mitigationOptions = typeof getMitigationEffectivenessOptions === 'function'
-                ? getMitigationEffectivenessOptions()
-                : [
-                    { value: 'inefficace', label: 'Inefficace', coefficient: 0 },
-                    { value: 'insuffisant', label: 'Insuffisant', coefficient: 0.25 },
-                    { value: 'ameliorable', label: 'Améliorable', coefficient: 0.5 },
-                    { value: 'efficace', label: 'Efficace', coefficient: 0.75 }
-                ];
+        for (let impact = 4; impact >= 1; impact--) {
+            for (let prob = 1; prob <= 4; prob++) {
+                const cell = document.createElement('div');
+                cell.className = 'matrix-cell';
+                cell.dataset.probability = prob;
+                cell.dataset.impact = impact;
 
-            const brutLevels = [
-                { value: 'critique', label: 'Critique', range: 'Score ≥ 12', reference: 13.5 },
-                { value: 'fort', label: 'Fort', range: '6 ≤ score < 12', reference: 9 },
-                { value: 'modere', label: 'Modéré', range: '3 ≤ score < 6', reference: 4.5 },
-                { value: 'faible', label: 'Faible', range: 'Score < 3', reference: 2 }
-            ];
+                const riskLevel = prob * impact;
+                if (riskLevel <= 4) cell.classList.add('level-1');
+                else if (riskLevel <= 8) cell.classList.add('level-2');
+                else if (riskLevel <= 12) cell.classList.add('level-3');
+                else cell.classList.add('level-4');
 
-            const severityClassMap = {
-                faible: 'level-1',
-                modere: 'level-2',
-                fort: 'level-3',
-                critique: 'level-4'
-            };
-
-            brutLevels.forEach((level, rowIndex) => {
-                const impactValue = 4 - rowIndex;
-                mitigationOptions.forEach((option, colIndex) => {
-                    const cell = document.createElement('div');
-                    cell.className = 'matrix-cell';
-                    cell.dataset.probability = colIndex + 1;
-                    cell.dataset.impact = impactValue;
-                    cell.dataset.effectiveness = option.value;
-                    cell.dataset.brutLevel = level.value;
-
-                    const coefficient = Number(option.coefficient) || 0;
-                    const referenceScore = level.reference * coefficient;
-                    const severity = typeof getRiskSeverityFromScore === 'function'
-                        ? getRiskSeverityFromScore(referenceScore)
-                        : (referenceScore >= 12 ? 'critique' : referenceScore >= 6 ? 'fort' : referenceScore >= 3 ? 'modere' : 'faible');
-                    cell.classList.add(severityClassMap[severity] || 'level-1');
-
-                    grid.appendChild(cell);
-                });
-            });
-
-            const rowLabels = document.getElementById('riskMatrixEditNetRowLabels');
-            if (rowLabels) {
-                rowLabels.innerHTML = '';
-                brutLevels.forEach(level => {
-                    const label = document.createElement('div');
-                    label.className = 'matrix-net-row-label';
-                    label.innerHTML = `${level.label}<span>${level.range}</span>`;
-                    rowLabels.appendChild(label);
-                });
-            }
-
-            const colLabels = document.getElementById('riskMatrixEditNetColLabels');
-            if (colLabels) {
-                colLabels.innerHTML = '';
-                mitigationOptions.forEach(option => {
-                    const percent = Math.round((Number(option.coefficient) || 0) * 100);
-                    const label = document.createElement('div');
-                    label.className = 'matrix-net-col-label';
-                    label.innerHTML = `${option.label}<span>Réduction ${percent}%</span>`;
-                    colLabels.appendChild(label);
-                });
-            }
-        } else {
-            for (let impact = 4; impact >= 1; impact--) {
-                for (let prob = 1; prob <= 4; prob++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'matrix-cell';
-                    cell.dataset.probability = prob;
-                    cell.dataset.impact = impact;
-
-                    const riskLevel = prob * impact;
-                    if (riskLevel <= 4) cell.classList.add('level-1');
-                    else if (riskLevel <= 8) cell.classList.add('level-2');
-                    else if (riskLevel <= 12) cell.classList.add('level-3');
-                    else cell.classList.add('level-4');
-
-                    grid.appendChild(cell);
-                }
+                grid.appendChild(cell);
             }
         }
 
@@ -635,21 +744,24 @@ function initRiskEditMatrix() {
             matrix.addEventListener('pointerdown', handleMatrixPointerDown);
             matrix.dataset.pointerListener = 'true';
         }
-
-        if (state === 'net') {
-            const mitigationInput = document.getElementById('mitigationEffectiveness');
-            if (mitigationInput) {
-                updateNetLegendActive(mitigationInput.value);
-            }
-            const impactValue = document.getElementById('impactNet')?.value;
-            if (impactValue) {
-                updateNetRowHighlight(impactValue);
-            }
-        }
     });
 
     const initialState = RISK_STATE_CONFIG[activeRiskEditState] ? activeRiskEditState : 'brut';
     setActiveRiskState(initialState);
+
+    const netImpact = document.getElementById('impactNet')?.value;
+    if (netImpact) {
+        updateNetSeverityBadge(netImpact);
+    }
+    const netProb = document.getElementById('probNet')?.value;
+    if (netProb) {
+        updateNetSliderUI(netProb);
+    }
+    const mitigationValue = document.getElementById('mitigationEffectiveness')?.value;
+    if (mitigationValue) {
+        updateNetLegendActive(mitigationValue);
+    }
+
     requestAnimationFrame(() => positionAllPoints());
 }
 window.initRiskEditMatrix = initRiskEditMatrix;

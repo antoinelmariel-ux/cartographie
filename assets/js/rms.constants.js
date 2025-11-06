@@ -59,9 +59,10 @@ const RISK_STATE_CONFIG = {
         coordElement: 'coordNet',
         pointClass: 'net',
         symbol: 'N',
-        matrixId: 'riskMatrixEditNet',
-        gridId: 'riskMatrixEditGridNet',
-        descriptionContainer: 'matrixDescriptionNet'
+        matrixId: null,
+        gridId: null,
+        descriptionContainer: 'matrixDescriptionNet',
+        sliderId: 'netMitigationSlider'
     }
 };
 
