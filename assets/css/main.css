@@ -959,7 +959,7 @@ body {
 
 .axis-label.y-axis {
     top: 50%;
-    left: -4.5rem;
+    left: -3.5rem;
     transform: translateY(-50%) rotate(-90deg);
     transform-origin: center;
     display: inline-flex;
