@@ -75,6 +75,7 @@ function ensureEmptyChartMessagePlugin() {
 
 class RiskManagementSystem {
     constructor() {
+        this.storageRecoveryNotified = false;
         this.risks = this.loadData('risks') || this.getDefaultRisks();
         this.controls = this.loadData('controls') || this.getDefaultControls();
         this.actionPlans = this.loadData('actionPlans') || [];
@@ -282,8 +283,20 @@ class RiskManagementSystem {
     }
 
     loadConfig() {
-        const data = localStorage.getItem('rms_config');
-        return data ? JSON.parse(data) : null;
+        const storageKey = 'rms_config';
+        const rawValue = localStorage.getItem(storageKey);
+        const { value, error } = this.safeParseJSON(rawValue, null, {
+            storageKey,
+            dataLabel: 'de configuration'
+        });
+
+        if (error) {
+            this.notifyStorageRecovery(
+                "Les données de configuration sauvegardées étaient corrompues et ont été réinitialisées."
+            );
+        }
+
+        return value;
     }
 
     saveConfig() {
@@ -1320,8 +1333,48 @@ class RiskManagementSystem {
     }
 
     loadData(key) {
-        const data = localStorage.getItem(`rms_${key}`);
-        return data ? JSON.parse(data) : null;
+        const storageKey = `rms_${key}`;
+        const rawValue = localStorage.getItem(storageKey);
+        const { value, error } = this.safeParseJSON(rawValue, null, {
+            storageKey,
+            dataLabel: `de ${key}`
+        });
+
+        if (error) {
+            this.notifyStorageRecovery(
+                "Certaines données sauvegardées étaient corrompues et ont été réinitialisées."
+            );
+        }
+
+        return value;
+    }
+
+    safeParseJSON(rawValue, fallback = null, { storageKey = '', dataLabel = 'données' } = {}) {
+        if (typeof rawValue !== 'string' || rawValue.trim() === '') {
+            return { value: fallback, error: false };
+        }
+
+        try {
+            return { value: JSON.parse(rawValue), error: false };
+        } catch (error) {
+            console.error(`[RMS] Lecture invalide ${dataLabel} dans le stockage local.`, error);
+            if (storageKey) {
+                localStorage.removeItem(storageKey);
+            }
+            return { value: fallback, error: true };
+        }
+    }
+
+    notifyStorageRecovery(message) {
+        if (this.storageRecoveryNotified) {
+            return;
+        }
+
+        if (typeof showNotification === 'function') {
+            showNotification('warning', message);
+        }
+
+        this.storageRecoveryNotified = true;
     }
 
     updateLastSaveTime() {
