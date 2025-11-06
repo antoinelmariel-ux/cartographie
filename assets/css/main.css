@@ -570,6 +570,11 @@ body {
     text-transform: none;
 }
 
+.matrix-net-row-labels,
+.matrix-net-col-labels {
+    display: none !important;
+}
+
 .risk-point {
     position: absolute;
     width: 24px;
@@ -640,6 +645,12 @@ body {
     margin-top: 10px;
 }
 
+.matrix-info-row {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    align-items: stretch;
+}
 
 .edit-matrix-group {
     flex: 1 1 260px;
@@ -884,7 +895,8 @@ body {
 }
 
 @media (max-width: 1024px) {
-    .risk-matrix-layout {
+    .risk-matrix-layout,
+    .matrix-info-row {
         flex-direction: column;
     }
 

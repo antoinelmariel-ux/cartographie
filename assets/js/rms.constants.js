@@ -48,7 +48,8 @@ const RISK_STATE_CONFIG = {
         pointClass: 'brut',
         symbol: 'B',
         matrixId: 'riskMatrixEditBrut',
-        gridId: 'riskMatrixEditGridBrut'
+        gridId: 'riskMatrixEditGridBrut',
+        descriptionContainer: 'matrixDescriptionBrut'
     },
     net: {
         label: 'Risque Net',
@@ -59,7 +60,8 @@ const RISK_STATE_CONFIG = {
         pointClass: 'net',
         symbol: 'N',
         matrixId: 'riskMatrixEditNet',
-        gridId: 'riskMatrixEditGridNet'
+        gridId: 'riskMatrixEditGridNet',
+        descriptionContainer: 'matrixDescriptionNet'
     }
 };
 
