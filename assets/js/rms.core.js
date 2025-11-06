@@ -1525,6 +1525,17 @@ class RiskManagementSystem {
         card.addEventListener('dragend', () => {
             this.handleDragEnd(card);
         });
+        card.addEventListener('dragover', (event) => {
+            this.handleSubProcessCardDragOver(event, card);
+        });
+        card.addEventListener('dragleave', (event) => {
+            if (!card.contains(event.relatedTarget)) {
+                this.handleSubProcessCardDragLeave(card);
+            }
+        });
+        card.addEventListener('drop', (event) => {
+            this.handleSubProcessCardDrop(event, card);
+        });
 
         const header = document.createElement('div');
         header.className = 'subprocess-card-header';
@@ -1938,6 +1949,7 @@ class RiskManagementSystem {
         }
         event.preventDefault();
         control.classList.remove('drop-target');
+        this.clearSubProcessDropIndicators();
 
         const position = Number(control.dataset.position || context.position || 0);
         const parentProcess = control.dataset.parentProcess || context.parentProcess || null;
@@ -1982,6 +1994,71 @@ class RiskManagementSystem {
     handleDragEnd(card) {
         card.classList.remove('dragging');
         this.dragState = null;
+        this.clearSubProcessDropIndicators();
+    }
+
+    handleSubProcessCardDragOver(event, card) {
+        if (!this.dragState || this.dragState.type !== 'subprocess' || !card) {
+            return;
+        }
+
+        const targetParent = card.dataset.parentProcess;
+        if (!targetParent) {
+            return;
+        }
+
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+
+        this.clearSubProcessDropIndicators();
+
+        const rect = card.getBoundingClientRect();
+        const midpoint = rect.top + (rect.height / 2);
+        const isBefore = event.clientY < midpoint;
+
+        card.classList.toggle('drop-before', isBefore);
+        card.classList.toggle('drop-after', !isBefore);
+        card.dataset.dropPosition = isBefore ? 'before' : 'after';
+    }
+
+    handleSubProcessCardDragLeave(card) {
+        if (!card) {
+            return;
+        }
+        card.classList.remove('drop-before', 'drop-after');
+        delete card.dataset.dropPosition;
+    }
+
+    handleSubProcessCardDrop(event, card) {
+        if (!this.dragState || this.dragState.type !== 'subprocess' || !card) {
+            return;
+        }
+
+        event.preventDefault();
+
+        const targetParent = card.dataset.parentProcess || null;
+        if (!targetParent) {
+            this.handleSubProcessCardDragLeave(card);
+            return;
+        }
+
+        const dropPosition = card.dataset.dropPosition === 'after' ? 'after' : 'before';
+        const baseIndex = Number(card.dataset.index || 0);
+        const insertIndex = dropPosition === 'after' ? baseIndex + 1 : baseIndex;
+
+        this.moveSubProcess(this.dragState.parentProcess, this.dragState.fromIndex, targetParent, insertIndex);
+
+        this.dragState = null;
+        this.clearSubProcessDropIndicators();
+    }
+
+    clearSubProcessDropIndicators() {
+        document.querySelectorAll('.subprocess-card.drop-before, .subprocess-card.drop-after').forEach((element) => {
+            element.classList.remove('drop-before', 'drop-after');
+            delete element.dataset.dropPosition;
+        });
     }
 
     moveProcess(fromIndex, toIndex) {
