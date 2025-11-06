@@ -40,7 +40,7 @@ const RISK_IMPACT_INFO = {
 
 const RISK_STATE_CONFIG = {
     brut: {
-        label: 'Risque Brut',
+        label: 'Risque Brut aggravé',
         probInput: 'probBrut',
         impactInput: 'impactBrut',
         scoreElement: 'scoreBrut',
