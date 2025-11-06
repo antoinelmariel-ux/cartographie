@@ -3841,33 +3841,153 @@ class RiskManagementSystem {
             return Number.isNaN(date.getTime()) ? null : date;
         };
 
+        const normalizeId = (value) => {
+            if (value == null) {
+                return '';
+            }
+            return String(value).trim();
+        };
+
+        const allActionPlans = Array.isArray(this.actionPlans) ? this.actionPlans : [];
+        const actionPlanIndex = new Map();
+        const riskPlanLinks = new Map();
+
+        allActionPlans.forEach(plan => {
+            if (!plan || typeof plan !== 'object') {
+                return;
+            }
+
+            const planId = normalizeId(plan.id);
+            if (planId) {
+                actionPlanIndex.set(planId, plan);
+            }
+
+            const linkedRisks = Array.isArray(plan.risks)
+                ? plan.risks
+                : Array.isArray(plan.riskIds)
+                    ? plan.riskIds
+                    : Array.isArray(plan.actionedRisks)
+                        ? plan.actionedRisks
+                        : [];
+
+            linkedRisks.forEach(riskId => {
+                const normalizedRiskId = normalizeId(riskId);
+                if (!normalizedRiskId) {
+                    return;
+                }
+                if (!riskPlanLinks.has(normalizedRiskId)) {
+                    riskPlanLinks.set(normalizedRiskId, new Set());
+                }
+                if (planId) {
+                    riskPlanLinks.get(normalizedRiskId).add(planId);
+                }
+            });
+        });
+
+        const collectPlansForRisk = (risk) => {
+            const seen = new Set();
+            const plans = [];
+
+            const addPlanById = (planId) => {
+                if (!planId || seen.has(planId)) {
+                    return;
+                }
+                seen.add(planId);
+                const indexed = actionPlanIndex.get(planId);
+                if (indexed) {
+                    plans.push(indexed);
+                }
+            };
+
+            const addPlanObject = (planObj) => {
+                if (!planObj || typeof planObj !== 'object') {
+                    return;
+                }
+                const planId = normalizeId(planObj.id);
+                if (planId) {
+                    if (seen.has(planId)) {
+                        return;
+                    }
+                    seen.add(planId);
+                    plans.push(actionPlanIndex.get(planId) || planObj);
+                    return;
+                }
+                const uniqueKey = `__obj_${plans.length}`;
+                if (seen.has(uniqueKey)) {
+                    return;
+                }
+                seen.add(uniqueKey);
+                plans.push(planObj);
+            };
+
+            const directRefs = Array.isArray(risk?.actionPlans) ? risk.actionPlans : [];
+            directRefs.forEach(ref => {
+                if (typeof ref === 'object') {
+                    addPlanObject(ref);
+                } else {
+                    addPlanById(normalizeId(ref));
+                }
+            });
+
+            const riskId = normalizeId(risk?.id);
+            if (riskId && riskPlanLinks.has(riskId)) {
+                riskPlanLinks.get(riskId).forEach(addPlanById);
+            }
+
+            return plans;
+        };
+
+        const severityLabels = {
+            critique: 'Critique',
+            fort: 'Fort',
+            modere: 'Modéré'
+        };
+
+        const acceptableSeverities = new Set(['modere', 'fort', 'critique']);
+
         const severeRisks = sourceRisks
-            .filter(risk => {
-                const score = typeof getRiskNetScore === 'function'
-                    ? getRiskNetScore(risk)
-                    : (Number(risk.probNet) || 0) * (Number(risk.impactNet) || 0);
-                const hasPlans = Array.isArray(risk.actionPlans) && risk.actionPlans.length > 0;
-                return score >= 9 && !hasPlans;
-            })
             .map(risk => {
                 const score = typeof getRiskNetScore === 'function'
                     ? getRiskNetScore(risk)
                     : (Number(risk.probNet) || 0) * (Number(risk.impactNet) || 0);
+
                 const severity = typeof getRiskSeverityFromScore === 'function'
                     ? getRiskSeverityFromScore(score)
-                    : (score > 12 ? 'critique' : score >= 9 ? 'fort' : 'modere');
-                const isCritical = severity === 'critique';
+                    : (score >= 12 ? 'critique' : score >= 6 ? 'fort' : score >= 3 ? 'modere' : 'faible');
+                const severityKey = normalizeValue(severity);
+                if (!acceptableSeverities.has(severityKey)) {
+                    return null;
+                }
+
+                const statusKeys = ['statut', 'status', 'statusLabel', 'state'];
+                const riskStatus = statusKeys
+                    .map(key => normalizeValue(risk?.[key]))
+                    .find(value => Boolean(value));
+                if (riskStatus !== 'valide') {
+                    return null;
+                }
+
+                const associatedPlans = collectPlansForRisk(risk);
+                const hasPlans = associatedPlans.length > 0;
+                const hasDraftPlan = associatedPlans.some(plan => normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel) === 'brouillon');
+
+                if (hasPlans && !hasDraftPlan) {
+                    return null;
+                }
+
                 const dateValue = risk.dateCreation || risk.date || risk.createdAt;
                 return {
                     id: risk.id,
                     description: risk.description || risk.titre || 'Sans description',
                     process: risk.processus || risk.process || '-',
-                    level: isCritical ? 'Critique' : 'Sévère',
+                    level: severityLabels[severityKey] || 'Modéré',
+                    severity: severityKey,
                     score,
                     date: dateValue || null,
                     formattedDate: formatDate(dateValue)
                 };
             })
+            .filter(Boolean)
             .sort((a, b) => {
                 const getTime = (entry) => {
                     if (!entry.date) {
@@ -3945,7 +4065,12 @@ class RiskManagementSystem {
                 `;
             } else {
                 risksBody.innerHTML = severeRisks.map(risk => {
-                    const badgeClass = risk.level === 'Critique' ? 'badge-danger' : 'badge-warning';
+                    const badgeClassMap = {
+                        critique: 'badge-danger',
+                        fort: 'badge-warning',
+                        modere: 'badge-info'
+                    };
+                    const badgeClass = badgeClassMap[risk.severity] || 'badge-warning';
 
                     return `
                         <tr>
