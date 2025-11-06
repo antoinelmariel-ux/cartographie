@@ -529,6 +529,10 @@ function saveRisk() {
             ? normalizeAggravatingFactors(formData.aggravatingFactors)
             : { group1: [], group2: [] }
     };
+
+    if (rms && typeof rms.clearUnsavedChanges === 'function') {
+        rms.clearUnsavedChanges('riskForm');
+    }
 }
 window.saveRisk = saveRisk;
 
@@ -611,6 +615,9 @@ function toggleControlSelection(controlId) {
     } else {
         selectedControlsForRisk.push(controlId);
     }
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
 }
 window.toggleControlSelection = toggleControlSelection;
 
@@ -643,6 +650,9 @@ window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
 function removeControlFromSelection(controlId) {
     selectedControlsForRisk = selectedControlsForRisk.filter(id => id !== controlId);
     updateSelectedControlsDisplay();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
 }
 window.removeControlFromSelection = removeControlFromSelection;
 
@@ -669,6 +679,9 @@ window.updateSelectedActionPlansDisplay = updateSelectedActionPlansDisplay;
 function removeActionPlanFromSelection(planId) {
     selectedActionPlansForRisk = selectedActionPlansForRisk.filter(id => id !== planId);
     updateSelectedActionPlansDisplay();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
 }
 window.removeActionPlanFromSelection = removeActionPlanFromSelection;
 
@@ -729,6 +742,9 @@ function toggleActionPlanSelection(planId) {
         selectedActionPlansForRisk.splice(index, 1);
     } else {
         selectedActionPlansForRisk.push(planId);
+    }
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
     }
 }
 window.toggleActionPlanSelection = toggleActionPlanSelection;
@@ -911,11 +927,18 @@ function saveActionPlan() {
         actionPlanCreationContext = null;
     }
 
+    if (context && typeof rms?.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+
     lastActionPlanData = { ...planData };
     rms.saveData();
     rms.renderAll();
     populatePlanOwnerSuggestions();
     closeActionPlanModal();
+    if (rms && typeof rms.clearUnsavedChanges === 'function') {
+        rms.clearUnsavedChanges('actionPlanForm');
+    }
 }
 window.saveActionPlan = saveActionPlan;
 
@@ -967,6 +990,9 @@ function toggleRiskSelectionForPlan(riskId) {
     } else {
         selectedRisksForPlan.push(riskId);
     }
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('actionPlanForm');
+    }
 }
 window.toggleRiskSelectionForPlan = toggleRiskSelectionForPlan;
 
@@ -999,6 +1025,9 @@ window.updateSelectedRisksForPlanDisplay = updateSelectedRisksForPlanDisplay;
 function removeRiskFromPlanSelection(riskId) {
     selectedRisksForPlan = selectedRisksForPlan.filter(id => !idsEqual(id, riskId));
     updateSelectedRisksForPlanDisplay();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('actionPlanForm');
+    }
 }
 window.removeRiskFromPlanSelection = removeRiskFromPlanSelection;
 
@@ -1119,3 +1148,67 @@ function bindEvents() {
     });
 }
 window.bindEvents = bindEvents;
+
+function setupUnsavedChangeTracking() {
+    const contexts = [
+        { selector: '#riskForm', context: 'riskForm' },
+        { selector: '#actionPlanForm', context: 'actionPlanForm' },
+        { selector: '#controlForm', context: 'controlForm' },
+        { selector: '#interviewForm', context: 'interviewForm' },
+        { selector: '#configurationContainer', context: 'configuration' }
+    ];
+
+    const attachListeners = (element, context) => {
+        if (!element || element.dataset.unsavedTrackingBound === 'true') {
+            return;
+        }
+
+        const markChange = () => {
+            if (window.rms && typeof window.rms.markUnsavedChange === 'function') {
+                window.rms.markUnsavedChange(context);
+            }
+        };
+
+        element.addEventListener('input', markChange);
+        element.addEventListener('change', markChange);
+        element.dataset.unsavedTrackingBound = 'true';
+    };
+
+    contexts.forEach(({ selector, context }) => {
+        document.querySelectorAll(selector).forEach(element => {
+            attachListeners(element, context);
+        });
+    });
+}
+window.setupUnsavedChangeTracking = setupUnsavedChangeTracking;
+
+function registerBeforeUnloadWarning() {
+    if (registerBeforeUnloadWarning._registered) {
+        return;
+    }
+
+    window.addEventListener('beforeunload', (event) => {
+        const instance = window.rms;
+        if (!instance) {
+            return;
+        }
+
+        let hasChanges = false;
+
+        if (typeof instance.hasUnsavedChanges === 'boolean') {
+            hasChanges = instance.hasUnsavedChanges;
+        } else if (instance.unsavedContexts instanceof Set) {
+            hasChanges = instance.unsavedContexts.size > 0;
+        }
+
+        if (hasChanges) {
+            const message = 'Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?';
+            event.preventDefault();
+            event.returnValue = message;
+            return message;
+        }
+    });
+
+    registerBeforeUnloadWarning._registered = true;
+}
+window.registerBeforeUnloadWarning = registerBeforeUnloadWarning;

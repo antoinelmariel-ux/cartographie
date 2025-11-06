@@ -164,6 +164,8 @@ class RiskManagementSystem {
         this.charts = {};
         this.processColorMap = new Map();
         this.interviewEditorState = null;
+        this.unsavedContexts = new Set();
+        this.hasUnsavedChanges = false;
         this.init();
     }
 
@@ -330,6 +332,7 @@ class RiskManagementSystem {
     saveConfig() {
         localStorage.setItem('rms_config', JSON.stringify(this.config));
         this.updateLastSaveTime();
+        this.clearUnsavedChanges('configuration');
     }
 
     ensureConfigStructure(defaultConfig = this.getDefaultConfig()) {
@@ -2908,6 +2911,42 @@ class RiskManagementSystem {
     loadData(key) {
         const data = localStorage.getItem(`rms_${key}`);
         return data ? JSON.parse(data) : null;
+    }
+
+    markUnsavedChange(context = 'global') {
+        if (!(this.unsavedContexts instanceof Set)) {
+            this.unsavedContexts = new Set();
+        }
+
+        const key = typeof context === 'string' && context.trim() ? context.trim() : 'global';
+        this.unsavedContexts.add(key);
+        this.hasUnsavedChanges = this.unsavedContexts.size > 0;
+    }
+
+    clearUnsavedChanges(context = null) {
+        if (!(this.unsavedContexts instanceof Set)) {
+            this.unsavedContexts = new Set();
+        }
+
+        if (typeof context === 'string' && context.trim()) {
+            this.unsavedContexts.delete(context.trim());
+        } else {
+            this.unsavedContexts.clear();
+        }
+
+        this.hasUnsavedChanges = this.unsavedContexts.size > 0;
+    }
+
+    hasUnsavedContext(context) {
+        if (!(this.unsavedContexts instanceof Set)) {
+            this.unsavedContexts = new Set();
+        }
+
+        if (typeof context === 'string' && context.trim()) {
+            return this.unsavedContexts.has(context.trim());
+        }
+
+        return this.unsavedContexts.size > 0;
     }
 
     updateLastSaveTime() {
@@ -5533,6 +5572,7 @@ class RiskManagementSystem {
             this.interviewEditorState.selectedScopeKeys.add(key);
         }
 
+        this.markUnsavedChange('interviewForm');
         this.renderInterviewScopeSelection({ preserveSelection: true });
     }
 
@@ -5886,6 +5926,7 @@ class RiskManagementSystem {
 
         this.interviewEditorState = null;
         this.saveData();
+        this.clearUnsavedChanges('interviewForm');
         this.updateInterviewsList();
         this.closeInterviewModal();
 
