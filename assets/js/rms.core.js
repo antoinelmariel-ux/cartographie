@@ -3185,37 +3185,20 @@ class RiskManagementSystem {
                 else if (score > 8) scoreClass = 'high';
                 else if (score > 4) scoreClass = 'medium';
 
-                const sp = risk.sousProcessus ? ` > ${risk.sousProcessus}` : '';
+                const processLabel = risk?.processus && String(risk.processus).trim()
+                    ? String(risk.processus).trim()
+                    : 'Non défini';
+                const sp = risk?.sousProcessus && String(risk.sousProcessus).trim()
+                    ? ` > ${String(risk.sousProcessus).trim()}`
+                    : '';
+                const typeLabel = risk?.typeCorruption && String(risk.typeCorruption).trim()
+                    ? String(risk.typeCorruption).trim()
+                    : 'Non défini';
                 const formattedScore = Number.isFinite(score)
                     ? score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                     : '0';
 
-                let metaDetails = `${risk.processus}${sp}`;
-
-                if (mode === 'brut' && entry.coefficient > 1) {
-                    const coefficientTag = typeof formatCoefficient === 'function'
-                        ? formatCoefficient(entry.coefficient)
-                        : (Math.round(entry.coefficient * 10) / 10).toString().replace('.', ',');
-                    const baseScoreLabel = Number.isFinite(entry.baseScore)
-                        ? entry.baseScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
-                        : '0';
-                    metaDetails += ` <span class="risk-item-coefficient">Coef ${coefficientTag}</span>`;
-                    metaDetails += ` • ${baseScoreLabel} × ${coefficientTag} = ${formattedScore}`;
-                } else if (mode === 'brut') {
-                    metaDetails += ` • Score brut ajusté ${formattedScore}`;
-                }
-
-                if (mode === 'net') {
-                    const brutValue = Number.isFinite(entry.brutScore)
-                        ? entry.brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
-                        : '0';
-                    const reductionLabel = typeof formatMitigationCoefficient === 'function'
-                        ? formatMitigationCoefficient(entry.coefficient)
-                        : `${Math.round((entry.coefficient || 0) * 100)}%`;
-                    const effectivenessLabel = entry.label || '';
-                    metaDetails += ` • Brut ${brutValue}`;
-                    metaDetails += ` • Réduction ${reductionLabel}${effectivenessLabel ? ` (${effectivenessLabel})` : ''}`;
-                }
+                const metaDetails = `Processus: ${processLabel}${sp} • Type: ${typeLabel}`;
 
                 return `
                     <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
