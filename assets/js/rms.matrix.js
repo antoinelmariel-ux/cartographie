@@ -185,9 +185,9 @@ function calculateScore(type) {
     positionRiskPointIfExists(stateKey, prob, impact);
 
     if (activeRiskEditState === stateKey) {
-        highlightCell(prob, impact);
-        updateMatrixDescription(prob, impact, stateKey);
+        highlightCell(prob, impact, stateKey);
     }
+    updateMatrixDescription(prob, impact, stateKey);
 
     if (stateKey === 'brut') {
         calculateScore('net');
@@ -290,9 +290,12 @@ function highlightCell(prob, impact, state = activeRiskEditState) {
 }
 
 function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
-    const container = document.getElementById('matrixDescription');
     const stateConfig = RISK_STATE_CONFIG[state];
-    if (!container || !stateConfig) return;
+    if (!stateConfig) return;
+
+    const containerId = stateConfig.descriptionContainer || 'matrixDescription';
+    const container = document.getElementById(containerId);
+    if (!container) return;
 
     if (state === 'net') {
         const severity = typeof getSeverityFromNetImpactValue === 'function'

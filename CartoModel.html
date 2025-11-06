@@ -630,7 +630,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.6.1</span>
+            <span class="app-version">Version 2.6.2</span>
         </footer>
     </div>
 
@@ -946,7 +946,7 @@
                     <div class="form-section">
                         <div class="form-section-title">Évaluation du Risque</div>
                         <div class="risk-matrix-editor">
-                            <div class="risk-matrix-layout">
+                            <div class="matrix-info-row risk-matrix-layout">
                                 <div class="edit-matrix-group" data-state="brut">
                                     <div class="edit-matrix-heading">Risque Brut</div>
                                     <div class="edit-matrix-container">
@@ -960,10 +960,10 @@
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                            <div id="matrixDescription" class="matrix-description">
-                                <div class="matrix-description-empty">
-                                    Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
+                                <div id="matrixDescriptionBrut" class="matrix-description">
+                                    <div class="matrix-description-empty">
+                                        Sélectionnez un état et déplacez le marqueur dans la matrice pour afficher les définitions de probabilité et d'impact.
+                                    </div>
                                 </div>
                             </div>
                             <div class="aggravating-factors" id="aggravatingFactorsBlock">
@@ -1048,18 +1048,20 @@
                         <div class="form-section-title">Évaluation du Risque Net</div>
                         <div class="net-matrix-editor">
                             <div class="net-matrix-wrapper">
-                                <div class="edit-matrix-group" data-state="net">
-                                    <div class="edit-matrix-heading">Positionnement du risque net</div>
-                                    <div class="edit-matrix-container">
-                                        <div class="matrix edit-matrix net" id="riskMatrixEditNet" data-state="net">
-                                            <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
-                                            <div class="matrix-net-row-labels" id="riskMatrixEditNetRowLabels"></div>
-                                            <div class="matrix-net-col-labels" id="riskMatrixEditNetColLabels"></div>
-                                            <div class="axis-label x-axis">Efficacité des mesures →</div>
-                                            <div class="axis-label y-axis">
-                                                <span class="axis-text">Niveau de risque brut</span>
-                                                <span class="axis-arrow" aria-hidden="true">↑</span>
+                                <div class="matrix-info-row">
+                                    <div class="edit-matrix-group" data-state="net">
+                                        <div class="edit-matrix-heading">Positionnement du risque net</div>
+                                        <div class="edit-matrix-container">
+                                            <div class="matrix edit-matrix net" id="riskMatrixEditNet" data-state="net">
+                                                <div class="matrix-grid" id="riskMatrixEditGridNet"></div>
+                                                <div class="matrix-net-row-labels" id="riskMatrixEditNetRowLabels"></div>
+                                                <div class="matrix-net-col-labels" id="riskMatrixEditNetColLabels"></div>
                                             </div>
+                                        </div>
+                                    </div>
+                                    <div id="matrixDescriptionNet" class="matrix-description">
+                                        <div class="matrix-description-empty">
+                                            Sélectionnez une position dans la matrice pour afficher le niveau de maîtrise appliqué au risque.
                                         </div>
                                     </div>
                                 </div>
