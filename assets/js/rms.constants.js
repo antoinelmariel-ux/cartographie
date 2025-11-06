@@ -89,25 +89,64 @@ const MITIGATION_EFFECTIVENESS_DESCRIPTIONS = Object.freeze({
 </ul>
     `,
     insuffisant: `
-        <p>Les contrôles existent mais demeurent lacunaires et ne couvrent pas l'ensemble du périmètre exposé.</p>
-        <ul>
-            <li>Application ponctuelle ou dépendante d'acteurs clés sans supervision.</li>
-            <li>Preuves d'exécution partielles ou non conservées.</li>
-        </ul>
+        <p>Gouvernance</p>
+           <ul>
+<li>Engagement informel du management</li>
+<li>Peu de communications / communications informelles ou partielles sur le respect des principes d'&eacute;thique et de conformit&eacute;</li>
+<li>Pas d'&eacute;quipe officiellement en charge de la fonction Ethique et Conformit&eacute;</li>
+<li>Suivi informel des sujets d'&eacute;thique et de conformit&eacute; mais aucun reporting au management</li>
+</ul>
+ <p>Proc&eacute;dures et contr&ocirc;les</p>
+ <ul>
+<li>Processus informels (pas de proc&eacute;dures formalis&eacute;es), diffus&eacute;s partiellement &agrave; l'oral, et partiellement appliqu&eacute;s</li>
+<li>Contr&ocirc;les ponctuels non formalis&eacute;s et partiellement appliqu&eacute;s</li>
+</ul>
+<p>Formation</p>
+<ul>
+<li>Formation ou sensibilisation informelle (orale), ponctuelle et/ou partielle des collaborateurs et des nouveaux arrivants</li>
+<li>Taux de formation peu &eacute;lev&eacute; (entre 20% et 50%)</li>
+</ul>
     `,
     ameliorable: `
-        <p>Les contrôles sont structurés et suivis, mais présentent encore des faiblesses mesurables.</p>
-        <ul>
-            <li>Dispositif documenté, toutefois des améliorations restent nécessaires pour fiabiliser l'exécution.</li>
-            <li>Suivi périodique en place avec des plans d'actions pour combler les écarts.</li>
-        </ul>
+        <p>Gouvernance</p>
+      <ul>
+<li>Engagement formel / passif du management (r&eacute;actif en cas de sollicitation de l'&eacute;quipe en charge de la fonction Ethique et Conformit&eacute;, sujet &agrave; l'ordre du jour sur sollicitation, etc.)<br /> - Communications irr&eacute;guli&egrave;res sur le respect des principes d'&eacute;thique et de conformit&eacute; (pas de plan de communication particulier)</li>
+<li>Equipe en charge de la fonction Ethique et Conformit&eacute; en plus d'autres fonctions (temps d&eacute;di&eacute; pas toujours suffisant) / Pas de Comit&eacute; Ethique et Conformit&eacute;</li>
+<li>Reporting irr&eacute;gulier au management sur le suivi des actions</li>
+</ul>
+ <p>Proc&eacute;dures et contr&ocirc;les</p>
+ <ul>
+<li>Proc&eacute;dures partiellement formalis&eacute;es, diffus&eacute;es, appliqu&eacute;es, contr&ocirc;l&eacute;es et/ou audit&eacute;es</li>
+<li>Mises &agrave; jour irr&eacute;guli&egrave;res des proc&eacute;dures</li>
+<li>Contr&ocirc;les partiellement formalis&eacute;s ou document&eacute;s, sans actions correctives syst&eacute;matiques, non r&eacute;guli&egrave;rement revus par le contr&ocirc;le interne ni r&eacute;guli&egrave;rement audit&eacute;s</li>
+</ul>
+<p>Formation</p>
+<ul>
+<li>Formation standard &agrave; l'ensemble des collaborateurs (pas de ciblage particulier des populations les plus concern&eacute;es)</li>
+<li>Pas de plan de formation &eacute;tabli ou non mis &agrave; jour</li>
+<li>Taux de formation perfectible (entre 50% et 90%)</li>
+<li>Absence de relances syst&eacute;matiques des collaborateurs</li>
+</ul>
     `,
     efficace: `
-        <p>Les contrôles sont pleinement opérationnels et démontrent leur efficacité dans la réduction du risque.</p>
-        <ul>
-            <li>Procédures formalisées, formation des intervenants et supervision démontrable.</li>
-            <li>Indicateurs de performance suivis avec amélioration continue du dispositif.</li>
-        </ul>
+        <p>Gouvernance</p>
+     <ul>
+<li>Engagement actif du management (proactivit&eacute; dans la d&eacute;finition des principes d'&eacute;thique et de conformit&eacute;, implication forte dans le suivi et les d&eacute;cisions, sujet r&eacute;current &agrave; l'ordre du jour des comit&eacute;s de direction, etc.)</li>
+<li>Communications r&eacute;guli&egrave;res sur le respect des principes d'&eacute;thique et de conformit&eacute; (plan de communication d&eacute;fini)</li>
+<li>Equipe en charge de la fonction Ethique et Conformit&eacute; (temps d&eacute;di&eacute; suffisant) et Comit&eacute; Ethique et Conformit&eacute; en place et actif</li>
+<li>Reporting r&eacute;gulier au management sur le suivi des actions</li>
+</ul>
+<p>Proc&eacute;dures et contr&ocirc;les</p>
+<ul>
+<li>Proc&eacute;dures syst&eacute;matiquement formalis&eacute;es, diffus&eacute;es, appliqu&eacute;es, contr&ocirc;l&eacute;es et audit&eacute;es</li>
+<li>Contr&ocirc;les syst&eacute;matiques, formalis&eacute;s et document&eacute;s, faisant l'objet d'actions correctives, de revues de contr&ocirc;le interne et d'audits</li>
+</ul>
+<p>Formation</p>
+<ul>
+<li>Formations r&eacute;guli&egrave;res d&eacute;di&eacute;es selon les populations cibl&eacute;es, privil&eacute;giant le pr&eacute;sentiel pour les populations les plus expos&eacute;es</li>
+<li>Plan de formation &eacute;tabli selon les populations cibl&eacute;es, int&eacute;grant les nouveaux arrivants et d&eacute;finissant les fr&eacute;quences de formation</li>
+<li>Taux de formation &eacute;lev&eacute; (&ge; 90%)</li>
+</ul>
     `
 });
 
