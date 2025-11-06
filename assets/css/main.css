@@ -3073,6 +3073,30 @@ tbody tr:hover {
     position: relative;
 }
 
+.subprocess-card.drop-before,
+.subprocess-card.drop-after {
+    border-color: var(--primary-color);
+}
+
+.subprocess-card.drop-before::before,
+.subprocess-card.drop-after::after {
+    content: '';
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    border-radius: 999px;
+}
+
+.subprocess-card.drop-before::before {
+    top: -6px;
+    border-top: 3px solid var(--primary-color);
+}
+
+.subprocess-card.drop-after::after {
+    bottom: -6px;
+    border-bottom: 3px solid var(--primary-color);
+}
+
 .subprocess-title-input {
     font-size: 0.95rem;
     font-weight: 500;
