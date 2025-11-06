@@ -1,11 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 820 220" role="img" aria-labelledby="title desc">
-  <title id="title">Logo du groupe LFB</title>
-  <desc id="desc">Trois rectangles rouges, gris et bleus suivis du texte LFB au dessus de la devise L'engagement éthique.</desc>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 740 220" role="img" aria-labelledby="title desc">
+  <title id="title">Logo LFB Ethical Commitment</title>
+  <desc id="desc">Un carré gris et un carré rouge suivis du texte LFB au dessus du slogan Ethical Commitment.</desc>
   <g fill="none" fill-rule="evenodd">
-    <rect x="0" y="40" width="140" height="140" fill="#E2001A"/>
-    <rect x="160" y="40" width="140" height="140" fill="#6F6F72"/>
-    <rect x="320" y="40" width="140" height="140" fill="#7BC0DF"/>
-    <text x="500" y="140" font-family="'Montserrat', 'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="700" letter-spacing="4" fill="#6F6F72">LFB</text>
-    <text x="0" y="210" font-family="'Montserrat', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="40" letter-spacing="5" fill="#6F6F72">L&apos;ENGAGEMENT ÉTHIQUE</text>
+    <rect x="0" y="40" width="150" height="150" fill="#6F6F72"/>
+    <rect x="170" y="40" width="150" height="150" fill="#D71920"/>
+    <text x="350" y="140" font-family="'Montserrat', 'Arial Black', 'Helvetica Neue', Arial, sans-serif" font-size="120" font-weight="700" letter-spacing="4" fill="#6F6F72">LFB</text>
+    <text x="0" y="210" font-family="'Montserrat', 'Arial Narrow', 'Helvetica Neue', Arial, sans-serif" font-size="42" letter-spacing="5" fill="#6F6F72">ETHICAL COMMITMENT</text>
   </g>
 </svg>
