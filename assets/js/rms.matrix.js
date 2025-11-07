@@ -463,9 +463,15 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
             : '';
 
         if (mitigationDescription) {
-            container.innerHTML = `<div class="mitigation-description">${mitigationDescription}</div>`;
+            container.innerHTML = `
+                <div class="matrix-description-header">${stateConfig.label}</div>
+                <div class="matrix-description-section mitigation-description">
+                    ${mitigationDescription}
+                </div>
+            `;
         } else {
             container.innerHTML = `
+                <div class="matrix-description-header">${stateConfig.label}</div>
                 <div class="matrix-description-empty">Ajustez le niveau de contrôle pour visualiser l'efficacité appliquée au risque.</div>
             `;
         }
