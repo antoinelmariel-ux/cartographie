@@ -4420,8 +4420,10 @@ class RiskManagementSystem {
                             <td>${risk.process}</td>
                             <td><span class="table-badge ${badgeClass}">${risk.level}</span></td>
                             <td class="table-actions-cell">
-                                <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
-                                <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                                <div class="table-actions">
+                                    <button class="action-btn" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">👁️</button>
+                                    <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                                </div>
                             </td>
                         </tr>
                     `;
@@ -4893,8 +4895,10 @@ class RiskManagementSystem {
                     <td title="Réduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
                     <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
                     <td class="table-actions-cell">
-                        <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                        <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
+                        <div class="table-actions">
+                            <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
+                            <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
+                        </div>
                     </td>
                 </tr>
             `;
