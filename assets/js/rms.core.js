@@ -156,7 +156,8 @@ class RiskManagementSystem {
         this.interviewFilters = {
             process: '',
             subProcess: '',
-            referent: ''
+            referent: '',
+            search: ''
         };
         this.collapsedProcesses = new Set();
         this.initializeProcessCollapseState();
@@ -926,6 +927,14 @@ class RiskManagementSystem {
             const expected = this.interviewFilters?.subProcess || '';
             if (subProcessFilterSelect.value !== expected) {
                 subProcessFilterSelect.value = expected;
+            }
+        }
+
+        const interviewSearchInput = document.getElementById('interviewSearchInput');
+        if (interviewSearchInput) {
+            const expected = this.interviewFilters?.search || '';
+            if (interviewSearchInput.value !== expected) {
+                interviewSearchInput.value = expected;
             }
         }
     }
@@ -5422,7 +5431,10 @@ class RiskManagementSystem {
             return;
         }
 
-        const normalizedValue = value == null ? '' : String(value);
+        let normalizedValue = value == null ? '' : String(value);
+        if (normalizedKey === 'search') {
+            normalizedValue = normalizedValue.trim();
+        }
         this.interviewFilters[normalizedKey] = normalizedValue;
 
         if (normalizedKey === 'process') {
@@ -6203,11 +6215,41 @@ class RiskManagementSystem {
         this.populateInterviewSubProcessFilterOptions();
 
         const interviews = Array.isArray(this.interviews) ? [...this.interviews] : [];
-        const filters = this.interviewFilters || { process: '', subProcess: '', referent: '' };
+        const filters = {
+            process: '',
+            subProcess: '',
+            referent: '',
+            search: '',
+            ...(this.interviewFilters || {})
+        };
 
         const processFilter = filters.process || '';
         const subProcessFilter = filters.subProcess || '';
-        const referentFilter = (filters.referent || '').trim().toLowerCase();
+
+        const normalizeForSearch = (value) => {
+            if (value == null) {
+                return '';
+            }
+
+            let str = String(value);
+            if (!str) {
+                return '';
+            }
+
+            str = str.trim().toLowerCase();
+            if (!str) {
+                return '';
+            }
+
+            if (typeof str.normalize === 'function') {
+                str = str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            }
+
+            return str;
+        };
+
+        const referentFilter = normalizeForSearch(filters.referent);
+        const searchFilter = normalizeForSearch(filters.search);
 
         let subProcessFilterProcess = '';
         let subProcessFilterValue = '';
@@ -6243,9 +6285,60 @@ class RiskManagementSystem {
 
             if (referentFilter) {
                 const hasReferent = Array.isArray(interview.referents)
-                    ? interview.referents.some(ref => typeof ref === 'string' && ref.trim().toLowerCase() === referentFilter)
+                    ? interview.referents.some(ref => normalizeForSearch(ref) === referentFilter)
                     : false;
                 if (!hasReferent) {
+                    return false;
+                }
+            }
+
+            if (searchFilter) {
+                const searchParts = [];
+
+                if (interview.title) {
+                    searchParts.push(interview.title);
+                }
+
+                if (Array.isArray(interview.referents) && interview.referents.length) {
+                    searchParts.push(interview.referents.join(' '));
+                }
+
+                if (Array.isArray(interview.scopes) && interview.scopes.length) {
+                    interview.scopes.forEach(scope => {
+                        if (!scope || typeof scope !== 'object') {
+                            return;
+                        }
+                        if (scope.processLabel) {
+                            searchParts.push(scope.processLabel);
+                        }
+                        if (scope.processValue) {
+                            searchParts.push(scope.processValue);
+                        }
+                        if (scope.subProcessLabel) {
+                            searchParts.push(scope.subProcessLabel);
+                        }
+                        if (scope.subProcessValue) {
+                            searchParts.push(scope.subProcessValue);
+                        }
+                    });
+                }
+
+                if (interview.notes) {
+                    searchParts.push(interview.notes);
+                }
+
+                const dateLabel = this.formatInterviewDate(interview.date);
+                if (dateLabel) {
+                    searchParts.push(dateLabel);
+                }
+
+                const updatedLabel = this.formatInterviewDateTime(interview.updatedAt || interview.createdAt);
+                if (updatedLabel) {
+                    searchParts.push(updatedLabel);
+                }
+
+                const haystack = normalizeForSearch(searchParts.join(' '));
+                if (!haystack || !haystack.includes(searchFilter)) {
                     return false;
                 }
             }
