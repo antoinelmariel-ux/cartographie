@@ -1,5 +1,7 @@
 // Enhanced Risk Management System - Core Logic
 
+const RMS_LOCAL_STORAGE_ENABLED = false;
+
 let emptyChartPluginRegistered = false;
 
 function ensureEmptyChartMessagePlugin() {
@@ -332,6 +334,10 @@ class RiskManagementSystem {
     }
 
     loadConfig() {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
+            return null;
+        }
+
         const storageKey = 'rms_config';
         const data = localStorage.getItem(storageKey);
         if (!data) {
@@ -352,6 +358,11 @@ class RiskManagementSystem {
     }
 
     saveConfig() {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
+            this.clearUnsavedChanges('configuration');
+            return;
+        }
+
         localStorage.setItem('rms_config', JSON.stringify(this.config));
         this.updateLastSaveTime();
         this.clearUnsavedChanges('configuration');
@@ -2922,6 +2933,10 @@ class RiskManagementSystem {
 
     // Data persistence
     saveData() {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
+            return;
+        }
+
         localStorage.setItem('rms_risks', JSON.stringify(this.risks));
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
         localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
@@ -2931,6 +2946,10 @@ class RiskManagementSystem {
     }
 
     loadData(key) {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
+            return null;
+        }
+
         const storageKey = `rms_${key}`;
         const data = localStorage.getItem(storageKey);
         if (!data) {
