@@ -238,6 +238,10 @@
                                 <option value="">Tous les référents</option>
                             </select>
                         </div>
+                        <div class="interview-filter search-box">
+                            <label class="filter-label" for="interviewSearchInput">Recherche</label>
+                            <input type="search" class="search-input" id="interviewSearchInput" placeholder="🔍 Rechercher un compte-rendu..." oninput="rms.setInterviewFilter('search', this.value)" onsearch="rms.setInterviewFilter('search', this.value)">
+                        </div>
                     </div>
                     <div class="interview-summary" id="interviewSummary">
                         <span id="interviewCount">0 compte-rendu</span>
@@ -662,7 +666,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.10.2</span>
+            <span class="app-version">Version 2.10.3</span>
         </footer>
     </div>
 
