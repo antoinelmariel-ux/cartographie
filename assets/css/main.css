@@ -907,6 +907,16 @@ body {
     color: #5d6d7e;
 }
 
+.multi-select-toolbar {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.multi-select-toolbar .btn {
+    flex: 0 0 auto;
+}
+
 .risk-matrix-editor {
     display: flex;
     flex-direction: column;

@@ -1246,6 +1246,7 @@ function applyPatch() {
                       'brouillon'
                     );
                     const tiers = parseTextList(accessor.get('tiers', 'tiersImpliques', 'tiers_associes', 'stakeholders', 'thirdParties', 'partiesPrenantes'));
+                    const paysExposes = parseTextList(accessor.get('paysExposes', 'countries', 'pays', 'territoires', 'riskCountries', 'pays_exposes'));
                     const controls = parseIdList(accessor.get('controls', 'controles', 'contrôles', 'controlIds', 'control_ids', 'listeControls'));
                     const actionPlans = parseIdList(accessor.get('actionPlans', 'plans', 'planActions', 'actionPlanIds', 'plan_ids', 'plansActions'));
 
@@ -1297,6 +1298,7 @@ function applyPatch() {
                       controls,
                       actionPlans,
                       tiers,
+                      paysExposes,
                       dateCreation
                     };
 

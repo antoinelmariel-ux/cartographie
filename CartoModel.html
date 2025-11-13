@@ -658,7 +658,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.3</span>
+            <span class="app-version">Version 2.11.4</span>
         </footer>
     </div>
 
@@ -1078,6 +1078,15 @@
                             <div class="form-group" style="grid-column: 1 / -1;">
                                 <label class="form-label required">Description du Risque</label>
                                 <textarea class="form-textarea" id="description" required placeholder="(Acteur) (Action avec instrument de corruption) à (Cible) pour (Objectif). \n Ex : Un collaborateur du LFB offre un cadeau à un professionnel de santé pour  obtenir des prescriptions"></textarea>
+                            </div>
+                            <div class="form-group" style="grid-column: 1 / -1;">
+                                <label class="form-label">Pays concernés</label>
+                                <div class="multi-select-toolbar">
+                                    <button type="button" class="btn btn-outline" onclick="selectAllRiskCountries()">Tout sélectionner</button>
+                                    <button type="button" class="btn btn-outline" onclick="deselectAllRiskCountries()">Tout désélectionner</button>
+                                </div>
+                                <select class="form-select" id="riskCountries" multiple size="6"></select>
+                                <div class="form-helper">Maintenez Ctrl (Windows) ou ⌘ (Mac) pour une sélection multiple.</div>
                             </div>
                         </div>
                     </div>

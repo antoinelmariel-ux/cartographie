@@ -369,6 +369,53 @@ function setAggravatingFactorsSelection(factors) {
 }
 window.setAggravatingFactorsSelection = setAggravatingFactorsSelection;
 
+function getRiskCountriesSelect() {
+    return document.getElementById('riskCountries');
+}
+
+function getAllRiskCountryValues() {
+    const select = getRiskCountriesSelect();
+    return select ? Array.from(select.options).map(option => option.value) : [];
+}
+
+function setRiskCountriesSelection(values, options = {}) {
+    const select = getRiskCountriesSelect();
+    if (!select) {
+        return;
+    }
+
+    const fallbackToAll = options.fallbackToAll !== false;
+    const availableValues = getAllRiskCountryValues();
+    const normalized = Array.isArray(values)
+        ? values.filter(value => availableValues.includes(value))
+        : [];
+    const targetValues = normalized.length
+        ? normalized
+        : (fallbackToAll ? availableValues : []);
+    const selectionSet = new Set(targetValues);
+    Array.from(select.options).forEach(option => {
+        option.selected = selectionSet.has(option.value);
+    });
+}
+
+function selectAllRiskCountries() {
+    setRiskCountriesSelection(getAllRiskCountryValues());
+    const select = getRiskCountriesSelect();
+    if (select) {
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
+window.selectAllRiskCountries = selectAllRiskCountries;
+
+function deselectAllRiskCountries() {
+    setRiskCountriesSelection([], { fallbackToAll: false });
+    const select = getRiskCountriesSelect();
+    if (select) {
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+}
+window.deselectAllRiskCountries = deselectAllRiskCountries;
+
 function addNewRisk() {
     currentEditingRiskId = null;
     const form = document.getElementById('riskForm');
@@ -386,6 +433,8 @@ function addNewRisk() {
             Array.from(tiersSelect.options).forEach(opt => {
                 opt.selected = lastRiskData.tiers?.includes(opt.value);
             });
+
+            setRiskCountriesSelection(lastRiskData.paysExposes || []);
 
             document.getElementById('description').value = lastRiskData.description || '';
             document.getElementById('probBrut').value = lastRiskData.probBrut || 1;
@@ -414,6 +463,7 @@ function addNewRisk() {
             selectedControlsForRisk = [];
             selectedActionPlansForRisk = [];
             setAggravatingFactorsSelection(null);
+            setRiskCountriesSelection([]);
             const mitigationInput = document.getElementById('mitigationEffectiveness');
             const probNetInput = document.getElementById('probNet');
             const impactNetInput = document.getElementById('impactNet');
@@ -487,6 +537,8 @@ function saveRisk() {
         ? Math.round(rawCoefficient * 100) / 100
         : 1;
 
+    const countriesSelect = document.getElementById('riskCountries');
+
     const formData = {
         processus: document.getElementById('processus').value,
         sousProcessus: document.getElementById('sousProcessus').value,
@@ -494,6 +546,9 @@ function saveRisk() {
         typeCorruption: document.getElementById('typeCorruption').value,
         statut: document.getElementById('statut').value,
         tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
+        paysExposes: countriesSelect
+            ? Array.from(countriesSelect.selectedOptions).map(o => o.value)
+            : [],
         probBrut: parseInt(document.getElementById('probBrut').value),
         impactBrut: parseInt(document.getElementById('impactBrut').value),
         probNet: parseInt(document.getElementById('probNet').value),
@@ -589,6 +644,7 @@ function saveRisk() {
     lastRiskData = {
         ...formData,
         tiers: [...formData.tiers],
+        paysExposes: [...formData.paysExposes],
         controls: [...formData.controls],
         actionPlans: [...formData.actionPlans],
         aggravatingFactors: typeof normalizeAggravatingFactors === 'function'
