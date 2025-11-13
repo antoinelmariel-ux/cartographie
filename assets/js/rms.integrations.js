@@ -775,6 +775,17 @@ function handleConfigExport() {
     const section = rms.currentConfigSection;
     if (section === 'processManager') {
         exportProcessConfiguration();
+    } else if (section === 'general') {
+        exportOtherParameters();
+    } else if (section === 'history') {
+        if (typeof exportHistory === 'function') {
+            exportHistory();
+        } else {
+            console.warn("Export de l'historique indisponible : fonction non chargée.");
+            if (typeof showNotification === 'function') {
+                showNotification('error', "Export impossible : fonction d'historique absente");
+            }
+        }
     } else {
         exportOtherParameters();
     }
