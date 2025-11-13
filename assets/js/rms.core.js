@@ -167,6 +167,8 @@ class RiskManagementSystem {
         this.charts = {};
         this.processColorMap = new Map();
         this.interviewEditorState = null;
+        this.interviewTemplateManagerContainer = null;
+        this.interviewTemplateListContainer = null;
         this.unsavedContexts = new Set();
         this.hasUnsavedChanges = false;
         this.init();
@@ -189,6 +191,7 @@ class RiskManagementSystem {
         this.refreshProcessColorMap();
         this.populateSelects();
         this.renderAll();
+        this.renderInterviewTemplateChoices();
         if (this.needsConfigStructureRerender) {
             this.renderConfiguration();
             this.needsConfigStructureRerender = false;
@@ -300,6 +303,17 @@ class RiskManagementSystem {
         parameterKeys.forEach(key => {
             config[key] = cloneList(parameterConfig[key]);
         });
+
+        const templateList = Array.isArray(parameterConfig.interviewTemplates)
+            ? parameterConfig.interviewTemplates
+                .map(template => ({
+                    value: typeof template?.value === 'string' ? template.value : '',
+                    label: typeof template?.label === 'string' ? template.label : '',
+                    content: typeof template?.content === 'string' ? template.content : ''
+                }))
+                .filter(template => template.value && template.label)
+            : [];
+        config.interviewTemplates = templateList;
 
         if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
             config.riskStatuses = [
@@ -492,6 +506,24 @@ class RiskManagementSystem {
 
             this.config[key] = baseArray.map(item => item && typeof item === 'object' ? { ...item } : item);
         });
+
+        const templateSource = Array.isArray(baseConfig.interviewTemplates)
+            ? baseConfig.interviewTemplates
+            : Array.isArray(fallback.interviewTemplates)
+                ? fallback.interviewTemplates
+                : [];
+
+        if (!Array.isArray(baseConfig.interviewTemplates) && baseConfig.interviewTemplates !== undefined) {
+            updated = true;
+        }
+
+        this.config.interviewTemplates = templateSource
+            .map(template => ({
+                value: typeof template?.value === 'string' ? template.value.trim() : '',
+                label: typeof template?.label === 'string' ? template.label.trim() : '',
+                content: typeof template?.content === 'string' ? template.content : ''
+            }))
+            .filter(template => template.value && template.label);
 
         return updated;
     }
@@ -1057,17 +1089,22 @@ class RiskManagementSystem {
         intro.innerHTML = "<p>Gérez ici les valeurs de référence utilisées dans l'application (types de corruption, statuts, etc.). Les éléments marqués comme verrouillés ne peuvent pas être modifiés.</p>";
         container.appendChild(intro);
 
-        const sections = {
-            riskTypes: 'Types de corruption',
-            tiers: 'Tiers',
-            riskStatuses: 'Statuts des risques',
-            controlTypes: 'Types de contrôle',
-            controlOrigins: 'Origine des contrôles',
-            controlFrequencies: 'Fréquences des contrôles',
-            controlModes: "Modes d'exécution",
-            controlEffectiveness: 'Efficacités',
-            controlStatuses: 'Statuts des contrôles'
-        };
+        const sections = [
+            {
+                key: 'interviewTemplates',
+                label: "Trames d'entretien",
+                renderer: (body) => this.renderInterviewTemplateManager(body)
+            },
+            { key: 'riskTypes', label: 'Types de corruption' },
+            { key: 'tiers', label: 'Tiers' },
+            { key: 'riskStatuses', label: 'Statuts des risques' },
+            { key: 'controlTypes', label: 'Types de contrôle' },
+            { key: 'controlOrigins', label: 'Origine des contrôles' },
+            { key: 'controlFrequencies', label: 'Fréquences des contrôles' },
+            { key: 'controlModes', label: "Modes d'exécution" },
+            { key: 'controlEffectiveness', label: 'Efficacités' },
+            { key: 'controlStatuses', label: 'Statuts des contrôles' }
+        ];
 
         const readOnlyMessages = {
             riskStatuses: 'Les statuts de risque sont prédéfinis et ne peuvent pas être modifiés.'
@@ -1077,7 +1114,8 @@ class RiskManagementSystem {
         accordion.className = 'config-accordion';
         container.appendChild(accordion);
 
-        Object.entries(sections).forEach(([key, label], index) => {
+        sections.forEach((section, index) => {
+            const { key, label, renderer } = section;
             const item = document.createElement('div');
             item.className = 'config-accordion-item';
 
@@ -1102,6 +1140,11 @@ class RiskManagementSystem {
             accordion.appendChild(item);
 
             this.configureAccordionItem(item, headerButton, body, index === 0);
+
+            if (typeof renderer === 'function') {
+                renderer(body);
+                return;
+            }
 
             const isReadOnly = this.readOnlyConfigKeys.has(key);
 
@@ -1153,6 +1196,333 @@ class RiskManagementSystem {
 
         this.refreshConfigLists();
         this.adjustOpenAccordionBodies(container);
+    }
+
+    ensureInterviewTemplatesArray() {
+        if (!this.config || typeof this.config !== 'object') {
+            this.config = {};
+        }
+        if (!Array.isArray(this.config.interviewTemplates)) {
+            this.config.interviewTemplates = [];
+        }
+        return this.config.interviewTemplates;
+    }
+
+    normalizeInterviewTemplate(template) {
+        if (!template || typeof template !== 'object') {
+            return null;
+        }
+
+        const value = typeof template.value === 'string' ? template.value.trim() : '';
+        const label = typeof template.label === 'string' ? template.label.trim() : '';
+        const content = typeof template.content === 'string' ? template.content : '';
+
+        if (!value || !label) {
+            return null;
+        }
+
+        return { value, label, content };
+    }
+
+    renderInterviewTemplateManager(container) {
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        this.interviewTemplateManagerContainer = container;
+        container.innerHTML = '';
+
+        const manager = document.createElement('div');
+        manager.className = 'config-template-manager';
+        container.appendChild(manager);
+
+        const helper = document.createElement('p');
+        helper.className = 'config-template-helper';
+        helper.textContent = "Créez, modifiez et réutilisez des trames pour préremplir vos comptes-rendus d'entretien.";
+        manager.appendChild(helper);
+
+        const listWrapper = document.createElement('div');
+        listWrapper.className = 'config-template-list';
+        manager.appendChild(listWrapper);
+
+        const templates = [...this.ensureInterviewTemplatesArray()];
+
+        if (!templates.length) {
+            const empty = document.createElement('div');
+            empty.className = 'config-template-empty';
+            empty.textContent = 'Aucune trame définie pour le moment.';
+            listWrapper.appendChild(empty);
+        } else {
+            templates.forEach((template, index) => {
+                const card = document.createElement('article');
+                card.className = 'config-template-card';
+                listWrapper.appendChild(card);
+
+                const renderDisplay = () => {
+                    card.innerHTML = '';
+
+                    const header = document.createElement('div');
+                    header.className = 'config-template-header';
+
+                    const title = document.createElement('div');
+                    title.className = 'config-template-title';
+                    title.textContent = template.label || 'Trame sans titre';
+                    header.appendChild(title);
+
+                    const slug = document.createElement('div');
+                    slug.className = 'config-template-slug';
+                    slug.textContent = template.value ? `ID : ${template.value}` : 'Identifiant non défini';
+                    header.appendChild(slug);
+
+                    card.appendChild(header);
+
+                    const preview = document.createElement('div');
+                    preview.className = 'config-template-preview';
+                    if (template.content && String(template.content).trim()) {
+                        preview.innerHTML = template.content;
+                    } else {
+                        preview.innerHTML = '<p class="config-template-empty">Contenu non renseigné.</p>';
+                    }
+                    card.appendChild(preview);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'config-template-actions';
+
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'btn btn-secondary';
+                    editButton.textContent = 'Modifier';
+                    editButton.addEventListener('click', () => {
+                        renderEditForm();
+                    });
+                    actions.appendChild(editButton);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'btn btn-outline';
+                    deleteButton.textContent = 'Supprimer';
+                    deleteButton.addEventListener('click', () => {
+                        this.removeInterviewTemplate(index);
+                    });
+                    actions.appendChild(deleteButton);
+
+                    card.appendChild(actions);
+                };
+
+                const renderEditForm = () => {
+                    card.innerHTML = '';
+
+                    const form = document.createElement('div');
+                    form.className = 'config-template-form';
+                    card.appendChild(form);
+
+                    const labelInput = document.createElement('input');
+                    labelInput.type = 'text';
+                    labelInput.value = template.label || '';
+                    labelInput.placeholder = 'Libellé de la trame';
+                    labelInput.className = 'config-input-label';
+                    form.appendChild(labelInput);
+
+                    const valueInput = document.createElement('input');
+                    valueInput.type = 'text';
+                    valueInput.value = template.value || '';
+                    valueInput.placeholder = 'Identifiant automatique';
+                    valueInput.className = 'config-input-value';
+                    form.appendChild(valueInput);
+
+                    const contentInput = document.createElement('textarea');
+                    contentInput.value = template.content || '';
+                    contentInput.placeholder = 'Contenu de la trame (HTML autorisé)';
+                    form.appendChild(contentInput);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'config-template-actions';
+
+                    const saveButton = document.createElement('button');
+                    saveButton.type = 'button';
+                    saveButton.className = 'btn btn-success';
+                    saveButton.textContent = 'Enregistrer';
+                    saveButton.addEventListener('click', () => {
+                        const payload = {
+                            label: labelInput.value.trim(),
+                            value: valueInput.value.trim(),
+                            content: contentInput.value.trim()
+                        };
+
+                        if (!payload.label || !payload.value) {
+                            if (typeof showNotification === 'function') {
+                                showNotification('error', 'Renseignez un libellé et un identifiant pour la trame.');
+                            } else {
+                                alert('Renseignez un libellé et un identifiant pour la trame.');
+                            }
+                            return;
+                        }
+
+                        this.updateInterviewTemplate(index, payload);
+                    });
+                    actions.appendChild(saveButton);
+
+                    const cancelButton = document.createElement('button');
+                    cancelButton.type = 'button';
+                    cancelButton.className = 'btn btn-outline';
+                    cancelButton.textContent = 'Annuler';
+                    cancelButton.addEventListener('click', () => {
+                        renderDisplay();
+                    });
+                    actions.appendChild(cancelButton);
+
+                    form.appendChild(actions);
+
+                    this.setupAutoValueSync(labelInput, valueInput);
+                };
+
+                renderDisplay();
+            });
+        }
+
+        const addForm = document.createElement('div');
+        addForm.className = 'config-template-form';
+        manager.appendChild(addForm);
+
+        const addIntro = document.createElement('p');
+        addIntro.className = 'config-template-helper';
+        addIntro.textContent = 'Ajouter une nouvelle trame d’entretien';
+        addForm.appendChild(addIntro);
+
+        const labelInput = document.createElement('input');
+        labelInput.type = 'text';
+        labelInput.placeholder = 'Libellé de la trame';
+        labelInput.className = 'config-input-label';
+        addForm.appendChild(labelInput);
+
+        const valueInput = document.createElement('input');
+        valueInput.type = 'text';
+        valueInput.placeholder = 'Identifiant automatique';
+        valueInput.className = 'config-input-value';
+        addForm.appendChild(valueInput);
+
+        const contentInput = document.createElement('textarea');
+        contentInput.placeholder = 'Contenu de la trame (HTML autorisé)';
+        addForm.appendChild(contentInput);
+
+        const actions = document.createElement('div');
+        actions.className = 'config-template-actions';
+        addForm.appendChild(actions);
+
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.className = 'btn btn-success';
+        addButton.textContent = 'Ajouter la trame';
+        addButton.addEventListener('click', () => {
+            const payload = {
+                label: labelInput.value.trim(),
+                value: valueInput.value.trim(),
+                content: contentInput.value.trim()
+            };
+
+            if (!payload.label || !payload.value) {
+                if (typeof showNotification === 'function') {
+                    showNotification('error', 'Renseignez un libellé et un identifiant pour la trame.');
+                } else {
+                    alert('Renseignez un libellé et un identifiant pour la trame.');
+                }
+                return;
+            }
+
+            this.createInterviewTemplate(payload);
+        });
+        actions.appendChild(addButton);
+
+        this.setupAutoValueSync(labelInput, valueInput);
+
+        this.renderInterviewTemplateChoices();
+    }
+
+    createInterviewTemplate(payload) {
+        const templates = this.ensureInterviewTemplatesArray();
+        const normalized = this.normalizeInterviewTemplate(payload);
+        if (!normalized) {
+            return false;
+        }
+
+        const duplicate = templates.some(template => template.value === normalized.value);
+        if (duplicate) {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Un identifiant identique est déjà utilisé pour une autre trame.');
+            } else {
+                alert('Un identifiant identique est déjà utilisé pour une autre trame.');
+            }
+            return false;
+        }
+
+        templates.push(normalized);
+        this.saveConfig();
+        this.renderInterviewTemplateManager(this.interviewTemplateManagerContainer);
+        this.renderInterviewTemplateChoices();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Trame ajoutée avec succès');
+        }
+        return true;
+    }
+
+    updateInterviewTemplate(index, payload) {
+        const templates = this.ensureInterviewTemplatesArray();
+        if (index < 0 || index >= templates.length) {
+            return false;
+        }
+
+        const base = templates[index];
+        const normalized = this.normalizeInterviewTemplate({ ...base, ...payload });
+        if (!normalized) {
+            return false;
+        }
+
+        const duplicate = templates.some((template, idx) => idx !== index && template.value === normalized.value);
+        if (duplicate) {
+            if (typeof showNotification === 'function') {
+                showNotification('error', 'Un identifiant identique est déjà utilisé pour une autre trame.');
+            } else {
+                alert('Un identifiant identique est déjà utilisé pour une autre trame.');
+            }
+            return false;
+        }
+
+        templates[index] = normalized;
+        this.saveConfig();
+        this.renderInterviewTemplateManager(this.interviewTemplateManagerContainer);
+        this.renderInterviewTemplateChoices();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Trame mise à jour');
+        }
+        return true;
+    }
+
+    removeInterviewTemplate(index) {
+        const templates = this.ensureInterviewTemplatesArray();
+        if (index < 0 || index >= templates.length) {
+            return;
+        }
+
+        const target = templates[index];
+        const label = target?.label ? `« ${target.label} »` : 'cette trame';
+
+        if (typeof window !== 'undefined') {
+            const confirmed = window.confirm(`Confirmez-vous la suppression de ${label} ?`);
+            if (!confirmed) {
+                return;
+            }
+        }
+
+        templates.splice(index, 1);
+        this.saveConfig();
+        this.renderInterviewTemplateManager(this.interviewTemplateManagerContainer);
+        this.renderInterviewTemplateChoices();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Trame supprimée');
+        }
     }
 
     renderProcessManager(container) {
@@ -2556,7 +2926,7 @@ class RiskManagementSystem {
         };
 
         Object.keys(this.config)
-            .filter(k => k !== 'subProcesses')
+            .filter(k => k !== 'subProcesses' && k !== 'interviewTemplates')
             .forEach(updateList);
 
         this.adjustOpenAccordionBodies();
@@ -2564,6 +2934,9 @@ class RiskManagementSystem {
 
     updateConfigOption(key, index, updated) {
         if (this.readOnlyConfigKeys.has(key)) {
+            return;
+        }
+        if (key === 'interviewTemplates') {
             return;
         }
         if (!this.config[key] || !this.config[key][index]) return;
@@ -2625,6 +2998,9 @@ class RiskManagementSystem {
         if (this.readOnlyConfigKeys.has(key)) {
             return;
         }
+        if (key === 'interviewTemplates') {
+            return;
+        }
         const valueInput = document.getElementById(`input-${key}-value`);
         const labelInput = document.getElementById(`input-${key}-label`);
         if (!valueInput || !labelInput) return;
@@ -2650,6 +3026,9 @@ class RiskManagementSystem {
 
     removeConfigOption(key, index) {
         if (this.readOnlyConfigKeys.has(key)) {
+            return;
+        }
+        if (key === 'interviewTemplates') {
             return;
         }
         if (key === 'processes') {
@@ -5771,6 +6150,145 @@ class RiskManagementSystem {
         }
     }
 
+    openInterviewTemplateModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewTemplateModal');
+        if (!modal) {
+            return;
+        }
+
+        this.renderInterviewTemplateChoices();
+        modal.classList.add('show');
+    }
+
+    closeInterviewTemplateModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('interviewTemplateModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('show');
+    }
+
+    renderInterviewTemplateChoices() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const container = document.getElementById('interviewTemplateList');
+        if (!container) {
+            return;
+        }
+
+        this.interviewTemplateListContainer = container;
+        container.innerHTML = '';
+
+        const templates = Array.isArray(this.config?.interviewTemplates)
+            ? this.config.interviewTemplates
+            : [];
+
+        if (!templates.length) {
+            const empty = document.createElement('div');
+            empty.className = 'template-choice-empty';
+            empty.textContent = 'Aucune trame disponible. Configurez vos trames dans l’onglet Configuration.';
+            container.appendChild(empty);
+            return;
+        }
+
+        templates.forEach(template => {
+            if (!template) {
+                return;
+            }
+
+            const card = document.createElement('article');
+            card.className = 'template-choice-card';
+
+            const header = document.createElement('div');
+            header.className = 'template-choice-header';
+
+            const title = document.createElement('div');
+            title.className = 'template-choice-title';
+            title.textContent = template.label || 'Trame sans titre';
+            header.appendChild(title);
+
+            const slug = document.createElement('div');
+            slug.className = 'template-choice-slug';
+            slug.textContent = template.value ? `ID : ${template.value}` : 'Identifiant non défini';
+            header.appendChild(slug);
+
+            card.appendChild(header);
+
+            const preview = document.createElement('div');
+            preview.className = 'template-choice-preview';
+            if (template.content && String(template.content).trim()) {
+                preview.innerHTML = template.content;
+            } else {
+                preview.innerHTML = '<p class="template-choice-empty">Contenu non renseigné.</p>';
+            }
+            card.appendChild(preview);
+
+            const actions = document.createElement('div');
+            actions.className = 'template-choice-actions';
+
+            const selectButton = document.createElement('button');
+            selectButton.type = 'button';
+            selectButton.className = 'btn btn-primary';
+            selectButton.textContent = 'Utiliser cette trame';
+            selectButton.addEventListener('click', () => {
+                this.applyInterviewTemplate(template.value);
+            });
+            actions.appendChild(selectButton);
+
+            card.appendChild(actions);
+            container.appendChild(card);
+        });
+    }
+
+    applyInterviewTemplate(templateValue) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const templates = Array.isArray(this.config?.interviewTemplates)
+            ? this.config.interviewTemplates
+            : [];
+        const template = templates.find(entry => entry && entry.value === templateValue);
+        if (!template) {
+            return;
+        }
+
+        const notesElement = document.getElementById('interviewNotes');
+        if (!notesElement) {
+            this.closeInterviewTemplateModal();
+            return;
+        }
+
+        const existingContent = (notesElement.innerHTML || '').trim();
+        if (existingContent) {
+            const confirmed = window.confirm('Le contenu actuel sera remplacé par la trame sélectionnée. Continuer ?');
+            if (!confirmed) {
+                this.closeInterviewTemplateModal();
+                return;
+            }
+        }
+
+        notesElement.innerHTML = template.content || '';
+        this.markUnsavedChange('interviewForm');
+        notesElement.focus();
+        this.closeInterviewTemplateModal();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Trame appliquée au compte-rendu');
+        }
+    }
+
     openInterviewModal(interviewId = null) {
         if (typeof document === 'undefined') {
             return;
@@ -5786,6 +6304,8 @@ class RiskManagementSystem {
         if (!modal || !form || !notesElement) {
             return;
         }
+
+        this.renderInterviewTemplateChoices();
 
         let targetInterview = null;
         if (interviewId != null) {

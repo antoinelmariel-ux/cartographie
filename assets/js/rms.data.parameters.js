@@ -77,6 +77,23 @@
             { value: 'en-mise-en-place', label: 'En mise en place' },
             { value: 'en-revision', label: 'En cours de révision' },
             { value: 'obsolete', label: 'Obsolète' }
+        ],
+        interviewTemplates: [
+            {
+                value: 'entretien-standard-interne',
+                label: "Entretien standard (collaborateurs internes)",
+                content: '<p><strong>Participants & contexte</strong></p><ul><li>Référents présents :</li><li>Objectif de l’entretien :</li></ul><p><strong>Points principaux abordés</strong></p><ul><li>Processus décrits :</li><li>Interactions sensibles identifiées :</li></ul><p><strong>Risques corruption évoqués</strong></p><ul><li>Situations à surveiller :</li><li>Exemples récents :</li></ul><p><strong>Actions & besoins</strong></p><ul><li>Mesures envisagées :</li><li>Demandes de support :</li></ul>'
+            },
+            {
+                value: 'due-diligence-fournisseur',
+                label: 'Due diligence fournisseur / tiers',
+                content: '<p><strong>Profil du tiers</strong></p><ul><li>Activités principales :</li><li>Pays d’opération :</li></ul><p><strong>Processus et opérations concernées</strong></p><ul><li>Flux ou transactions clés :</li><li>Points de contrôle existants :</li></ul><p><strong>Risques corruption identifiés</strong></p><ul><li>Exposition potentielle :</li><li>Signaux faibles détectés :</li></ul><p><strong>Actions de mitigation proposées</strong></p><ul><li>Contrôles complémentaires :</li><li>Suivi / responsables :</li></ul>'
+            },
+            {
+                value: 'suivi-plan-actions',
+                label: 'Suivi de plan d’actions anticorruption',
+                content: '<p><strong>Avancement général</strong></p><ul><li>Rappels des actions engagées :</li><li>Niveau d’avancement :</li></ul><p><strong>Points de vigilance</strong></p><ul><li>Obstacles rencontrés :</li><li>Impacts sur les délais :</li></ul><p><strong>Décisions & arbitrages</strong></p><ul><li>Mesures correctrices :</li><li>Ressources nécessaires :</li></ul><p><strong>Prochaines étapes</strong></p><ul><li>Responsables assignés :</li><li>Calendrier de suivi :</li></ul>'
+            }
         ]
     };
 
@@ -92,6 +109,7 @@
         controlFrequencies: cloneList(parameterConfig.controlFrequencies),
         controlModes: cloneList(parameterConfig.controlModes),
         controlEffectiveness: cloneList(parameterConfig.controlEffectiveness),
-        controlStatuses: cloneList(parameterConfig.controlStatuses)
+        controlStatuses: cloneList(parameterConfig.controlStatuses),
+        interviewTemplates: cloneList(parameterConfig.interviewTemplates)
     });
 })(typeof window !== 'undefined' ? window : globalThis);

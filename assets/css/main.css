@@ -1884,6 +1884,14 @@ tbody tr:hover {
     animation: slideUp 0.3s ease;
 }
 
+.modal-content.large {
+    max-width: 1100px;
+}
+
+.modal-content.medium {
+    max-width: 720px;
+}
+
 @keyframes slideUp {
     from { transform: translateY(50px); opacity: 0; }
     to { transform: translateY(0); opacity: 1; }
@@ -2270,6 +2278,18 @@ tbody tr:hover {
     flex-direction: column;
 }
 
+.template-select-bar {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.template-select-bar .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
 .wysiwyg-toolbar {
     display: flex;
     flex-wrap: wrap;
@@ -2331,6 +2351,63 @@ tbody tr:hover {
 .wysiwyg-content a {
     color: var(--secondary-color);
     text-decoration: underline;
+}
+
+.template-modal-helper {
+    margin-bottom: 1rem;
+    color: var(--muted-text-color);
+}
+
+.template-choice-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.template-choice-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--surface-alt-color);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.template-choice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.template-choice-title {
+    font-size: 1.05rem;
+    font-weight: 600;
+}
+
+.template-choice-slug {
+    font-size: 0.85rem;
+    color: var(--muted-text-color);
+}
+
+.template-choice-preview {
+    background: var(--surface-color);
+    border-radius: 10px;
+    border: 1px dashed var(--border-color);
+    padding: 12px;
+    max-height: 200px;
+    overflow: auto;
+}
+
+.template-choice-actions {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.template-choice-empty {
+    color: var(--muted-text-color);
+    font-style: italic;
 }
 
 .interview-filters {
@@ -3253,6 +3330,98 @@ tbody tr:hover {
 
 .config-accordion-body .config-list {
     margin-bottom: 12px;
+}
+
+.config-template-manager {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.config-template-helper {
+    color: var(--muted-text-color);
+    margin-bottom: 0.5rem;
+}
+
+.config-template-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.config-template-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--surface-alt-color);
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.config-template-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+}
+
+.config-template-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.config-template-slug {
+    font-size: 0.85rem;
+    color: var(--muted-text-color);
+}
+
+.config-template-preview {
+    background: var(--surface-color);
+    border: 1px dashed var(--border-color);
+    border-radius: 10px;
+    padding: 12px;
+    max-height: 220px;
+    overflow: auto;
+}
+
+.config-template-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+}
+
+.config-template-empty {
+    color: var(--muted-text-color);
+    font-style: italic;
+}
+
+.config-template-form {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--surface-alt-color);
+    padding: 16px;
+    display: grid;
+    gap: 12px;
+}
+
+.config-template-form textarea {
+    min-height: 140px;
+    resize: vertical;
+    padding: 12px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+    font-family: inherit;
+}
+
+.config-template-form textarea:focus-visible {
+    outline: 2px solid var(--primary-color);
+    outline-offset: 2px;
+}
+
+.config-template-form .config-template-actions {
+    justify-content: flex-end;
 }
 
 .config-empty {
