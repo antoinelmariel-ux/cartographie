@@ -272,6 +272,70 @@ var actionPlanFilterQueryForRisk = '';
 var controlCreationContext = null;
 var actionPlanCreationContext = null;
 
+const MODAL_Z_INDEX_STEP = 5;
+
+function getModalBaseZIndex(modal) {
+    if (!modal) return 2000;
+    if (modal.dataset && modal.dataset.baseZIndex) {
+        const cached = parseInt(modal.dataset.baseZIndex, 10);
+        if (Number.isFinite(cached)) {
+            return cached;
+        }
+    }
+
+    const computed = parseInt(window.getComputedStyle(modal).zIndex, 10);
+    const baseZIndex = Number.isFinite(computed) ? computed : 2000;
+    if (modal.dataset) {
+        modal.dataset.baseZIndex = baseZIndex;
+    } else {
+        modal.setAttribute('data-base-zindex', baseZIndex);
+    }
+    return baseZIndex;
+}
+
+function bringModalToFront(modal) {
+    if (!modal) return;
+    const baseZIndex = getModalBaseZIndex(modal);
+    const openModals = Array.from(document.querySelectorAll('.modal.show')).filter(el => el !== modal);
+    const highestZIndex = openModals.reduce((max, el) => {
+        const value = parseInt(window.getComputedStyle(el).zIndex, 10);
+        if (Number.isFinite(value) && value > max) {
+            return value;
+        }
+        return max;
+    }, Number.NEGATIVE_INFINITY);
+    const referenceZIndex = Number.isFinite(highestZIndex) ? highestZIndex : baseZIndex;
+    const targetZIndex = openModals.length > 0
+        ? Math.max(baseZIndex, referenceZIndex + MODAL_Z_INDEX_STEP)
+        : baseZIndex;
+
+    modal.style.zIndex = targetZIndex;
+    if (modal.dataset) {
+        modal.dataset.activeZIndex = targetZIndex;
+    } else {
+        modal.setAttribute('data-active-zindex', targetZIndex);
+    }
+    modal.classList.add('show');
+}
+
+function resetModalZIndex(modal) {
+    if (!modal) return;
+    const baseZIndex = getModalBaseZIndex(modal);
+    modal.style.zIndex = baseZIndex;
+    if (modal.dataset) {
+        delete modal.dataset.activeZIndex;
+    } else {
+        modal.removeAttribute('data-active-zindex');
+    }
+}
+
+function hideModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('show');
+    resetModalZIndex(modal);
+}
+
+window.bringModalToFront = bringModalToFront;
 function setAggravatingFactorsSelection(factors) {
     const groups = (typeof AGGRAVATING_FACTOR_GROUPS === 'object' && AGGRAVATING_FACTOR_GROUPS)
         ? AGGRAVATING_FACTOR_GROUPS
@@ -393,14 +457,16 @@ function addNewRisk() {
     activeRiskEditState = 'brut';
     const modal = document.getElementById('riskModal');
     if (modal) {
-        modal.classList.add('show');
+        bringModalToFront(modal);
         requestAnimationFrame(() => initRiskEditMatrix());
     }
 }
 window.addNewRisk = addNewRisk;
 
 function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
+    const modal = document.getElementById(modalId);
+    if (!modal) return;
+    hideModal(modal);
 }
 window.closeModal = closeModal;
 
@@ -541,7 +607,10 @@ function openControlSelector() {
     const searchInput = document.getElementById('controlSearchInput');
     if (searchInput) searchInput.value = '';
     renderControlSelectionList();
-    document.getElementById('controlSelectorModal').classList.add('show');
+    const modal = document.getElementById('controlSelectorModal');
+    if (modal) {
+        bringModalToFront(modal);
+    }
 }
 window.openControlSelector = openControlSelector;
 
@@ -604,7 +673,7 @@ function filterControlsForRisk(query) {
 window.filterControlsForRisk = filterControlsForRisk;
 
 function closeControlSelector() {
-    document.getElementById('controlSelectorModal').classList.remove('show');
+    closeModal('controlSelectorModal');
 }
 window.closeControlSelector = closeControlSelector;
 
@@ -690,7 +759,10 @@ function openActionPlanSelector() {
     const searchInput = document.getElementById('actionPlanSearchInput');
     if (searchInput) searchInput.value = '';
     renderActionPlanSelectionList();
-    document.getElementById('actionPlanSelectorModal').classList.add('show');
+    const modal = document.getElementById('actionPlanSelectorModal');
+    if (modal) {
+        bringModalToFront(modal);
+    }
 }
 window.openActionPlanSelector = openActionPlanSelector;
 
@@ -732,7 +804,7 @@ window.filterActionPlansForRisk = function(query) {
 };
 
 function closeActionPlanSelector() {
-    document.getElementById('actionPlanSelectorModal').classList.remove('show');
+    closeModal('actionPlanSelectorModal');
 }
 window.closeActionPlanSelector = closeActionPlanSelector;
 
@@ -802,7 +874,10 @@ function addNewActionPlan() {
     }
     document.getElementById('actionPlanModalTitle').textContent = "Nouveau Plan d'action";
     populatePlanOwnerSuggestions();
-    document.getElementById('actionPlanModal').classList.add('show');
+    const modal = document.getElementById('actionPlanModal');
+    if (modal) {
+        bringModalToFront(modal);
+    }
 }
 window.addNewActionPlan = addNewActionPlan;
 
@@ -822,7 +897,10 @@ function editActionPlan(planId) {
     }
     document.getElementById('actionPlanModalTitle').textContent = "Modifier le Plan d'action";
     populatePlanOwnerSuggestions();
-    document.getElementById('actionPlanModal').classList.add('show');
+    const modal = document.getElementById('actionPlanModal');
+    if (modal) {
+        bringModalToFront(modal);
+    }
 }
 window.editActionPlan = editActionPlan;
 
@@ -843,7 +921,7 @@ function deleteActionPlan(planId) {
 window.deleteActionPlan = deleteActionPlan;
 
 function closeActionPlanModal() {
-    document.getElementById('actionPlanModal').classList.remove('show');
+    closeModal('actionPlanModal');
     if (actionPlanCreationContext && actionPlanCreationContext.fromRisk) {
         actionPlanCreationContext = null;
     }
@@ -947,7 +1025,10 @@ function openRiskSelectorForPlan() {
     const searchInput = document.getElementById('riskSearchInputPlan');
     if (searchInput) searchInput.value = '';
     renderRiskSelectionListForPlan();
-    document.getElementById('riskSelectorPlanModal').classList.add('show');
+    const modal = document.getElementById('riskSelectorPlanModal');
+    if (modal) {
+        bringModalToFront(modal);
+    }
 }
 window.openRiskSelectorForPlan = openRiskSelectorForPlan;
 
@@ -978,7 +1059,7 @@ window.filterRisksForPlan = function(query) {
 };
 
 function closeRiskSelectorForPlan() {
-    document.getElementById('riskSelectorPlanModal').classList.remove('show');
+    closeModal('riskSelectorPlanModal');
 }
 window.closeRiskSelectorForPlan = closeRiskSelectorForPlan;
 

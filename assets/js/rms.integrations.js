@@ -1527,7 +1527,14 @@ function applyPatch() {
         document.getElementById('controlModalTitle').textContent = 'Nouveau Contrôle';
         updateSelectedRisksDisplay();
         populateControlOwnerSuggestions();
-        document.getElementById('controlModal').classList.add('show');
+        const modal = document.getElementById('controlModal');
+        if (modal) {
+          if (typeof window.bringModalToFront === 'function') {
+            window.bringModalToFront(modal);
+          } else {
+            modal.classList.add('show');
+          }
+        }
       };
 
       window.editControl = function(controlId) {
@@ -1553,7 +1560,14 @@ function applyPatch() {
         document.getElementById('controlModalTitle').textContent = 'Modifier le Contrôle';
         updateSelectedRisksDisplay();
         populateControlOwnerSuggestions();
-        document.getElementById('controlModal').classList.add('show');
+        const modal = document.getElementById('controlModal');
+        if (modal) {
+          if (typeof window.bringModalToFront === 'function') {
+            window.bringModalToFront(modal);
+          } else {
+            modal.classList.add('show');
+          }
+        }
       };
 
       window.deleteControl = function(controlId) {
@@ -1584,7 +1598,14 @@ function applyPatch() {
       };
 
       window.closeControlModal = function() {
-        document.getElementById('controlModal').classList.remove('show');
+        if (typeof window.closeModal === 'function') {
+          window.closeModal('controlModal');
+        } else {
+          const modal = document.getElementById('controlModal');
+          if (modal) {
+            modal.classList.remove('show');
+          }
+        }
         if (window.controlCreationContext && window.controlCreationContext.fromRisk) {
           window.controlCreationContext = null;
         }
@@ -1595,7 +1616,14 @@ function applyPatch() {
         const searchInput = document.getElementById('riskSearchInput');
         if (searchInput) searchInput.value = '';
         renderRiskSelectionList();
-        document.getElementById('riskSelectorModal').classList.add('show');
+        const modal = document.getElementById('riskSelectorModal');
+        if (modal) {
+          if (typeof window.bringModalToFront === 'function') {
+            window.bringModalToFront(modal);
+          } else {
+            modal.classList.add('show');
+          }
+        }
       };
 
       function renderRiskSelectionList() {
@@ -1630,7 +1658,14 @@ function applyPatch() {
       };
 
       window.closeRiskSelector = function() {
-        document.getElementById('riskSelectorModal').classList.remove('show');
+        if (typeof window.closeModal === 'function') {
+          window.closeModal('riskSelectorModal');
+        } else {
+          const modal = document.getElementById('riskSelectorModal');
+          if (modal) {
+            modal.classList.remove('show');
+          }
+        }
       };
 
       window.toggleRiskSelection = function(riskId) {
