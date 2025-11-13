@@ -289,6 +289,7 @@ class RiskManagementSystem {
 
         const parameterKeys = [
             'riskTypes',
+            'countries',
             'tiers',
             'riskStatuses',
             'actionPlanStatuses',
@@ -484,6 +485,7 @@ class RiskManagementSystem {
 
         const simpleArrayKeys = [
             'riskTypes',
+            'countries',
             'tiers',
             'controlTypes',
             'controlOrigins',
@@ -571,6 +573,29 @@ class RiskManagementSystem {
         if (typeof getMitigationColumnFromLevel === 'function') {
             normalized.probNet = getMitigationColumnFromLevel(mitigationLevel);
         }
+
+        const countriesSource = Array.isArray(risk?.paysExposes)
+            ? risk.paysExposes
+            : (Array.isArray(risk?.countries)
+                ? risk.countries
+                : []);
+        const normalizedCountries = [];
+        const seenCountries = new Set();
+        countriesSource.forEach(value => {
+            const label = typeof value === 'string'
+                ? value.trim()
+                : (value != null ? String(value) : '');
+            if (!label) {
+                return;
+            }
+            const key = label.toLowerCase();
+            if (seenCountries.has(key)) {
+                return;
+            }
+            seenCountries.add(key);
+            normalizedCountries.push(label);
+        });
+        normalized.paysExposes = normalizedCountries;
 
         const brutScore = typeof getRiskBrutScore === 'function'
             ? getRiskBrutScore(normalized)
@@ -808,10 +833,13 @@ class RiskManagementSystem {
                 const el = document.getElementById(id);
                 if (!el) return;
 
-                const current = el.value;
+                const isMultiple = !!el.multiple;
+                const previousValues = isMultiple
+                    ? Array.from(el.selectedOptions).map(opt => opt.value)
+                    : [el.value];
                 el.innerHTML = '';
 
-                if (placeholder !== undefined) {
+                if (placeholder !== undefined && !isMultiple) {
                     const opt = document.createElement('option');
                     opt.value = '';
                     opt.textContent = placeholder;
@@ -826,8 +854,30 @@ class RiskManagementSystem {
                     el.appendChild(opt);
                 });
 
-                if (current && optionList.some(o => o && o.value === current)) {
-                    el.value = current;
+                if (isMultiple) {
+                    const availableValues = optionList
+                        .map(o => (o && o.value != null) ? String(o.value) : null)
+                        .filter(value => value !== null);
+                    const normalizedPrevious = previousValues
+                        .map(value => (value != null) ? String(value) : null)
+                        .filter(value => value !== null && availableValues.includes(value));
+                    const selectionSet = new Set(normalizedPrevious);
+                    Array.from(el.options).forEach(option => {
+                        const optionValue = String(option.value);
+                        option.selected = selectionSet.has(optionValue);
+                    });
+                } else {
+                    const availableValues = optionList
+                        .map(o => (o && o.value != null) ? String(o.value) : null)
+                        .filter(value => value !== null);
+                    const previousValue = previousValues
+                        .map(value => (value != null) ? String(value) : null)
+                        .find(value => value !== null && availableValues.includes(value));
+                    if (previousValue !== undefined) {
+                        el.value = previousValue;
+                    } else if (placeholder !== undefined) {
+                        el.value = '';
+                    }
                 }
             });
         };
@@ -840,6 +890,19 @@ class RiskManagementSystem {
         fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
         fill('statut', this.config.riskStatuses, 'Sélectionner...');
         fill('tiers', this.config.tiers);
+        const riskCountriesSelect = document.getElementById('riskCountries');
+        const previousCountries = riskCountriesSelect
+            ? Array.from(riskCountriesSelect.selectedOptions).map(opt => opt.value)
+            : [];
+        fill('riskCountries', this.config.countries);
+        if (riskCountriesSelect) {
+            const availableValues = Array.from(riskCountriesSelect.options).map(opt => opt.value);
+            const selection = previousCountries.filter(value => availableValues.includes(value));
+            const targetValues = selection.length ? selection : availableValues;
+            Array.from(riskCountriesSelect.options).forEach(opt => {
+                opt.selected = targetValues.includes(opt.value);
+            });
+        }
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -1096,6 +1159,7 @@ class RiskManagementSystem {
                 renderer: (body) => this.renderInterviewTemplateManager(body)
             },
             { key: 'riskTypes', label: 'Types de corruption' },
+            { key: 'countries', label: 'Pays concernés' },
             { key: 'tiers', label: 'Tiers' },
             { key: 'riskStatuses', label: 'Statuts des risques' },
             { key: 'controlTypes', label: 'Types de contrôle' },
@@ -7038,6 +7102,17 @@ class RiskManagementSystem {
             Array.from(tiersSelect.options).forEach(opt => {
                 opt.selected = (risk.tiers || []).includes(opt.value);
             });
+
+            const countriesSelect = document.getElementById('riskCountries');
+            if (countriesSelect) {
+                const availableValues = Array.from(countriesSelect.options).map(opt => opt.value);
+                const preferredCountries = Array.isArray(risk.paysExposes) && risk.paysExposes.length
+                    ? risk.paysExposes
+                    : availableValues;
+                Array.from(countriesSelect.options).forEach(opt => {
+                    opt.selected = preferredCountries.includes(opt.value);
+                });
+            }
 
             document.getElementById('description').value = risk.description || '';
             document.getElementById('probBrut').value = risk.probBrut;

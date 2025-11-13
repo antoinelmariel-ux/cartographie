@@ -7,6 +7,18 @@
             { value: 'favoritisme', label: 'Favoritisme' },
             { value: 'cadeaux', label: 'Cadeaux/avantages indus' }
         ],
+        countries: [
+            { value: 'France', label: 'France' },
+            { value: 'Allemagne', label: 'Allemagne' },
+            { value: 'Belgique', label: 'Belgique' },
+            { value: 'Espagne', label: 'Espagne' },
+            { value: 'Italie', label: 'Italie' },
+            { value: 'Mexique', label: 'Mexique' },
+            { value: 'République Tchèque', label: 'République Tchèque' },
+            { value: 'Royaume-Uni', label: 'Royaume-Uni' },
+            { value: 'Turquie', label: 'Turquie' },
+            { value: 'USA', label: 'USA' }
+        ],
         tiers: [
             { value: 'AgentsCommerciaux', label: 'Agents commerciaux' },
             { value: 'AssoCaritatives', label: 'Associations caritatives' },
@@ -101,6 +113,7 @@
 
     global.RMS_DEFAULT_PARAMETER_CONFIG = Object.freeze({
         riskTypes: cloneList(parameterConfig.riskTypes),
+        countries: cloneList(parameterConfig.countries),
         tiers: cloneList(parameterConfig.tiers),
         riskStatuses: cloneList(parameterConfig.riskStatuses),
         actionPlanStatuses: cloneList(parameterConfig.actionPlanStatuses),
