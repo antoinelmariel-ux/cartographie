@@ -5275,6 +5275,7 @@ class RiskManagementSystem {
                     <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
                     <td class="table-actions-cell">
                         <div class="table-actions">
+                            <button class="action-btn" title="Dupliquer" onclick="rms.duplicateRisk(${JSON.stringify(risk.id)})">📄</button>
                             <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
                             <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
                         </div>
@@ -6960,6 +6961,42 @@ class RiskManagementSystem {
         this.addHistoryItem('Création risque', `Nouveau risque: ${normalizedRisk.description}`);
         this.saveData();
         this.init();
+
+        return normalizedRisk;
+    }
+
+    duplicateRisk(riskId) {
+        const sourceRisk = this.risks.find(risk => idsEqual(risk.id, riskId));
+        if (!sourceRisk) {
+            return null;
+        }
+
+        const clone = typeof structuredClone === 'function'
+            ? structuredClone(sourceRisk)
+            : JSON.parse(JSON.stringify(sourceRisk));
+
+        const duplicated = {
+            ...clone,
+            id: getNextSequentialId(this.risks),
+            statut: 'brouillon',
+            dateCreation: new Date().toISOString()
+        };
+
+        delete duplicated.dateValidation;
+        delete duplicated.dateValidationNet;
+        delete duplicated.updatedAt;
+
+        const normalizedRisk = this.normalizeRisk(duplicated);
+
+        this.risks.push(normalizedRisk);
+        const historyDescription = sourceRisk?.description || normalizedRisk.description;
+        this.addHistoryItem('Duplication risque', `Copie du risque: ${historyDescription}`);
+        this.saveData();
+        this.init();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Risque dupliqué en brouillon');
+        }
 
         return normalizedRisk;
     }
