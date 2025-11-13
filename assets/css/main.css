@@ -3039,8 +3039,7 @@ tbody tr:hover {
 }
 
 .admin-sections {
-    display: grid;
-    gap: 24px;
+       gap: 24px;
 }
 
 @media (min-width: 1100px) {
