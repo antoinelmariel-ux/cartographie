@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.10.4</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -666,7 +666,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.10.4</span>
+            <span class="app-version">Version 2.11.0</span>
         </footer>
     </div>
 
@@ -705,6 +705,11 @@
                     </div>
                     <div class="form-section">
                         <div class="form-section-title">Compte-rendu détaillé</div>
+                        <div class="template-select-bar">
+                            <button type="button" class="btn btn-outline" onclick="rms.openInterviewTemplateModal()">
+                                📄 Choisir une trame
+                            </button>
+                        </div>
                         <div class="wysiwyg-editor">
                             <div class="wysiwyg-toolbar">
                                 <button type="button" class="wysiwyg-button" title="Gras" onclick="rms.applyInterviewFormat('bold')"><strong>B</strong></button>
@@ -722,6 +727,22 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewModal()">Annuler</button>
                 <button class="btn btn-primary" type="submit" form="interviewForm">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="interviewTemplateModal" class="modal">
+        <div class="modal-content medium">
+            <div class="modal-header">
+                <h3 class="modal-title">Trames d'entretien</h3>
+                <button class="modal-close" onclick="rms.closeInterviewTemplateModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="template-modal-helper">Sélectionnez une trame configurée pour préremplir le compte-rendu.</p>
+                <div id="interviewTemplateList" class="template-choice-list"></div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewTemplateModal()">Fermer</button>
             </div>
         </div>
     </div>
