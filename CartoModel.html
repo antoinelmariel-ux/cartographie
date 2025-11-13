@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.1</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.3</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -59,11 +59,8 @@
                 <button class="tab" onclick="switchTab('reports')">
                     📑 Rapports
                 </button>
-                <button class="tab" onclick="switchTab('history')">
-                    📜 Historique
-                </button>
                 <button class="tab" onclick="switchTab('config')">
-                    ⚙️ Configuration
+                    ⚙️ Administration
                 </button>
             </div>
         </div>
@@ -624,29 +621,10 @@
             </div>
         </div>
 
-        <!-- History Tab -->
-        <div id="history-tab" class="tab-content">
-            <div class="main-content">
-                <div class="toolbar">
-                    <div class="toolbar-title">Historique des Modifications</div>
-                    <div class="toolbar-actions">
-                        <button class="btn btn-secondary" onclick="exportHistory()">
-                            📤 Exporter
-                        </button>
-                    </div>
-                </div>
-
-                <div class="content-area">
-                    <div class="timeline" id="historyTimeline">
-                        <!-- Populated by JavaScript -->
-                    </div>
-                </div>
-            </div>
-        </div>
         <div id="config-tab" class="tab-content">
             <div class="main-content">
                 <div class="toolbar">
-                    <div class="toolbar-title">Configuration</div>
+                    <div class="toolbar-title">Administration</div>
                     <div class="toolbar-actions">
                         <button class="btn btn-outline" id="configExportButton" onclick="handleConfigExport()">
                             💾 Exporter les processus
@@ -654,19 +632,33 @@
                     </div>
                 </div>
                 <div class="content-area">
-                    <div class="config-helper" style="margin-bottom: 1.5rem;">
-                        <p>
-                            💡 Utilisez le bouton d'enregistrement de l'en-tête pour sauvegarder les risques, contrôles et plans
-                            d'actions. Depuis cet onglet, exportez spécifiquement vos processus ou les autres paramètres pour les
-                            partager ou les archiver.
-                        </p>
+                    <div class="admin-sections">
+                        <section class="admin-section admin-settings">
+                            <h2 class="admin-section-title">Paramètres de configuration</h2>
+                            <div class="config-helper">
+                                <p>
+                                    💡 Utilisez le bouton d'enregistrement de l'en-tête pour sauvegarder les risques, contrôles et plans d'actions. Depuis cet espace, exportez spécifiquement vos processus ou les autres paramètres pour les partager ou les archiver.
+                                </p>
+                            </div>
+                            <div id="configurationContainer"></div>
+                        </section>
+                        <section class="admin-section admin-history">
+                            <div class="admin-history-header">
+                                <h2 class="admin-section-title">Historique des modifications</h2>
+                                <button class="btn btn-secondary" onclick="exportHistory()">
+                                    📤 Exporter
+                                </button>
+                            </div>
+                            <div class="timeline" id="historyTimeline">
+                                <!-- Populated by JavaScript -->
+                            </div>
+                        </section>
                     </div>
-                    <div id="configurationContainer"></div>
                 </div>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.2</span>
+            <span class="app-version">Version 2.11.3</span>
         </footer>
     </div>
 
