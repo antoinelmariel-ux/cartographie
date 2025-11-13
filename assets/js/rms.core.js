@@ -1092,7 +1092,8 @@ class RiskManagementSystem {
 
         const availableSections = [
             { id: 'processManager', label: 'Processus & référents' },
-            { id: 'general', label: 'Autres paramètres' }
+            { id: 'general', label: 'Autres paramètres' },
+            { id: 'history', label: 'Historique des modifications' }
         ];
 
         if (!this.currentConfigSection || !availableSections.some(section => section.id === this.currentConfigSection)) {
@@ -1101,18 +1102,37 @@ class RiskManagementSystem {
 
         const exportButton = document.getElementById('configExportButton');
         if (exportButton) {
-            const isProcessSection = this.currentConfigSection === 'processManager';
-            exportButton.textContent = isProcessSection
-                ? '💾 Exporter les processus'
-                : '💾 Exporter les autres paramètres';
-            exportButton.setAttribute('data-scope', isProcessSection ? 'processes' : 'parameters');
+            if (this.currentConfigSection === 'processManager') {
+                exportButton.style.display = '';
+                exportButton.textContent = '💾 Exporter les processus';
+                exportButton.setAttribute('data-scope', 'processes');
+            } else if (this.currentConfigSection === 'general') {
+                exportButton.style.display = '';
+                exportButton.textContent = '💾 Exporter les autres paramètres';
+                exportButton.setAttribute('data-scope', 'parameters');
+            } else {
+                exportButton.style.display = 'none';
+                exportButton.removeAttribute('data-scope');
+            }
         }
 
         this.closeActiveInsertionForm();
         this.dragState = null;
-
-        this.processManagerContainer = container;
         container.innerHTML = '';
+
+        if (this.currentConfigSection !== 'history') {
+            const heading = document.createElement('h2');
+            heading.className = 'admin-section-title';
+            heading.textContent = 'Paramètres de configuration';
+            container.appendChild(heading);
+
+            const helper = document.createElement('div');
+            helper.className = 'config-helper';
+            const helperText = document.createElement('p');
+            helperText.textContent = "💡 Utilisez le bouton d'enregistrement de l'en-tête pour sauvegarder les risques, contrôles et plans d'actions. Depuis cet espace, exportez spécifiquement vos processus ou les autres paramètres pour les partager ou les archiver.";
+            helper.appendChild(helperText);
+            container.appendChild(helper);
+        }
 
         const tabs = document.createElement('div');
         tabs.className = 'config-section-tabs';
@@ -1134,9 +1154,14 @@ class RiskManagementSystem {
         container.appendChild(content);
 
         if (this.currentConfigSection === 'processManager') {
+            this.processManagerContainer = content;
             this.renderProcessManager(content);
-        } else {
+        } else if (this.currentConfigSection === 'general') {
+            this.processManagerContainer = null;
             this.renderGeneralConfiguration(content);
+        } else {
+            this.processManagerContainer = null;
+            this.renderHistoryConfiguration(content);
         }
     }
 
@@ -1260,6 +1285,49 @@ class RiskManagementSystem {
 
         this.refreshConfigLists();
         this.adjustOpenAccordionBodies(container);
+    }
+
+    renderHistoryConfiguration(container) {
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const historySection = document.createElement('div');
+        historySection.className = 'admin-history';
+
+        const header = document.createElement('div');
+        header.className = 'admin-history-header';
+
+        const title = document.createElement('h2');
+        title.className = 'admin-section-title';
+        title.textContent = 'Historique des modifications';
+        header.appendChild(title);
+
+        const exportBtn = document.createElement('button');
+        exportBtn.type = 'button';
+        exportBtn.className = 'btn btn-secondary';
+        exportBtn.textContent = '📤 Exporter';
+        exportBtn.addEventListener('click', () => {
+            if (typeof exportHistory === 'function') {
+                exportHistory();
+            } else {
+                console.warn('Fonction exportHistory indisponible.');
+            }
+        });
+        header.appendChild(exportBtn);
+
+        historySection.appendChild(header);
+
+        const timeline = document.createElement('div');
+        timeline.className = 'timeline';
+        timeline.id = 'historyTimeline';
+        historySection.appendChild(timeline);
+
+        container.appendChild(historySection);
+
+        this.updateHistory();
     }
 
     ensureInterviewTemplatesArray() {
