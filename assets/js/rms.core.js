@@ -7077,7 +7077,11 @@ class RiskManagementSystem {
         activeRiskEditState = 'brut';
         const modal = document.getElementById('riskModal');
         if (modal) {
-            modal.classList.add('show');
+            if (typeof window.bringModalToFront === 'function') {
+                window.bringModalToFront(modal);
+            } else {
+                modal.classList.add('show');
+            }
             requestAnimationFrame(() => initRiskEditMatrix());
         }
     }
