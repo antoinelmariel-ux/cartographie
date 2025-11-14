@@ -3,6 +3,7 @@ class FeedbackManager {
         this.isActive = false;
         this.notes = [];
         this.noteElements = new Map();
+        this.currentContextKey = null;
 
         this.toggleButton = document.getElementById('feedbackToggleButton');
         this.panel = document.getElementById('feedbackPanel');
@@ -18,7 +19,6 @@ class FeedbackManager {
                 this.setActive(false);
             }
         };
-
         this.initialise();
     }
 
@@ -49,6 +49,9 @@ class FeedbackManager {
         document.addEventListener('click', this.boundDocumentClick, true);
         window.addEventListener('resize', this.boundResizeHandler);
         document.addEventListener('keydown', this.boundKeyHandler);
+
+        this.observeContextChanges();
+        this.applyContextVisibility();
     }
 
     toggle() {
@@ -101,17 +104,21 @@ class FeedbackManager {
         const x = event.pageX;
         const y = event.pageY;
 
+        const context = this.getContextFromEvent(event);
+
         const noteData = {
             id: this.createNoteId(),
             xPercent: docWidth ? this.clamp(x / docWidth, 0, 1) : 0,
             yPercent: docHeight ? this.clamp(y / docHeight, 0, 1) : 0,
-            text: ''
+            text: '',
+            context
         };
 
         this.notes.push(noteData);
         this.renderNote(noteData);
         this.updateNoteNumbers();
         this.setStatus('Nouvelle note ajoutée.', 'success', true);
+        this.applyContextVisibility();
     }
 
     createNoteId() {
@@ -142,6 +149,10 @@ class FeedbackManager {
         const noteElement = document.createElement('div');
         noteElement.className = 'feedback-note';
         noteElement.dataset.noteId = noteData.id;
+        const noteContext = this.serialiseContext(noteData.context);
+        if (noteContext) {
+            noteElement.setAttribute('data-feedback-context', noteContext);
+        }
 
         const header = document.createElement('div');
         header.className = 'feedback-note-header';
@@ -304,11 +315,13 @@ class FeedbackManager {
                 }
                 const xPercent = this.extractCoordinate(note, 'xPercent', 'x', docWidth);
                 const yPercent = this.extractCoordinate(note, 'yPercent', 'y', docHeight);
+                const context = this.normaliseNoteContext(note);
                 return {
                     id: typeof note.id === 'string' ? note.id : this.createNoteId(),
                     xPercent,
                     yPercent,
-                    text: typeof note.text === 'string' ? note.text : ''
+                    text: typeof note.text === 'string' ? note.text : '',
+                    context
                 };
             })
             .filter(Boolean);
@@ -328,10 +341,14 @@ class FeedbackManager {
 
     replaceNotes(notes) {
         this.clearNotes();
-        this.notes = [...notes];
+        this.notes = notes.map((note) => ({
+            ...note,
+            context: this.normaliseNoteContext(note)
+        }));
         this.notes.forEach((note) => this.renderNote(note));
         this.updateNoteNumbers();
         this.repositionNotes();
+        this.applyContextVisibility();
     }
 
     clearNotes() {
@@ -379,6 +396,170 @@ class FeedbackManager {
             return max;
         }
         return value;
+    }
+
+    observeContextChanges() {
+        if (this.contextObserver) {
+            this.contextObserver.disconnect();
+        }
+
+        const observer = new MutationObserver((mutations) => {
+            let shouldUpdate = false;
+            for (const mutation of mutations) {
+                const target = mutation.target;
+                if (!(target instanceof HTMLElement)) {
+                    continue;
+                }
+                if (target.classList.contains('tab-content') || target.classList.contains('modal')) {
+                    shouldUpdate = true;
+                    break;
+                }
+            }
+            if (shouldUpdate) {
+                this.applyContextVisibility();
+            }
+        });
+
+        observer.observe(document.body, {
+            attributes: true,
+            subtree: true,
+            attributeFilter: ['class']
+        });
+
+        this.contextObserver = observer;
+    }
+
+    getContextFromEvent(event) {
+        if (!event || !event.target || !(event.target instanceof HTMLElement)) {
+            return this.getCurrentContext();
+        }
+
+        const modal = event.target.closest('.modal.show');
+        if (modal) {
+            return this.buildContext('modal', modal.id || modal.getAttribute('data-modal') || 'modal');
+        }
+
+        const tabContent = event.target.closest('.tab-content');
+        if (tabContent && tabContent.id) {
+            return this.buildContext('tab', tabContent.id);
+        }
+
+        return this.getCurrentContext();
+    }
+
+    getCurrentContext() {
+        const activeModal = this.getTopmostActiveModal();
+        if (activeModal) {
+            return this.buildContext('modal', activeModal.id || activeModal.getAttribute('data-modal') || 'modal');
+        }
+
+        const activeTab = document.querySelector('.tab-content.active');
+        if (activeTab && activeTab.id) {
+            return this.buildContext('tab', activeTab.id);
+        }
+
+        return this.buildContext('page', 'global');
+    }
+
+    getTopmostActiveModal() {
+        const modals = Array.from(document.querySelectorAll('.modal.show'));
+        if (!modals.length) {
+            return null;
+        }
+
+        let topModal = modals[0];
+        let topZIndex = this.parseZIndex(topModal);
+
+        for (let index = 1; index < modals.length; index += 1) {
+            const modal = modals[index];
+            const zIndex = this.parseZIndex(modal);
+            if (zIndex >= topZIndex) {
+                topModal = modal;
+                topZIndex = zIndex;
+            }
+        }
+
+        return topModal;
+    }
+
+    parseZIndex(element) {
+        if (!element) {
+            return 0;
+        }
+        const computed = window.getComputedStyle(element);
+        const value = parseInt(computed.zIndex, 10);
+        return Number.isFinite(value) ? value : 0;
+    }
+
+    buildContext(type, id) {
+        return {
+            type: typeof type === 'string' ? type : 'page',
+            id: typeof id === 'string' && id ? id : 'global'
+        };
+    }
+
+    serialiseContext(context) {
+        if (!context || typeof context !== 'object') {
+            return '';
+        }
+        const { type, id } = context;
+        if (typeof type !== 'string' || typeof id !== 'string') {
+            return '';
+        }
+        return `${type}:${id}`;
+    }
+
+    contextsMatch(noteContext, activeContext) {
+        if (!noteContext) {
+            return true;
+        }
+        if (!activeContext) {
+            return false;
+        }
+        return noteContext.type === activeContext.type && noteContext.id === activeContext.id;
+    }
+
+    applyContextVisibility() {
+        const activeContext = this.getCurrentContext();
+        const activeKey = this.serialiseContext(activeContext);
+        this.currentContextKey = activeKey;
+
+        this.noteElements.forEach((element, id) => {
+            const note = this.notes.find((item) => item.id === id);
+            if (!note) {
+                return;
+            }
+
+            const matches = this.contextsMatch(note.context, activeContext);
+            element.style.display = matches ? '' : 'none';
+            element.setAttribute('data-feedback-context-active', matches ? 'true' : 'false');
+        });
+    }
+
+    normaliseNoteContext(note) {
+        if (!note || typeof note !== 'object') {
+            return null;
+        }
+
+        const rawContext = note.context;
+        if (rawContext && typeof rawContext === 'object') {
+            const type = typeof rawContext.type === 'string' ? rawContext.type : '';
+            const id = typeof rawContext.id === 'string' ? rawContext.id : '';
+            if (type && id) {
+                return { type, id };
+            }
+        }
+
+        const contextKey = typeof note.contextKey === 'string' ? note.contextKey : '';
+        if (contextKey.includes(':')) {
+            const [type, ...rest] = contextKey.split(':');
+            const id = rest.join(':');
+            if (type && id) {
+                return { type, id };
+            }
+        }
+
+        return null;
     }
 }
 
