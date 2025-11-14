@@ -634,6 +634,51 @@ function triggerBlobDownload(blob, filename) {
         URL.revokeObjectURL(url);
     }, 0);
 }
+
+function sanitizeForModuleExport(value) {
+    if (Array.isArray(value)) {
+        return value.map(item => sanitizeForModuleExport(item));
+    }
+    if (!value || typeof value !== 'object') {
+        return value;
+    }
+    return Object.keys(value).reduce((acc, key) => {
+        const entry = value[key];
+        if (entry === undefined) {
+            return acc;
+        }
+        acc[key] = sanitizeForModuleExport(entry);
+        return acc;
+    }, {});
+}
+
+function buildDataModule(globalKey, data) {
+    const sanitized = sanitizeForModuleExport(data);
+    const json = JSON.stringify(sanitized, null, 2)
+        .replace(/\\/g, '\\\\')
+        .replace(/'/g, "\\'")
+        .replace(/\u2028/g, '\\u2028')
+        .replace(/\u2029/g, '\\u2029')
+        .replace(/\r?\n/g, '\\n');
+
+    return `(function (global) {\n` +
+        `    const data = JSON.parse('${json}');\n\n` +
+        '    const deepFreeze = (value) => {\n' +
+        '        if (!value || typeof value !== \"object\") {\n' +
+        '            return value;\n' +
+        '        }\n' +
+        '        if (Array.isArray(value)) {\n' +
+        '            value.forEach(deepFreeze);\n' +
+        '        } else {\n' +
+        '            Object.keys(value).forEach((key) => {\n' +
+        '                deepFreeze(value[key]);\n' +
+        '            });\n' +
+        '        }\n' +
+        '        return Object.freeze(value);\n' +
+        '    };\n\n' +
+        `    global.${globalKey} = deepFreeze(data);\n` +
+        `})(typeof window !== 'undefined' ? window : globalThis);\n`;
+}
 function exportRisks() {
     if (window.rms) rms.exportData('csv');
 }
@@ -658,17 +703,19 @@ function exportOperationalData() {
 
         const snapshot = rms.getSnapshot();
         const payload = {
-            exportedAt: new Date().toISOString(),
             risks: Array.isArray(snapshot.risks) ? snapshot.risks : [],
             controls: Array.isArray(snapshot.controls) ? snapshot.controls : [],
-            actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : []
+            actionPlans: Array.isArray(snapshot.actionPlans) ? snapshot.actionPlans : [],
+            history: Array.isArray(snapshot.history) ? snapshot.history : [],
+            interviews: Array.isArray(snapshot.interviews) ? snapshot.interviews : []
         };
 
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        triggerBlobDownload(blob, 'cartographie-donnees-operationnelles.json');
+        const fileContent = buildDataModule('RMS_DEFAULT_DATA', payload);
+        const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
+        triggerBlobDownload(blob, 'rms.data.records.js');
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Sauvegarde des risques, contrôles et plans générée');
+            showNotification('success', 'Sauvegarde des données opérationnelles générée');
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde JSON', error);
@@ -700,14 +747,11 @@ function exportProcessConfiguration() {
             ? rawConfig.subProcesses
             : {};
 
-        const payload = {
-            exportedAt: new Date().toISOString(),
-            processes,
-            subProcesses
-        };
+        const payload = { processes, subProcesses };
 
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        triggerBlobDownload(blob, 'cartographie-processus.json');
+        const fileContent = buildDataModule('RMS_DEFAULT_PROCESS_CONFIG', payload);
+        const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
+        triggerBlobDownload(blob, 'rms.data.processes.js');
 
         if (typeof showNotification === 'function') {
             showNotification('success', 'Export des processus généré');
@@ -740,13 +784,9 @@ function exportOtherParameters() {
         delete otherParameters.processes;
         delete otherParameters.subProcesses;
 
-        const payload = {
-            exportedAt: new Date().toISOString(),
-            parameters: otherParameters
-        };
-
-        const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
-        triggerBlobDownload(blob, 'cartographie-autres-parametres.json');
+        const fileContent = buildDataModule('RMS_DEFAULT_PARAMETER_CONFIG', otherParameters);
+        const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
+        triggerBlobDownload(blob, 'rms.data.parameters.js');
 
         if (typeof showNotification === 'function') {
             showNotification('success', 'Export des autres paramètres généré');
