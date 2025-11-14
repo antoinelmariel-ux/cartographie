@@ -378,6 +378,117 @@ function getAllRiskCountryValues() {
     return select ? Array.from(select.options).map(option => option.value) : [];
 }
 
+function escapeRiskCountrySelector(value) {
+    if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') {
+        return CSS.escape(String(value));
+    }
+    return String(value).replace(/[^a-zA-Z0-9_-]/g, '\\$&');
+}
+
+function applyRiskCountryCheckboxState(value, isSelected) {
+    const select = getRiskCountriesSelect();
+    if (!select) {
+        return;
+    }
+
+    const option = Array.from(select.options).find(opt => opt.value === value);
+    if (option) {
+        option.selected = !!isSelected;
+    }
+
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+window.applyRiskCountryCheckboxState = applyRiskCountryCheckboxState;
+
+function syncRiskCountryCheckboxesFromSelect() {
+    const select = getRiskCountriesSelect();
+    if (!select) {
+        return;
+    }
+
+    const selectedValues = new Set(Array.from(select.selectedOptions).map(option => option.value));
+    const checkboxes = document.querySelectorAll('.risk-country-checkbox[data-country-value]');
+    checkboxes.forEach(checkbox => {
+        const value = checkbox.dataset.countryValue || checkbox.value;
+        checkbox.checked = selectedValues.has(value);
+    });
+}
+window.syncRiskCountryCheckboxesFromSelect = syncRiskCountryCheckboxesFromSelect;
+
+function selectRiskCountryColumn(columnKey) {
+    if (!columnKey) {
+        return;
+    }
+    const select = getRiskCountriesSelect();
+    if (!select) {
+        return;
+    }
+
+    const column = document.querySelector(`.risk-country-column[data-column-key="${escapeRiskCountrySelector(columnKey)}"]`);
+    if (!column) {
+        return;
+    }
+
+    const checkboxes = Array.from(column.querySelectorAll('input[type="checkbox"][data-country-value]'));
+    if (!checkboxes.length) {
+        return;
+    }
+
+    const values = [];
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = true;
+        values.push(checkbox.dataset.countryValue || checkbox.value);
+    });
+
+    const valueSet = new Set(values);
+    Array.from(select.options).forEach(option => {
+        if (valueSet.has(option.value)) {
+            option.selected = true;
+        }
+    });
+
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    syncRiskCountryCheckboxesFromSelect();
+}
+window.selectRiskCountryColumn = selectRiskCountryColumn;
+
+function deselectRiskCountryColumn(columnKey) {
+    if (!columnKey) {
+        return;
+    }
+    const select = getRiskCountriesSelect();
+    if (!select) {
+        return;
+    }
+
+    const column = document.querySelector(`.risk-country-column[data-column-key="${escapeRiskCountrySelector(columnKey)}"]`);
+    if (!column) {
+        return;
+    }
+
+    const checkboxes = Array.from(column.querySelectorAll('input[type="checkbox"][data-country-value]'));
+    if (!checkboxes.length) {
+        return;
+    }
+
+    const values = [];
+    checkboxes.forEach(checkbox => {
+        checkbox.checked = false;
+        values.push(checkbox.dataset.countryValue || checkbox.value);
+    });
+
+    const valueSet = new Set(values);
+    Array.from(select.options).forEach(option => {
+        if (valueSet.has(option.value)) {
+            option.selected = false;
+        }
+    });
+
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    syncRiskCountryCheckboxesFromSelect();
+}
+window.deselectRiskCountryColumn = deselectRiskCountryColumn;
+
 function setRiskCountriesSelection(values, options = {}) {
     const select = getRiskCountriesSelect();
     if (!select) {
@@ -396,6 +507,8 @@ function setRiskCountriesSelection(values, options = {}) {
     Array.from(select.options).forEach(option => {
         option.selected = selectionSet.has(option.value);
     });
+
+    syncRiskCountryCheckboxesFromSelect();
 }
 
 function selectAllRiskCountries() {
@@ -404,6 +517,7 @@ function selectAllRiskCountries() {
     if (select) {
         select.dispatchEvent(new Event('change', { bubbles: true }));
     }
+    syncRiskCountryCheckboxesFromSelect();
 }
 window.selectAllRiskCountries = selectAllRiskCountries;
 
@@ -413,6 +527,7 @@ function deselectAllRiskCountries() {
     if (select) {
         select.dispatchEvent(new Event('change', { bubbles: true }));
     }
+    syncRiskCountryCheckboxesFromSelect();
 }
 window.deselectAllRiskCountries = deselectAllRiskCountries;
 

@@ -19,6 +19,23 @@
             { value: 'Turquie', label: 'Turquie' },
             { value: 'USA', label: 'USA' }
         ],
+        countryColumns: [
+            {
+                key: 'collecte-promotion',
+                label: 'Collecte & Promotion',
+                countries: ['France', 'Belgique', 'Espagne']
+            },
+            {
+                key: 'collecte',
+                label: 'Collecte',
+                countries: ['Allemagne', 'Italie', 'République Tchèque']
+            },
+            {
+                key: 'promotion-distribution',
+                label: 'Promotion & Distribution pure',
+                countries: ['Mexique', 'Royaume-Uni', 'Turquie', 'USA']
+            }
+        ],
         tiers: [
             { value: 'AgentsCommerciaux', label: 'Agents commerciaux' },
             { value: 'AssoCaritatives', label: 'Associations caritatives' },
