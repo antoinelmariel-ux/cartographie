@@ -136,8 +136,17 @@ class FeedbackManager {
         if (this.pauseButton) {
             const label = this.isPaused ? 'Reprendre les annotations' : 'Mettre en pause';
             const ariaLabel = this.isPaused ? 'Reprendre le mode feed-back' : 'Mettre en pause le mode feed-back';
-            this.pauseButton.textContent = label;
+            const title = ariaLabel;
+            const icon = this.pauseButton.querySelector('.feedback-action-icon');
+            const hiddenLabel = this.pauseButton.querySelector('.feedback-action-label');
+            if (icon) {
+                icon.textContent = this.isPaused ? '▶' : '⏸';
+            }
+            if (hiddenLabel) {
+                hiddenLabel.textContent = label;
+            }
             this.pauseButton.setAttribute('aria-label', ariaLabel);
+            this.pauseButton.setAttribute('title', title);
             this.pauseButton.setAttribute('aria-pressed', this.isPaused ? 'true' : 'false');
             this.pauseButton.classList.toggle('active', this.isPaused);
             this.pauseButton.disabled = !this.isActive;
@@ -202,6 +211,10 @@ class FeedbackManager {
         }
 
         if (target.closest('#feedbackToggleButton')) {
+            return true;
+        }
+
+        if (target.closest('[data-feedback-safe-click="true"]')) {
             return true;
         }
 
@@ -331,6 +344,7 @@ class FeedbackManager {
         const link = document.createElement('a');
         link.href = url;
         link.download = 'feedback-notes.json';
+        link.setAttribute('data-feedback-safe-click', 'true');
         document.body.appendChild(link);
         link.click();
 
