@@ -1,12 +1,14 @@
 class FeedbackManager {
     constructor() {
         this.isActive = false;
+        this.isPaused = false;
         this.notes = [];
         this.noteElements = new Map();
         this.currentContextKey = null;
 
         this.toggleButton = document.getElementById('feedbackToggleButton');
         this.panel = document.getElementById('feedbackPanel');
+        this.pauseButton = document.getElementById('feedbackPauseButton');
         this.closeButton = document.getElementById('feedbackCloseButton');
         this.exportButton = document.getElementById('feedbackExportButton');
         this.importInput = document.getElementById('feedbackImportInput');
@@ -34,6 +36,10 @@ class FeedbackManager {
 
         this.toggleButton.addEventListener('click', () => this.toggle());
 
+        if (this.pauseButton) {
+            this.pauseButton.addEventListener('click', () => this.togglePause());
+        }
+
         if (this.closeButton) {
             this.closeButton.addEventListener('click', () => this.setActive(false));
         }
@@ -52,10 +58,19 @@ class FeedbackManager {
 
         this.observeContextChanges();
         this.applyContextVisibility();
+        this.updateUI();
     }
 
     toggle() {
         this.setActive(!this.isActive);
+    }
+
+    togglePause() {
+        if (!this.isActive) {
+            return;
+        }
+
+        this.setPaused(!this.isPaused);
     }
 
     setActive(state) {
@@ -64,6 +79,11 @@ class FeedbackManager {
         }
 
         this.isActive = state;
+
+        if (!state && this.isPaused) {
+            this.isPaused = false;
+        }
+
         this.updateUI();
 
         if (state) {
@@ -73,20 +93,59 @@ class FeedbackManager {
         }
     }
 
+    setPaused(state) {
+        if (!this.isActive) {
+            if (this.isPaused) {
+                this.isPaused = false;
+                this.updateUI();
+            }
+            return;
+        }
+
+        const targetState = Boolean(state);
+
+        if (this.isPaused === targetState) {
+            return;
+        }
+
+        this.isPaused = targetState;
+        this.updateUI();
+
+        if (targetState) {
+            this.setStatus('Mode feed-back en pause. Vous pouvez naviguer sur le site avant de reprendre les annotations.', 'info');
+        } else {
+            this.setStatus('Mode feed-back réactivé. Cliquez sur la page pour ajouter une note.', 'info');
+        }
+    }
+
     updateUI() {
         if (!this.panel || !this.toggleButton) {
             return;
         }
 
         this.panel.classList.toggle('visible', this.isActive);
+        this.panel.classList.toggle('paused', this.isActive && this.isPaused);
         this.panel.setAttribute('aria-hidden', this.isActive ? 'false' : 'true');
         this.toggleButton.classList.toggle('active', this.isActive);
+        this.toggleButton.classList.toggle('paused', this.isActive && this.isPaused);
         this.toggleButton.setAttribute('aria-pressed', this.isActive ? 'true' : 'false');
-        document.body.classList.toggle('feedback-mode', this.isActive);
+        this.toggleButton.setAttribute('title', this.isActive ? 'Désactiver le mode feed-back' : 'Activer le mode feed-back');
+        document.body.classList.toggle('feedback-mode', this.isActive && !this.isPaused);
+        document.body.classList.toggle('feedback-mode-paused', this.isActive && this.isPaused);
+
+        if (this.pauseButton) {
+            const label = this.isPaused ? 'Reprendre les annotations' : 'Mettre en pause';
+            const ariaLabel = this.isPaused ? 'Reprendre le mode feed-back' : 'Mettre en pause le mode feed-back';
+            this.pauseButton.textContent = label;
+            this.pauseButton.setAttribute('aria-label', ariaLabel);
+            this.pauseButton.setAttribute('aria-pressed', this.isPaused ? 'true' : 'false');
+            this.pauseButton.classList.toggle('active', this.isPaused);
+            this.pauseButton.disabled = !this.isActive;
+        }
     }
 
     handleDocumentClick(event) {
-        if (!this.isActive) {
+        if (!this.isActive || this.isPaused) {
             return;
         }
 

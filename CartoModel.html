@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.7</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.9</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -42,8 +42,9 @@
                 <div class="feedback-panel-title">Mode feed-back</div>
                 <button type="button" class="feedback-panel-close" id="feedbackCloseButton" aria-label="Désactiver le mode feed-back">&times;</button>
             </div>
-            <p class="feedback-panel-instructions">Cliquez sur la page pour ajouter une note autocollante à l'endroit désiré.</p>
+            <p class="feedback-panel-instructions">Cliquez sur la page pour ajouter une note autocollante à l'endroit désiré. Vous pouvez mettre le mode en pause pour naviguer librement.</p>
             <div class="feedback-panel-actions">
+                <button type="button" class="btn btn-secondary" id="feedbackPauseButton" aria-pressed="false" disabled>Mettre en pause</button>
                 <button type="button" class="btn btn-outline" id="feedbackExportButton">Exporter les remarques</button>
                 <label class="btn btn-secondary feedback-import-label" for="feedbackImportInput">Importer des remarques</label>
                 <input type="file" id="feedbackImportInput" accept="application/json" hidden>
