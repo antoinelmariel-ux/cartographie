@@ -329,8 +329,11 @@ class FeedbackManager {
         link.download = 'feedback-notes.json';
         document.body.appendChild(link);
         link.click();
-        link.remove();
-        URL.revokeObjectURL(url);
+
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+            link.remove();
+        }, 0);
         this.setStatus('Export des remarques effectué.', 'success');
     }
 
