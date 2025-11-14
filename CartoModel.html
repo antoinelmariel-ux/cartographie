@@ -658,7 +658,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.7</span>
+            <span class="app-version">Version 2.11.8</span>
         </footer>
     </div>
 
@@ -1085,8 +1085,9 @@
                                     <button type="button" class="btn btn-outline" onclick="selectAllRiskCountries()">Tout sélectionner</button>
                                     <button type="button" class="btn btn-outline" onclick="deselectAllRiskCountries()">Tout désélectionner</button>
                                 </div>
-                                <select class="form-select" id="riskCountries" multiple size="6"></select>
-                                <div class="form-helper">Maintenez Ctrl (Windows) ou ⌘ (Mac) pour une sélection multiple.</div>
+                                <div id="riskCountryColumns" class="risk-country-columns"></div>
+                                <select class="form-select visually-hidden" id="riskCountries" multiple size="6" aria-hidden="true" tabindex="-1"></select>
+                                <div class="form-helper">Sélectionnez les pays via les cases à cocher ou utilisez les actions rapides ci-dessus.</div>
                             </div>
                         </div>
                     </div>

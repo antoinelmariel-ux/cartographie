@@ -316,6 +316,15 @@ class RiskManagementSystem {
             : [];
         config.interviewTemplates = templateList;
 
+        const availableCountries = Array.isArray(config.countries)
+            ? config.countries
+            : [];
+        config.countryColumns = this.normalizeCountryColumns(
+            parameterConfig.countryColumns,
+            parameterConfig.countryColumns,
+            availableCountries
+        );
+
         if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
             config.riskStatuses = [
                 { value: 'brouillon', label: 'Brouillon' },
@@ -509,6 +518,20 @@ class RiskManagementSystem {
             this.config[key] = baseArray.map(item => item && typeof item === 'object' ? { ...item } : item);
         });
 
+        const normalizedCountryColumns = this.normalizeCountryColumns(
+            baseConfig.countryColumns,
+            fallback.countryColumns,
+            this.config.countries
+        );
+        if (!Array.isArray(baseConfig.countryColumns)) {
+            if (baseConfig.countryColumns !== undefined) {
+                updated = true;
+            }
+        } else if (JSON.stringify(baseConfig.countryColumns) !== JSON.stringify(normalizedCountryColumns)) {
+            updated = true;
+        }
+        this.config.countryColumns = normalizedCountryColumns;
+
         const templateSource = Array.isArray(baseConfig.interviewTemplates)
             ? baseConfig.interviewTemplates
             : Array.isArray(fallback.interviewTemplates)
@@ -528,6 +551,110 @@ class RiskManagementSystem {
             .filter(template => template.value && template.label);
 
         return updated;
+    }
+
+    normalizeCountryColumns(columnsSource, fallbackSource, availableList = []) {
+        const availableValues = Array.isArray(availableList)
+            ? availableList
+                .map(item => {
+                    if (item && typeof item === 'object') {
+                        return typeof item.value === 'string' ? item.value.trim() : '';
+                    }
+                    return typeof item === 'string' ? item.trim() : '';
+                })
+                .filter(Boolean)
+            : [];
+
+        const availableSet = new Set(availableValues);
+
+        const sanitize = (source) => {
+            const normalized = [];
+            const usedCountries = new Set();
+            const seenKeys = new Set();
+
+            (Array.isArray(source) ? source : []).forEach(entry => {
+                if (!entry || typeof entry !== 'object') {
+                    return;
+                }
+
+                const key = typeof entry.key === 'string' ? entry.key.trim() : '';
+                const label = typeof entry.label === 'string' ? entry.label.trim() : '';
+                if (!key || !label || seenKeys.has(key)) {
+                    return;
+                }
+
+                seenKeys.add(key);
+
+                const countries = Array.isArray(entry.countries)
+                    ? entry.countries
+                        .map(value => typeof value === 'string' ? value.trim() : '')
+                        .filter(value => value && availableSet.has(value) && !usedCountries.has(value))
+                    : [];
+
+                countries.forEach(value => usedCountries.add(value));
+                normalized.push({ key, label, countries });
+            });
+
+            return { columns: normalized, usedCountries };
+        };
+
+        const distributeRemaining = (columns, usedCountries) => {
+            if (!Array.isArray(columns) || !columns.length) {
+                return [];
+            }
+
+            const remainder = availableValues.filter(value => !usedCountries.has(value));
+            const mapped = columns.map(column => ({
+                key: column.key,
+                label: column.label,
+                countries: Array.isArray(column.countries) ? [...column.countries] : []
+            }));
+
+            if (remainder.length && mapped.length) {
+                remainder.forEach((value, index) => {
+                    const target = mapped[index % mapped.length];
+                    if (target && availableSet.has(value) && !target.countries.includes(value)) {
+                        target.countries.push(value);
+                    }
+                });
+            }
+
+            mapped.forEach(column => {
+                column.countries = column.countries.filter(value => availableSet.has(value));
+            });
+
+            return mapped;
+        };
+
+        let { columns, usedCountries } = sanitize(columnsSource);
+        if (!(usedCountries instanceof Set)) {
+            usedCountries = new Set();
+        }
+
+        if (!columns.length) {
+            ({ columns, usedCountries } = sanitize(fallbackSource));
+            if (!(usedCountries instanceof Set)) {
+                usedCountries = new Set();
+            }
+        }
+
+        if (!columns.length) {
+            const defaults = [
+                { key: 'collecte-promotion', label: 'Collecte & Promotion', countries: [] },
+                { key: 'collecte', label: 'Collecte', countries: [] },
+                { key: 'promotion-distribution', label: 'Promotion & Distribution pure', countries: [] }
+            ];
+            ({ columns, usedCountries } = sanitize(defaults));
+            if (!(usedCountries instanceof Set)) {
+                usedCountries = new Set();
+            }
+        }
+
+        if (!columns.length) {
+            return [];
+        }
+
+        return distributeRemaining(columns, usedCountries);
     }
 
     normalizeRisk(risk) {
@@ -903,6 +1030,7 @@ class RiskManagementSystem {
                 opt.selected = targetValues.includes(opt.value);
             });
         }
+        this.renderRiskCountryColumns();
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -1185,6 +1313,11 @@ class RiskManagementSystem {
             },
             { key: 'riskTypes', label: 'Types de corruption' },
             { key: 'countries', label: 'Pays concernés' },
+            {
+                key: 'countryColumns',
+                label: 'Répartition des pays',
+                renderer: (body) => this.renderCountryColumnManager(body)
+            },
             { key: 'tiers', label: 'Tiers' },
             { key: 'riskStatuses', label: 'Statuts des risques' },
             { key: 'controlTypes', label: 'Types de contrôle' },
@@ -1285,6 +1418,357 @@ class RiskManagementSystem {
 
         this.refreshConfigLists();
         this.adjustOpenAccordionBodies(container);
+    }
+
+    renderRiskCountryColumns() {
+        const container = document.getElementById('riskCountryColumns');
+        const select = document.getElementById('riskCountries');
+        if (!container || !select) {
+            return;
+        }
+
+        container.classList.add('risk-country-columns');
+        container.innerHTML = '';
+
+        const options = Array.from(select.options).map(option => ({
+            value: option.value,
+            label: option.textContent || option.value
+        }));
+        const labelMap = new Map(options.map(option => [option.value, option.label]));
+        const selectedValues = new Set(Array.from(select.selectedOptions).map(option => option.value));
+
+        const columns = Array.isArray(this.config?.countryColumns)
+            ? this.config.countryColumns
+            : [];
+
+        const assignedValues = new Set();
+
+        const createColumnCard = (column, entries, { highlight } = {}) => {
+            const card = document.createElement('article');
+            card.className = 'risk-country-column';
+            if (highlight) {
+                card.classList.add('risk-country-column-highlight');
+            }
+            if (column?.key) {
+                card.dataset.columnKey = column.key;
+            }
+
+            const header = document.createElement('div');
+            header.className = 'risk-country-column-header';
+
+            const title = document.createElement('div');
+            title.className = 'risk-country-column-title';
+            title.textContent = column?.label || 'Pays';
+            header.appendChild(title);
+
+            const actions = document.createElement('div');
+            actions.className = 'risk-country-column-actions';
+
+            const selectButton = document.createElement('button');
+            selectButton.type = 'button';
+            selectButton.className = 'btn btn-outline btn-small';
+            selectButton.textContent = 'Tout sélectionner';
+            selectButton.addEventListener('click', () => {
+                if (typeof selectRiskCountryColumn === 'function' && column?.key) {
+                    selectRiskCountryColumn(column.key);
+                }
+            });
+            actions.appendChild(selectButton);
+
+            const clearButton = document.createElement('button');
+            clearButton.type = 'button';
+            clearButton.className = 'btn btn-outline btn-small';
+            clearButton.textContent = 'Tout désélectionner';
+            clearButton.addEventListener('click', () => {
+                if (typeof deselectRiskCountryColumn === 'function' && column?.key) {
+                    deselectRiskCountryColumn(column.key);
+                }
+            });
+            actions.appendChild(clearButton);
+
+            header.appendChild(actions);
+            card.appendChild(header);
+
+            const list = document.createElement('div');
+            list.className = 'risk-country-options';
+
+            if (!entries.length) {
+                const empty = document.createElement('div');
+                empty.className = 'risk-country-empty';
+                empty.textContent = 'Aucun pays configuré.';
+                list.appendChild(empty);
+            } else {
+                entries.forEach(entry => {
+                    const optionLabel = document.createElement('label');
+                    optionLabel.className = 'risk-country-option';
+
+                    const checkbox = document.createElement('input');
+                    checkbox.type = 'checkbox';
+                    checkbox.className = 'risk-country-checkbox';
+                    checkbox.value = entry.value;
+                    checkbox.dataset.countryValue = entry.value;
+                    checkbox.checked = selectedValues.has(entry.value);
+                    checkbox.addEventListener('change', () => {
+                        if (typeof applyRiskCountryCheckboxState === 'function') {
+                            applyRiskCountryCheckboxState(entry.value, checkbox.checked);
+                        } else {
+                            const option = Array.from(select.options).find(opt => opt.value === entry.value);
+                            if (option) {
+                                option.selected = checkbox.checked;
+                                select.dispatchEvent(new Event('change', { bubbles: true }));
+                            }
+                        }
+                        if (typeof syncRiskCountryCheckboxesFromSelect === 'function') {
+                            syncRiskCountryCheckboxesFromSelect();
+                        }
+                    });
+                    optionLabel.appendChild(checkbox);
+
+                    const name = document.createElement('span');
+                    name.textContent = entry.label;
+                    optionLabel.appendChild(name);
+
+                    list.appendChild(optionLabel);
+                });
+            }
+
+            card.appendChild(list);
+            container.appendChild(card);
+        };
+
+        columns.forEach(column => {
+            if (!column || typeof column !== 'object') {
+                return;
+            }
+            const values = Array.isArray(column.countries) ? column.countries : [];
+            const entries = values
+                .map(value => ({ value, label: labelMap.get(value) || value }))
+                .filter(entry => entry.label);
+            entries.forEach(entry => assignedValues.add(entry.value));
+            createColumnCard(column, entries);
+        });
+
+        const unassigned = options.filter(option => !assignedValues.has(option.value));
+        if (unassigned.length) {
+            const column = { key: 'unassigned', label: 'Pays non attribués' };
+            createColumnCard(column, unassigned, { highlight: true });
+        }
+
+        if (!container.children.length) {
+            const empty = document.createElement('div');
+            empty.className = 'risk-country-empty';
+            empty.textContent = 'Aucun pays disponible. Configurez-les dans l’administration.';
+            container.appendChild(empty);
+        }
+
+        if (!select.dataset.countrySyncAttached) {
+            select.addEventListener('change', () => {
+                if (typeof syncRiskCountryCheckboxesFromSelect === 'function') {
+                    syncRiskCountryCheckboxesFromSelect();
+                }
+            });
+            select.dataset.countrySyncAttached = 'true';
+        }
+
+        if (typeof syncRiskCountryCheckboxesFromSelect === 'function') {
+            syncRiskCountryCheckboxesFromSelect();
+        }
+    }
+
+    renderCountryColumnManager(container) {
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        const countries = Array.isArray(this.config?.countries)
+            ? this.config.countries
+            : [];
+        const columns = Array.isArray(this.config?.countryColumns)
+            ? this.config.countryColumns
+            : [];
+
+        container.innerHTML = '';
+
+        const intro = document.createElement('p');
+        intro.className = 'country-config-helper';
+        intro.textContent = 'Répartissez les pays dans les colonnes utilisées lors de la création d’un risque.';
+        container.appendChild(intro);
+
+        if (!countries.length) {
+            const empty = document.createElement('div');
+            empty.className = 'config-empty';
+            empty.textContent = 'Aucun pays n’est défini. Ajoutez des pays avant de gérer leur répartition.';
+            container.appendChild(empty);
+            return;
+        }
+
+        const grid = document.createElement('div');
+        grid.className = 'country-config-grid';
+        container.appendChild(grid);
+
+        columns.forEach(column => {
+            if (!column || typeof column !== 'object') {
+                return;
+            }
+
+            const card = document.createElement('article');
+            card.className = 'country-config-card';
+            grid.appendChild(card);
+
+            const header = document.createElement('div');
+            header.className = 'country-config-card-header';
+            card.appendChild(header);
+
+            const labelInput = document.createElement('input');
+            labelInput.type = 'text';
+            labelInput.value = column.label || '';
+            labelInput.className = 'country-config-label-input';
+            labelInput.addEventListener('blur', () => {
+                const nextLabel = labelInput.value.trim();
+                if (!nextLabel) {
+                    labelInput.value = column.label || '';
+                    return;
+                }
+                if (nextLabel !== column.label) {
+                    this.updateCountryColumnLabel(column.key, nextLabel);
+                }
+            });
+            labelInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    event.preventDefault();
+                    labelInput.blur();
+                }
+            });
+            header.appendChild(labelInput);
+
+            const count = document.createElement('span');
+            count.className = 'country-config-count';
+            const total = Array.isArray(column.countries) ? column.countries.length : 0;
+            if (total === 0) {
+                count.textContent = 'Aucun pays';
+            } else if (total === 1) {
+                count.textContent = '1 pays';
+            } else {
+                count.textContent = `${total} pays`;
+            }
+            header.appendChild(count);
+
+            const selectEl = document.createElement('select');
+            selectEl.className = 'country-config-select';
+            selectEl.multiple = true;
+            selectEl.size = Math.min(Math.max(countries.length, 4), 12);
+
+            countries.forEach(country => {
+                const option = document.createElement('option');
+                option.value = country.value;
+                option.textContent = country.label;
+                if (Array.isArray(column.countries) && column.countries.includes(country.value)) {
+                    option.selected = true;
+                }
+                selectEl.appendChild(option);
+            });
+
+            selectEl.addEventListener('change', () => {
+                const selected = Array.from(selectEl.selectedOptions).map(opt => opt.value);
+                this.updateCountryColumnCountries(column.key, selected);
+                this.renderCountryColumnManager(container);
+            });
+
+            card.appendChild(selectEl);
+        });
+
+        const assigned = new Set();
+        columns.forEach(column => {
+            if (!Array.isArray(column?.countries)) {
+                return;
+            }
+            column.countries.forEach(value => assigned.add(value));
+        });
+
+        const unassigned = countries.filter(country => !assigned.has(country.value));
+        if (unassigned.length) {
+            const notice = document.createElement('div');
+            notice.className = 'country-config-notice';
+            notice.innerHTML = `Certains pays ne sont associés à aucune colonne : <span>${unassigned.map(country => country.label).join(', ')}</span>`;
+            container.appendChild(notice);
+        }
+
+        this.adjustOpenAccordionBodies(container.closest('.config-accordion') || container);
+    }
+
+    updateCountryColumnLabel(columnKey, newLabel) {
+        if (!Array.isArray(this.config?.countryColumns)) {
+            this.config.countryColumns = [];
+        }
+
+        const target = this.config.countryColumns.find(column => column && column.key === columnKey);
+        if (!target) {
+            return;
+        }
+
+        const label = typeof newLabel === 'string' && newLabel.trim()
+            ? newLabel.trim()
+            : target.label;
+
+        if (label === target.label) {
+            return;
+        }
+
+        target.label = label;
+        this.saveConfig();
+        this.renderRiskCountryColumns();
+    }
+
+    updateCountryColumnCountries(columnKey, values) {
+        if (!Array.isArray(this.config?.countryColumns)) {
+            this.config.countryColumns = [];
+        }
+
+        const available = Array.isArray(this.config?.countries)
+            ? this.config.countries.map(country => country.value)
+            : [];
+        const availableSet = new Set(available);
+        const labelMap = new Map(this.config?.countries?.map(country => [country.value, country.label]));
+
+        const normalized = Array.isArray(values)
+            ? values.map(value => (typeof value === 'string' ? value : '')).filter(value => value && availableSet.has(value))
+            : [];
+
+        const unique = [];
+        const assigned = new Set();
+        normalized.forEach(value => {
+            if (!assigned.has(value)) {
+                assigned.add(value);
+                unique.push(value);
+            }
+        });
+
+        const target = this.config.countryColumns.find(column => column && column.key === columnKey);
+        if (!target) {
+            return;
+        }
+
+        this.config.countryColumns.forEach(column => {
+            if (!column || column.key === columnKey || !Array.isArray(column.countries)) {
+                return;
+            }
+            column.countries = column.countries.filter(value => !assigned.has(value));
+        });
+
+        unique.sort((a, b) => {
+            const labelA = labelMap.get(a) || a;
+            const labelB = labelMap.get(b) || b;
+            return labelA.localeCompare(labelB, 'fr', { sensitivity: 'base' });
+        });
+
+        target.countries = unique;
+
+        this.saveConfig();
+        this.renderRiskCountryColumns();
+
+        if (typeof syncRiskCountryCheckboxesFromSelect === 'function') {
+            syncRiskCountryCheckboxesFromSelect();
+        }
     }
 
     renderHistoryConfiguration(container) {
