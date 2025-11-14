@@ -189,11 +189,15 @@ class FeedbackManager {
             return false;
         }
 
-        if (this.panel.contains(target)) {
+        if (target.closest('#feedbackPanel')) {
             return true;
         }
 
-        if (this.notesContainer.contains(target)) {
+        if (this.notesContainer && this.notesContainer.contains(target)) {
+            return true;
+        }
+
+        if (target.closest('.feedback-note')) {
             return true;
         }
 
