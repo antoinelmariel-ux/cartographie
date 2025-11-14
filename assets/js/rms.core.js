@@ -640,9 +640,10 @@ class RiskManagementSystem {
 
         if (!columns.length) {
             const defaults = [
-                { key: 'collecte-promotion', label: 'Collecte & Promotion', countries: [] },
+                { key: 'collecte-distribution', label: 'Collecte & Distribution', countries: [] },
                 { key: 'collecte', label: 'Collecte', countries: [] },
-                { key: 'promotion-distribution', label: 'Promotion & Distribution pure', countries: [] }
+                { key: 'promotion', label: 'Promotion', countries: [] },
+                { key: 'distribution', label: 'Distribution', countries: [] }
             ];
             ({ columns, usedCountries } = sanitize(defaults));
             if (!(usedCountries instanceof Set)) {

@@ -21,9 +21,9 @@
         ],
         countryColumns: [
             {
-                key: 'collecte-promotion',
-                label: 'Collecte & Promotion',
-                countries: ['France', 'Belgique', 'Espagne']
+                key: 'collecte-distribution',
+                label: 'Collecte & Distribution',
+                countries: ['France', 'Belgique']
             },
             {
                 key: 'collecte',
@@ -31,9 +31,14 @@
                 countries: ['Allemagne', 'Italie', 'République Tchèque']
             },
             {
-                key: 'promotion-distribution',
-                label: 'Promotion & Distribution pure',
-                countries: ['Mexique', 'Royaume-Uni', 'Turquie', 'USA']
+                key: 'promotion',
+                label: 'Promotion',
+                countries: ['Espagne', 'Mexique', 'Turquie']
+            },
+            {
+                key: 'distribution',
+                label: 'Distribution',
+                countries: ['Royaume-Uni', 'USA']
             }
         ],
         tiers: [
