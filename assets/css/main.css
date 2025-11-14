@@ -1290,14 +1290,14 @@ tbody tr:hover {
 .modal-header {
     background: var(--secondary-color);
     color: white;
-    padding: 20px 30px;
+    padding: 10px 30px;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 .modal-title {
-    font-size: 1.4em;
+    font-size: 1.2em;
     font-weight: 500;
 }
 
@@ -1323,7 +1323,7 @@ tbody tr:hover {
 
 .modal-footer {
     background: var(--light-bg);
-    padding: 20px 30px;
+    padding: 10px 30px;
     display: flex;
     justify-content: flex-end;
     gap: 10px;
