@@ -5,6 +5,15 @@ class FeedbackManager {
         this.notes = [];
         this.noteElements = new Map();
         this.currentContextKey = null;
+        this.sourceInfo = new Map();
+        this.sourcePalette = ['palette-0', 'palette-1', 'palette-2', 'palette-3', 'palette-4'];
+        this.sourcePaletteIndex = 0;
+        this.manualSourceId = 'manual';
+        this.registerSource(this.manualSourceId, {
+            label: 'Notes locales',
+            type: 'manual',
+            colorKey: 'base'
+        });
 
         this.toggleButton = document.getElementById('feedbackToggleButton');
         this.panel = document.getElementById('feedbackPanel');
@@ -179,14 +188,12 @@ class FeedbackManager {
             xPercent: docWidth ? this.clamp(x / docWidth, 0, 1) : 0,
             yPercent: docHeight ? this.clamp(y / docHeight, 0, 1) : 0,
             text: '',
-            context
+            context,
+            sourceId: this.manualSourceId
         };
 
-        this.notes.push(noteData);
-        this.renderNote(noteData);
-        this.updateNoteNumbers();
+        this.addPreparedNotes([noteData], { defaultSourceId: this.manualSourceId });
         this.setStatus('Nouvelle note ajoutée.', 'success', true);
-        this.applyContextVisibility();
     }
 
     createNoteId() {
@@ -229,6 +236,7 @@ class FeedbackManager {
         if (noteContext) {
             noteElement.setAttribute('data-feedback-context', noteContext);
         }
+        this.applySourceAttributes(noteElement, noteData);
 
         const header = document.createElement('div');
         header.className = 'feedback-note-header';
@@ -328,6 +336,70 @@ class FeedbackManager {
         });
     }
 
+    addPreparedNotes(notes, options = {}) {
+        if (!Array.isArray(notes) || !notes.length) {
+            return;
+        }
+
+        const preparedNotes = notes
+            .map((note) => this.prepareNote(note, options))
+            .filter(Boolean);
+
+        if (!preparedNotes.length) {
+            return;
+        }
+
+        preparedNotes.forEach((note) => {
+            this.notes.push(note);
+            this.renderNote(note);
+        });
+
+        this.updateNoteNumbers();
+        this.repositionNotes();
+        this.applyContextVisibility();
+    }
+
+    prepareNote(note, options = {}) {
+        if (!note || typeof note !== 'object') {
+            return null;
+        }
+
+        const defaultSourceId = typeof options.defaultSourceId === 'string' && options.defaultSourceId
+            ? options.defaultSourceId
+            : this.manualSourceId;
+        const candidateSourceId = typeof note.sourceId === 'string' && note.sourceId
+            ? note.sourceId
+            : defaultSourceId;
+        const sourceId = this.resolveSourceId(candidateSourceId);
+        const baseSourceInfo = this.getSourceInfo(sourceId) || this.getSourceInfo(this.manualSourceId);
+        const sourceInfo = baseSourceInfo || {
+            id: this.manualSourceId,
+            label: '',
+            type: 'manual',
+            colorKey: 'base'
+        };
+
+        const xPercent = typeof note.xPercent === 'number' && Number.isFinite(note.xPercent)
+            ? this.clamp(note.xPercent, 0, 1)
+            : 0.5;
+        const yPercent = typeof note.yPercent === 'number' && Number.isFinite(note.yPercent)
+            ? this.clamp(note.yPercent, 0, 1)
+            : 0.5;
+
+        const text = typeof note.text === 'string' ? note.text : '';
+
+        return {
+            ...note,
+            id: typeof note.id === 'string' ? note.id : this.createNoteId(),
+            xPercent,
+            yPercent,
+            text,
+            context: this.normaliseNoteContext(note),
+            sourceId: sourceInfo.id,
+            sourceLabel: sourceInfo.label
+        };
+    }
+
     exportNotes() {
         if (!this.notes.length) {
             this.setStatus('Aucune note à exporter pour le moment.', 'warning');
@@ -355,32 +427,60 @@ class FeedbackManager {
         this.setStatus('Export des remarques effectué.', 'success');
     }
 
-    handleImport(event) {
+    async handleImport(event) {
         const input = event.target;
-        const file = input.files && input.files[0];
+        const files = input.files ? Array.from(input.files) : [];
         input.value = '';
 
-        if (!file) {
+        if (!files.length) {
             return;
         }
 
-        const reader = new FileReader();
-        reader.onload = () => {
-            try {
-                const rawData = JSON.parse(reader.result);
-                const notes = this.normaliseImportedNotes(rawData);
-                if (!notes.length) {
-                    this.setStatus("Le fichier importé ne contient aucune remarque valide.", 'warning');
-                    return;
+        const results = await Promise.allSettled(files.map((file) => this.importNotesFromFile(file)));
+
+        let importedFiles = 0;
+        let importedNotes = 0;
+        let emptyFiles = 0;
+        let errorCount = 0;
+
+        results.forEach((result) => {
+            if (result.status === 'fulfilled') {
+                const { notesCount } = result.value;
+                if (notesCount > 0) {
+                    importedFiles += 1;
+                    importedNotes += notesCount;
+                } else {
+                    emptyFiles += 1;
                 }
-                this.replaceNotes(notes);
-                this.setStatus('Remarques importées avec succès.', 'success');
-            } catch (error) {
-                console.error('Import feedback notes error', error);
-                this.setStatus("Impossible de lire le fichier importé.", 'error');
+            } else {
+                errorCount += 1;
+                console.error('Import feedback notes error', result.reason);
             }
-        };
-        reader.readAsText(file);
+        });
+
+        if (importedNotes > 0) {
+            const notesLabel = importedNotes > 1 ? 'remarques' : 'remarque';
+            const filesLabel = importedFiles > 1 ? 'fichiers' : 'fichier';
+            let message = `${importedNotes} ${notesLabel} importée${importedNotes > 1 ? 's' : ''} depuis ${importedFiles} ${filesLabel}.`;
+            if (emptyFiles > 0) {
+                const emptyLabel = emptyFiles > 1 ? 'fichiers sans remarque' : 'fichier sans remarque';
+                message += ` ${emptyFiles} ${emptyLabel}.`;
+            }
+            if (errorCount > 0) {
+                message += ' Certains fichiers n\'ont pas pu être lus.';
+                this.setStatus(message, 'warning');
+            } else {
+                this.setStatus(message, 'success');
+            }
+            return;
+        }
+
+        if (errorCount > 0) {
+            this.setStatus("Impossible de lire les fichiers importés.", 'error');
+            return;
+        }
+
+        this.setStatus("Les fichiers importés ne contiennent aucune remarque valide.", 'warning');
     }
 
     normaliseImportedNotes(data) {
@@ -397,7 +497,7 @@ class FeedbackManager {
                 const yPercent = this.extractCoordinate(note, 'yPercent', 'y', docHeight);
                 const context = this.normaliseNoteContext(note);
                 return {
-                    id: typeof note.id === 'string' ? note.id : this.createNoteId(),
+                    id: this.createNoteId(),
                     xPercent,
                     yPercent,
                     text: typeof note.text === 'string' ? note.text : '',
@@ -405,6 +505,125 @@ class FeedbackManager {
                 };
             })
             .filter(Boolean);
+    }
+
+    async importNotesFromFile(file) {
+        if (!file) {
+            return { fileName: '', notesCount: 0 };
+        }
+
+        const rawData = await this.readFileAsJson(file);
+        const notes = this.normaliseImportedNotes(rawData);
+
+        if (!notes.length) {
+            return { fileName: file.name || '', notesCount: 0 };
+        }
+
+        const sourceId = this.createImportSource(file.name);
+        const enrichedNotes = notes.map((note) => ({
+            ...note,
+            sourceId
+        }));
+
+        this.addPreparedNotes(enrichedNotes, { defaultSourceId: sourceId });
+
+        return { fileName: file.name || '', notesCount: enrichedNotes.length, sourceId };
+    }
+
+    readFileAsJson(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => {
+                try {
+                    const content = typeof reader.result === 'string' ? reader.result : String(reader.result || '');
+                    resolve(JSON.parse(content));
+                } catch (error) {
+                    const parseError = new Error(`Impossible d'interpréter le contenu du fichier ${file.name || ''}`.trim());
+                    parseError.cause = error;
+                    parseError.fileName = file.name || '';
+                    reject(parseError);
+                }
+            };
+            reader.onerror = () => {
+                const readError = new Error(`Impossible de lire le fichier ${file.name || ''}`.trim());
+                readError.cause = reader.error;
+                readError.fileName = file.name || '';
+                reject(readError);
+            };
+            reader.readAsText(file);
+        });
+    }
+
+    createImportSource(fileName) {
+        const id = `import-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`;
+        const label = typeof fileName === 'string' ? fileName : '';
+        return this.registerSource(id, { label, type: 'import' });
+    }
+
+    registerSource(id, options = {}) {
+        const sourceId = typeof id === 'string' && id ? id : this.manualSourceId;
+
+        if (!this.sourceInfo.has(sourceId)) {
+            const type = options.type === 'import' ? 'import' : 'manual';
+            let colorKey = options.colorKey;
+            if (!colorKey) {
+                colorKey = type === 'import' ? this.getNextPaletteColorKey() : 'base';
+            }
+            const label = typeof options.label === 'string' ? options.label : '';
+            this.sourceInfo.set(sourceId, {
+                id: sourceId,
+                type,
+                label,
+                colorKey
+            });
+        } else if (typeof options.label === 'string' && options.label) {
+            const existing = this.sourceInfo.get(sourceId);
+            if (existing && !existing.label) {
+                this.sourceInfo.set(sourceId, { ...existing, label: options.label });
+            }
+        }
+
+        return sourceId;
+    }
+
+    getNextPaletteColorKey() {
+        const colorKey = this.sourcePalette[this.sourcePaletteIndex % this.sourcePalette.length];
+        this.sourcePaletteIndex += 1;
+        return colorKey;
+    }
+
+    resolveSourceId(sourceId) {
+        if (typeof sourceId === 'string' && this.sourceInfo.has(sourceId)) {
+            return sourceId;
+        }
+        return this.manualSourceId;
+    }
+
+    getSourceInfo(sourceId) {
+        const resolvedId = this.resolveSourceId(sourceId);
+        return this.sourceInfo.get(resolvedId);
+    }
+
+    applySourceAttributes(element, noteData) {
+        if (!element) {
+            return;
+        }
+
+        const sourceInfo = this.getSourceInfo(noteData && noteData.sourceId);
+        if (!sourceInfo) {
+            return;
+        }
+
+        element.setAttribute('data-feedback-source', sourceInfo.id);
+        element.setAttribute('data-feedback-source-color', sourceInfo.colorKey);
+
+        if (sourceInfo.type === 'import' && sourceInfo.label) {
+            element.setAttribute('data-feedback-source-label', sourceInfo.label);
+            element.setAttribute('title', `Fichier : ${sourceInfo.label}`);
+        } else {
+            element.removeAttribute('data-feedback-source-label');
+            element.removeAttribute('title');
+        }
     }
 
     extractCoordinate(note, percentKey, absoluteKey, reference) {
@@ -419,16 +638,9 @@ class FeedbackManager {
         return 0.5;
     }
 
-    replaceNotes(notes) {
+    replaceNotes(notes, options = {}) {
         this.clearNotes();
-        this.notes = notes.map((note) => ({
-            ...note,
-            context: this.normaliseNoteContext(note)
-        }));
-        this.notes.forEach((note) => this.renderNote(note));
-        this.updateNoteNumbers();
-        this.repositionNotes();
-        this.applyContextVisibility();
+        this.addPreparedNotes(notes, options);
     }
 
     clearNotes() {
