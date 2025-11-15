@@ -18,6 +18,131 @@ function slugifyLabel(input) {
         .replace(/^-+|-+$/g, '');
 }
 
+const RICH_TEXT_ALLOWED_TAGS = new Set([
+    'P', 'BR', 'DIV', 'SPAN', 'STRONG', 'EM', 'B', 'I', 'U',
+    'UL', 'OL', 'LI', 'A', 'BLOCKQUOTE', 'CODE', 'PRE',
+    'H1', 'H2', 'H3', 'H4', 'H5', 'H6',
+    'TABLE', 'THEAD', 'TBODY', 'TR', 'TD', 'TH',
+    'DL', 'DT', 'DD'
+]);
+
+const RICH_TEXT_ALLOWED_ATTRIBUTES = {
+    '*': [],
+    A: ['href', 'title', 'target', 'rel']
+};
+
+const SAFE_URL_PATTERN = /^(https?:|mailto:|tel:|#)/i;
+
+function escapeHtml(value) {
+    return String(value ?? '').replace(/[&<>"']/g, match => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        '"': '&quot;',
+        "'": '&#39;'
+    }[match] || match));
+}
+
+function sanitizeRichText(input) {
+    const raw = input == null ? '' : String(input);
+    if (!raw.trim()) {
+        return '';
+    }
+
+    if (typeof DOMParser !== 'function') {
+        return escapeHtml(raw).replace(/\r?\n/g, '<br>');
+    }
+
+    const parser = new DOMParser();
+    const parsedDocument = parser.parseFromString(`<body>${raw}</body>`, 'text/html');
+    const { body } = parsedDocument;
+
+    const sanitizeElement = (element) => {
+        if (!element || element.nodeType !== 1) {
+            return;
+        }
+
+        const tagName = element.tagName.toUpperCase();
+        if (!RICH_TEXT_ALLOWED_TAGS.has(tagName)) {
+            const parent = element.parentNode;
+            if (!parent) {
+                element.remove();
+                return;
+            }
+
+            let child = element.firstChild;
+            while (child) {
+                const next = child.nextSibling;
+                parent.insertBefore(child, element);
+                if (child.nodeType === 1) {
+                    sanitizeElement(child);
+                }
+                child = next;
+            }
+            parent.removeChild(element);
+            return;
+        }
+
+        const allowedAttrs = new Set([
+            ...(RICH_TEXT_ALLOWED_ATTRIBUTES['*'] || []),
+            ...(RICH_TEXT_ALLOWED_ATTRIBUTES[tagName] || [])
+        ]);
+
+        Array.from(element.attributes).forEach(attr => {
+            const attrName = attr.name.toLowerCase();
+            if (!allowedAttrs.has(attrName)) {
+                element.removeAttribute(attr.name);
+                return;
+            }
+
+            const value = attr.value.trim();
+            if (attrName === 'href') {
+                if (!SAFE_URL_PATTERN.test(value) || /^javascript:/i.test(value)) {
+                    element.removeAttribute(attr.name);
+                    return;
+                }
+            }
+
+            if (attrName === 'target') {
+                if (value.toLowerCase() !== '_blank') {
+                    element.removeAttribute(attr.name);
+                    return;
+                }
+                element.setAttribute('rel', 'noopener noreferrer');
+                return;
+            }
+
+            if (attrName === 'rel') {
+                element.setAttribute('rel', 'noopener noreferrer');
+            }
+        });
+
+        let childNode = element.firstChild;
+        while (childNode) {
+            const next = childNode.nextSibling;
+            if (childNode.nodeType === 1) {
+                sanitizeElement(childNode);
+            } else if (childNode.nodeType === 8) {
+                element.removeChild(childNode);
+            }
+            childNode = next;
+        }
+    };
+
+    let current = body.firstChild;
+    while (current) {
+        const next = current.nextSibling;
+        if (current.nodeType === 1) {
+            sanitizeElement(current);
+        } else if (current.nodeType === 8) {
+            body.removeChild(current);
+        }
+        current = next;
+    }
+
+    return body.innerHTML;
+}
+
 function idsEqual(a, b) {
     return String(a) === String(b);
 }
@@ -44,6 +169,7 @@ window.sanitizeId = sanitizeId;
 window.idsEqual = idsEqual;
 window.getNextSequentialId = getNextSequentialId;
 window.slugifyLabel = slugifyLabel;
+window.sanitizeRichText = sanitizeRichText;
 
 const AGGRAVATING_FACTOR_GROUPS = Object.freeze({
     group1: { coefficient: 1.4, inputName: 'aggravatingGroup1' },

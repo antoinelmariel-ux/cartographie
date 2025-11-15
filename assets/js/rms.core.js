@@ -7088,8 +7088,21 @@ class RiskManagementSystem {
         }
 
         if (interview.notes && String(interview.notes).trim()) {
-            const sanitizedNotes = escapeHtml(interview.notes).replace(/\r?\n/g, '<br>');
-            notesContainer.innerHTML = `<div class="interview-notes-content">${sanitizedNotes}</div>`;
+            let sanitizedNotes = '';
+            if (typeof sanitizeRichText === 'function') {
+                sanitizedNotes = sanitizeRichText(interview.notes);
+            } else {
+                sanitizedNotes = escapeHtml(interview.notes).replace(/\r?\n/g, '<br>');
+            }
+
+            const hasVisibleContent = sanitizedNotes
+                && sanitizedNotes.replace(/<[^>]+>/g, '').trim();
+
+            if (hasVisibleContent) {
+                notesContainer.innerHTML = `<div class="interview-notes-content">${sanitizedNotes}</div>`;
+            } else {
+                notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+            }
         } else {
             notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
         }
