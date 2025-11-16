@@ -89,7 +89,14 @@ function createDashboardPdfWriter() {
             console.warn('Initialisation de jsPDF impossible, utilisation du mode simplifié', error);
         }
     } else {
-        console.info('jsPDF non disponible : utilisation du générateur PDF simplifié.');
+        console.info('jsPDF non disponible localement. Tentative avec le moteur PDF natif.');
+        if (typeof MiniJsPDF === 'function') {
+            try {
+                return new JsPdfDashboardWriter(MiniJsPDF);
+            } catch (error) {
+                console.warn('Initialisation du moteur PDF natif impossible, repli en mode texte.', error);
+            }
+        }
     }
 
     return new SimpleDashboardPdfWriter();
@@ -774,6 +781,153 @@ class JsPdfDashboardWriter {
     }
 }
 
+class MiniJsPDF {
+    constructor(options = {}) {
+        const { width, height } = resolvePdfPageSize(options.format, options.orientation, options.unit);
+        this.pageWidth = width;
+        this.pageHeight = height;
+        this.pages = [];
+        this.currentPageIndex = -1;
+        this.fontSize = 11;
+        this.textColor = [33, 37, 41];
+        this.fillColor = [255, 255, 255];
+        this.drawColor = [0, 0, 0];
+        this.fontResources = {
+            regular: { resourceKey: 'F1', baseFont: 'Helvetica' },
+            bold: { resourceKey: 'F2', baseFont: 'Helvetica-Bold' }
+        };
+        this.currentFontKey = 'regular';
+        this.usedFonts = new Set([this.currentFontKey]);
+        this.internal = {
+            pageSize: {
+                getWidth: () => this.pageWidth,
+                getHeight: () => this.pageHeight
+            }
+        };
+        this.addPage();
+    }
+
+    addPage() {
+        this.pages.push({ commands: [] });
+        this.currentPageIndex = this.pages.length - 1;
+    }
+
+    addCommand(command) {
+        if (!command) {
+            return;
+        }
+        const page = this.pages[this.currentPageIndex];
+        if (!page) {
+            return;
+        }
+        page.commands.push(command);
+    }
+
+    setFont(fontName = 'helvetica', fontStyle = 'normal') {
+        const normalizedName = String(fontName || '').toLowerCase();
+        const normalizedStyle = String(fontStyle || '').toLowerCase();
+        if (normalizedName.includes('bold') || normalizedStyle.includes('bold')) {
+            this.currentFontKey = 'bold';
+        } else {
+            this.currentFontKey = 'regular';
+        }
+        this.usedFonts.add(this.currentFontKey);
+    }
+
+    setFontSize(size) {
+        if (Number.isFinite(size) && size > 0) {
+            this.fontSize = size;
+        }
+    }
+
+    setTextColor(r = 0, g = 0, b = 0) {
+        this.textColor = normalizePdfColor(r, g, b);
+    }
+
+    setFillColor(r = 255, g = 255, b = 255) {
+        this.fillColor = normalizePdfColor(r, g, b);
+    }
+
+    setDrawColor(r = 0, g = 0, b = 0) {
+        this.drawColor = normalizePdfColor(r, g, b);
+    }
+
+    roundedRect(x, y, width, height, rx, ry, style) {
+        this.rect(x, y, width, height, style);
+    }
+
+    rect(x, y, width, height, style = 'S') {
+        if (!Number.isFinite(width) || !Number.isFinite(height)) {
+            return;
+        }
+        const sanitizedStyle = typeof style === 'string' ? style.toUpperCase() : 'S';
+        const commands = [];
+        const yPosition = this.pageHeight - y - height;
+        if (sanitizedStyle.includes('F')) {
+            commands.push(`${formatPdfColor(this.fillColor)} rg`);
+        }
+        if (sanitizedStyle.includes('S') || sanitizedStyle.includes('D') || sanitizedStyle === 'B') {
+            commands.push(`${formatPdfColor(this.drawColor)} RG`);
+        }
+        const operator = sanitizedStyle === 'F'
+            ? 'f'
+            : (sanitizedStyle === 'FD' || sanitizedStyle === 'DF' || sanitizedStyle === 'B')
+                ? 'B'
+                : 'S';
+        commands.push(`${x.toFixed(2)} ${yPosition.toFixed(2)} ${width.toFixed(2)} ${height.toFixed(2)} re ${operator}`);
+        this.addCommand(commands.join('\n'));
+    }
+
+    text(value, x, y) {
+        const content = String(value ?? '');
+        if (!content) {
+            return;
+        }
+        const lines = content.split(/\r?\n/);
+        lines.forEach((line, index) => {
+            const offsetY = y + (index * (this.fontSize + 2));
+            this.drawSingleLine(line, x, offsetY);
+        });
+    }
+
+    drawSingleLine(text, x, y) {
+        if (!text) {
+            return;
+        }
+        const page = this.pages[this.currentPageIndex];
+        if (!page) {
+            return;
+        }
+        const pdfY = this.pageHeight - y;
+        const font = this.fontResources[this.currentFontKey] || this.fontResources.regular;
+        const escaped = escapePdfText(text);
+        const colorCommand = `${formatPdfColor(this.textColor)} rg`;
+        page.commands.push(
+            `${colorCommand}\nBT /${font.resourceKey} ${this.fontSize.toFixed(2)} Tf 1 0 0 1 ${x.toFixed(2)} ${pdfY.toFixed(2)} Tm (${escaped}) Tj ET`
+        );
+    }
+
+    splitTextToSize(text, width) {
+        const limit = Math.max(20, Math.floor(width / Math.max(1, this.fontSize * 0.45)));
+        return wrapTextToMaxChars(String(text ?? ''), limit);
+    }
+
+    addImage() {
+        throw new Error('MiniJsPDF: addImage non supporté dans le moteur natif');
+    }
+
+    save(filename) {
+        const fontEntries = Array.from(this.usedFonts).map((key) => this.fontResources[key] || this.fontResources.regular);
+        const pdfBytes = buildVectorPdfDocumentFromPages(this.pages, {
+            pageWidth: this.pageWidth,
+            pageHeight: this.pageHeight,
+            fonts: fontEntries
+        });
+        const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+        triggerBlobDownload(blob, filename);
+    }
+}
+
 class SimpleDashboardPdfWriter {
     constructor() {
         this.margin = 40;
@@ -944,6 +1098,172 @@ class SimpleDashboardPdfWriter {
 
         return lines;
     }
+}
+
+const PDF_PAGE_FORMATS = {
+    a4: [595.28, 841.89],
+    letter: [612, 792]
+};
+
+function resolvePdfPageSize(format = 'a4', orientation = 'portrait', unit = 'pt') {
+    const normalizedFormat = String(format || 'a4').toLowerCase();
+    const baseSize = PDF_PAGE_FORMATS[normalizedFormat] || PDF_PAGE_FORMATS.a4;
+    let [width, height] = baseSize;
+    const normalizedOrientation = String(orientation || 'portrait').toLowerCase();
+    if (normalizedOrientation.startsWith('land')) {
+        [width, height] = [height, width];
+    }
+    const factor = getUnitToPointFactor(unit);
+    return { width: width * factor, height: height * factor };
+}
+
+function getUnitToPointFactor(unit = 'pt') {
+    const normalizedUnit = String(unit || 'pt').toLowerCase();
+    switch (normalizedUnit) {
+        case 'mm':
+            return 72 / 25.4;
+        case 'cm':
+            return 72 / 2.54;
+        case 'in':
+        case 'inch':
+            return 72;
+        case 'pt':
+        default:
+            return 1;
+    }
+}
+
+function normalizePdfColor(r = 0, g = 0, b = 0) {
+    return [r, g, b].map((component) => {
+        if (!Number.isFinite(component)) {
+            return 0;
+        }
+        return Math.min(255, Math.max(0, Math.round(component)));
+    });
+}
+
+function formatPdfColor(color) {
+    return color
+        .map((component) => (component / 255).toFixed(3))
+        .join(' ');
+}
+
+function wrapTextToMaxChars(text, limit) {
+    const safeLimit = Math.max(10, Math.floor(limit));
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    const lines = [];
+    let current = '';
+
+    words.forEach((word) => {
+        if (word.length >= safeLimit) {
+            if (current) {
+                lines.push(current);
+                current = '';
+            }
+            for (let index = 0; index < word.length; index += safeLimit) {
+                lines.push(word.slice(index, index + safeLimit));
+            }
+            return;
+        }
+
+        const candidate = current ? `${current} ${word}` : word;
+        if (candidate.length > safeLimit) {
+            if (current) {
+                lines.push(current);
+            }
+            current = word;
+        } else {
+            current = candidate;
+        }
+    });
+
+    if (current) {
+        lines.push(current);
+    }
+
+    return lines.length ? lines : [''];
+}
+
+function buildVectorPdfDocumentFromPages(pages, { pageWidth, pageHeight, fonts }) {
+    const sanitizedPages = Array.isArray(pages) && pages.length
+        ? pages.map((page) => Array.isArray(page.commands) ? page.commands.join('\n') : '')
+        : [''];
+    const fontEntries = (Array.isArray(fonts) && fonts.length ? fonts : [{ resourceKey: 'F1', baseFont: 'Helvetica' }])
+        .map((font, index) => ({
+            resourceKey: font.resourceKey || `F${index + 1}`,
+            baseFont: font.baseFont || 'Helvetica'
+        }));
+
+    const totalPages = sanitizedPages.length;
+    const totalFonts = fontEntries.length;
+    const catalogId = 1;
+    const pagesId = 2;
+    const fontStartId = 3;
+    const pageObjectStart = fontStartId + totalFonts;
+    const contentObjectStart = pageObjectStart + totalPages;
+    const totalObjects = contentObjectStart + totalPages - 1;
+    const objectOffsets = new Array(totalObjects + 1).fill(0);
+    const segments = [];
+    let offset = 0;
+
+    const append = (value) => {
+        const bytes = encodePdfString(value);
+        segments.push(bytes);
+        offset += bytes.length;
+    };
+
+    const addObject = (id, content) => {
+        objectOffsets[id] = offset;
+        append(`${id} 0 obj\n`);
+        append(content);
+        append('\nendobj\n');
+    };
+
+    append('%PDF-1.4\n');
+    append('%âãÏÓ\n');
+
+    const fontObjects = fontEntries.map((font, index) => ({
+        ...font,
+        objectId: fontStartId + index
+    }));
+
+    addObject(catalogId, `<< /Type /Catalog /Pages ${pagesId} 0 R >>`);
+    addObject(pagesId, `<< /Type /Pages /Count ${totalPages} /Kids [${Array.from({ length: totalPages }, (_, index) => `${pageObjectStart + index} 0 R`).join(' ')}] >>`);
+
+    fontObjects.forEach((font) => {
+        addObject(font.objectId, `<< /Type /Font /Subtype /Type1 /BaseFont /${font.baseFont} >>`);
+    });
+
+    const fontResourceString = fontObjects
+        .map((font) => `/${font.resourceKey} ${font.objectId} 0 R`)
+        .join(' ');
+    const resourceDictionary = `<< /Font << ${fontResourceString} >> >>`;
+
+    sanitizedPages.forEach((stream, index) => {
+        const pageObjectId = pageObjectStart + index;
+        const contentObjectId = contentObjectStart + index;
+        const contentLength = encodePdfString(stream).length;
+        addObject(pageObjectId, `<< /Type /Page /Parent ${pagesId} 0 R /MediaBox [0 0 ${pageWidth.toFixed(2)} ${pageHeight.toFixed(2)}] /Resources ${resourceDictionary} /Contents ${contentObjectId} 0 R >>`);
+        addObject(contentObjectId, `<< /Length ${contentLength} >>\nstream\n${stream}\nendstream`);
+    });
+
+    const xrefOffset = offset;
+    append(`xref\n0 ${totalObjects + 1}\n`);
+    append('0000000000 65535 f \n');
+    for (let index = 1; index <= totalObjects; index += 1) {
+        append(`${String(objectOffsets[index]).padStart(10, '0')} 00000 n \n`);
+    }
+    append(`trailer\n<< /Size ${totalObjects + 1} /Root ${catalogId} 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+
+    const totalLength = segments.reduce((sum, segment) => sum + segment.length, 0);
+    const result = new Uint8Array(totalLength);
+    let position = 0;
+    segments.forEach((segment) => {
+        result.set(segment, position);
+        position += segment.length;
+    });
+
+    return result;
 }
 
 function paginateLines(lines, { pageHeight, margin, defaultLineHeight, defaultFontSize }) {
