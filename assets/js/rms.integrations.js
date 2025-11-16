@@ -664,7 +664,7 @@ class JsPdfDashboardWriter {
                 const rowY = y + 40 + index * 24;
                 const label = `${risk.process} • ${risk.level}`;
                 this.doc.setFillColor(this.palette.accent.r, this.palette.accent.g, this.palette.accent.b);
-                this.doc.circle(x + 15, rowY - 4, 2, 'F');
+                this.drawCircle(x + 15, rowY - 4, 2, 'F');
                 this.doc.text(risk.description || 'Risque sans titre', x + 22, rowY);
                 this.doc.setFontSize(9);
                 this.doc.text(`${label} - Score ${formatters.formatNumber ? formatters.formatNumber(risk.score) : risk.score}`, x + 22, rowY + 10);
@@ -681,7 +681,7 @@ class JsPdfDashboardWriter {
             overduePlans.slice(0, 4).forEach((plan, index) => {
                 const rowY = y + 40 + index * 24;
                 this.doc.setFillColor(this.palette.success.r, this.palette.success.g, this.palette.success.b);
-                this.doc.circle(x + 15, rowY - 4, 2, 'F');
+                this.drawCircle(x + 15, rowY - 4, 2, 'F');
                 this.doc.text(plan.title || 'Plan sans nom', x + 22, rowY);
                 this.doc.setFontSize(9);
                 const status = plan.statusLabel ? `• ${plan.statusLabel}` : '';
@@ -704,6 +704,27 @@ class JsPdfDashboardWriter {
         this.doc.setFontSize(11);
         if (typeof contentCallback === 'function') {
             contentCallback({ x, y, width, height });
+        }
+    }
+
+    drawCircle(x, y, radius = 2, style = 'S') {
+        if (!this.doc || !Number.isFinite(x) || !Number.isFinite(y) || !Number.isFinite(radius)) {
+            return;
+        }
+
+        if (typeof this.doc.circle === 'function') {
+            this.doc.circle(x, y, radius, style);
+            return;
+        }
+
+        if (typeof this.doc.ellipse === 'function') {
+            this.doc.ellipse(x, y, radius, radius, style);
+            return;
+        }
+
+        if (typeof this.doc.rect === 'function') {
+            const diameter = radius * 2;
+            this.doc.rect(x - radius, y - radius, diameter, diameter, style);
         }
     }
 
