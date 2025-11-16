@@ -1,6 +1,6 @@
 // Enhanced Risk Management System - Integrations & Advanced Features
 
-function exportDashboard() {
+async function exportDashboard() {
     if (!window.rms) {
         const message = 'Instance du tableau de bord introuvable : export impossible';
         console.warn(message);
@@ -38,6 +38,13 @@ function exportDashboard() {
     try {
         const data = rms.getDashboardExportData();
 
+        let brandingAssets = null;
+        try {
+            brandingAssets = await loadDashboardBrandingAssets();
+        } catch (error) {
+            console.warn('Impossible de charger les éléments de branding pour le PDF', error);
+        }
+
         if (!data || !data.metrics || !data.metrics.stats) {
             const message = 'Aucune donnée valide à exporter pour le tableau de bord';
             console.warn(message, data);
@@ -49,7 +56,7 @@ function exportDashboard() {
             return;
         }
 
-        writeDashboardPdfContent(writer, data);
+        writeDashboardPdfContent(writer, data, { branding: brandingAssets });
         writer.save('tableau-de-bord.pdf');
 
         if (typeof showNotification === 'function') {
@@ -88,34 +95,86 @@ function createDashboardPdfWriter() {
     return new SimpleDashboardPdfWriter();
 }
 
-function writeDashboardPdfContent(writer, data) {
+async function loadDashboardBrandingAssets() {
+    const logoElement = document.querySelector('.header-logo');
+    const fallbackSrc = 'assets/img/LFB-logo.PNG';
+    const logoSrc = logoElement?.src || fallbackSrc;
+
+    try {
+        const logoDataUrl = await fetchAssetAsDataUrl(logoSrc);
+        return { logo: logoDataUrl };
+    } catch (error) {
+        console.warn('Impossible de charger le logo du site pour le PDF', error);
+        return null;
+    }
+}
+
+async function fetchAssetAsDataUrl(url) {
+    if (!url || typeof fetch !== 'function') {
+        throw new Error('Impossible de récupérer la ressource demandée');
+    }
+
+    const response = await fetch(url);
+    if (!response.ok) {
+        throw new Error(`Téléchargement impossible (${response.status})`);
+    }
+
+    const blob = await response.blob();
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result);
+        reader.onerror = () => reject(new Error('Lecture du flux impossible'));
+        reader.readAsDataURL(blob);
+    });
+}
+
+function writeDashboardPdfContent(writer, data, options = {}) {
     if (!writer || !data) {
         return;
     }
 
+    const formatters = createPdfFormatters();
+
+    if (options.branding && typeof writer.setBranding === 'function') {
+        writer.setBranding(options.branding);
+    }
+
+    if (typeof writer.renderAdvancedReport === 'function') {
+        writer.renderAdvancedReport(data, formatters);
+        return;
+    }
+
+    writeDashboardPdfTextContent(writer, data, formatters);
+}
+
+function createPdfFormatters() {
+    return {
+        formatNumber: (value, { decimals = 0 } = {}) => {
+            if (!Number.isFinite(value)) {
+                return '-';
+            }
+            return Number(value).toLocaleString('fr-FR', {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals
+            });
+        },
+        formatDateTime: (isoString) => {
+            if (!isoString) {
+                return '-';
+            }
+            const date = new Date(isoString);
+            if (Number.isNaN(date.getTime())) {
+                return '-';
+            }
+            return date.toLocaleString('fr-FR');
+        }
+    };
+}
+
+function writeDashboardPdfTextContent(writer, data, formatters) {
+    const { formatNumber, formatDateTime } = formatters;
     const { metrics = {}, topRisks = [], processOverview = {}, alerts = {} } = data;
     const stats = metrics.stats || {};
-
-    const formatNumber = (value, { decimals = 0 } = {}) => {
-        if (!Number.isFinite(value)) {
-            return '-';
-        }
-        return Number(value).toLocaleString('fr-FR', {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals
-        });
-    };
-
-    const formatDateTime = (isoString) => {
-        if (!isoString) {
-            return '-';
-        }
-        const date = new Date(isoString);
-        if (Number.isNaN(date.getTime())) {
-            return '-';
-        }
-        return date.toLocaleString('fr-FR');
-    };
 
     writer.setTitle('Tableau de bord - Synthèse');
     writer.addParagraph(`Généré le ${formatDateTime(data.generatedAt)}`);
@@ -232,6 +291,17 @@ class JsPdfDashboardWriter {
         this.isFallback = false;
         this.doc.setFont('helvetica', 'normal');
         this.doc.setFontSize(11);
+        this.palette = {
+            primary: { r: 14, g: 36, b: 66 },
+            accent: { r: 235, g: 94, b: 40 },
+            muted: { r: 236, g: 240, b: 245 },
+            success: { r: 38, g: 166, b: 154 }
+        };
+        this.branding = null;
+    }
+
+    setBranding(branding = null) {
+        this.branding = branding;
     }
 
     ensureSpace(height = this.lineHeight) {
@@ -241,6 +311,406 @@ class JsPdfDashboardWriter {
             this.doc.setFont('helvetica', 'normal');
             this.doc.setFontSize(11);
         }
+    }
+
+    renderAdvancedReport(data, formatters = {}) {
+        const { metrics = {}, topRisks = [], processOverview = {}, alerts = {} } = data;
+        const stats = metrics.stats || {};
+
+        this.cursorY = this.margin;
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+        this.renderVisualHeader(data, formatters);
+        this.renderKpiCards(metrics, formatters);
+        this.renderProcessOverview(processOverview, formatters);
+        this.renderRiskMatrix(stats, formatters);
+        this.renderTopRisksTable(topRisks, formatters);
+        this.renderAlertsPanels(alerts, formatters);
+    }
+
+    renderVisualHeader(data, formatters) {
+        const headerHeight = 110;
+        this.doc.setFillColor(this.palette.primary.r, this.palette.primary.g, this.palette.primary.b);
+        this.doc.rect(0, 0, this.pageWidth, headerHeight, 'F');
+
+        if (this.branding?.logo) {
+            try {
+                const imageType = this.getImageType(this.branding.logo);
+                this.doc.addImage(this.branding.logo, imageType, this.margin, 25, 90, 50, undefined, 'FAST');
+            } catch (error) {
+                console.warn('Insertion du logo impossible dans le PDF', error);
+            }
+        }
+
+        this.doc.setTextColor(255, 255, 255);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(20);
+        this.doc.text('Cartographie des risques - Synthèse', this.margin + 110, 45);
+        this.doc.setFontSize(12);
+        const formattedDate = formatters.formatDateTime ? formatters.formatDateTime(data.generatedAt) : '';
+        this.doc.text(`Généré le ${formattedDate}`, this.margin + 110, 70);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+        this.doc.setTextColor(33, 37, 41);
+        this.cursorY = headerHeight + 30;
+    }
+
+    renderKpiCards(metrics, formatters) {
+        const stats = metrics.stats || {};
+        const actionPlanMetrics = metrics.actionPlanStatusMetrics || { total: 0, distribution: [] };
+        const controlDistribution = Array.isArray(metrics.controlTypeDistribution)
+            ? metrics.controlTypeDistribution.filter((item) => item && item.label && Number.isFinite(item.percentage))
+            : [];
+
+        const topStatuses = Array.isArray(actionPlanMetrics.distribution)
+            ? actionPlanMetrics.distribution.filter((item) => (item?.count || 0) > 0).slice(0, 2)
+            : [];
+
+        const formatValue = (value, options) => {
+            if (typeof formatters.formatNumber === 'function') {
+                const result = formatters.formatNumber(value, options);
+                return result === '-' ? '-' : result;
+            }
+            if (value === null || value === undefined) {
+                return '-';
+            }
+            return value;
+        };
+
+        const formatWithUnit = (value, unit) => {
+            const formatted = formatValue(value);
+            return formatted === '-' ? '—' : `${formatted}${unit}`;
+        };
+
+        const cards = [
+            {
+                title: 'Risques validés',
+                value: formatValue(stats.total) === '-' ? '—' : formatValue(stats.total),
+                meta: `Critiques ${formatValue(stats.critical)} • Élevés ${formatValue(stats.high)}`,
+                color: this.palette.primary
+            },
+            {
+                title: 'Score global de maîtrise',
+                value: formatWithUnit(metrics.globalScore, ' %'),
+                meta: (() => {
+                    const reductionLabel = formatValue(metrics.averageReduction, { decimals: 1 });
+                    return reductionLabel === '-'
+                        ? 'Réduction moyenne non disponible'
+                        : `Réduction moyenne ${reductionLabel}%`;
+                })(),
+                color: this.palette.accent
+            },
+            {
+                title: 'Contrôles actifs',
+                value: `${formatValue(metrics.activeControls)} / ${formatValue(metrics.totalControls)}`,
+                meta: controlDistribution.length
+                    ? `Types dominants : ${controlDistribution.slice(0, 2).map((item) => `${item.label} (${Math.round(item.percentage)}%)`).join(' • ')}`
+                    : 'Répartition non renseignée',
+                color: this.palette.success
+            },
+            {
+                title: "Plans d'actions suivis",
+                value: formatValue(actionPlanMetrics.total),
+                meta: topStatuses.length
+                    ? topStatuses.map((item) => `${item.label} : ${formatValue(item.count)}`).join(' • ')
+                    : 'Aucune distribution disponible',
+                color: { r: 52, g: 73, b: 94 }
+            }
+        ];
+
+        const columns = 2;
+        const cardWidth = ((this.pageWidth - (this.margin * 2)) - 20) / columns;
+        const cardHeight = 90;
+        const rows = Math.ceil(cards.length / columns);
+        const sectionHeight = rows * (cardHeight + 15) + 20;
+        this.ensureSpace(sectionHeight);
+
+        cards.forEach((card, index) => {
+            const column = index % columns;
+            const row = Math.floor(index / columns);
+            const x = this.margin + column * (cardWidth + 20);
+            const y = this.cursorY + row * (cardHeight + 15);
+
+            this.doc.setFillColor(card.color.r, card.color.g, card.color.b);
+            this.doc.setDrawColor(card.color.r, card.color.g, card.color.b);
+            this.doc.roundedRect(x, y, cardWidth, cardHeight, 8, 8, 'FD');
+
+            this.doc.setTextColor(255, 255, 255);
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(11);
+            this.doc.text(card.title, x + 14, y + 22);
+            this.doc.setFontSize(22);
+            this.doc.text(String(card.value || '—'), x + 14, y + 50);
+            this.doc.setFont('helvetica', 'normal');
+            this.doc.setFontSize(10);
+            const metaLines = this.doc.splitTextToSize(card.meta || '', cardWidth - 28);
+            metaLines.forEach((line, idx) => {
+                this.doc.text(line, x + 14, y + 68 + (idx * 12));
+            });
+        });
+
+        this.doc.setTextColor(33, 37, 41);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+        this.cursorY += sectionHeight;
+    }
+
+    renderProcessOverview(processOverview, formatters) {
+        const distribution = Array.isArray(processOverview.distribution)
+            ? processOverview.distribution.slice(0, 5)
+            : [];
+        const severity = Array.isArray(processOverview.severity)
+            ? processOverview.severity.slice(0, 5)
+            : [];
+
+        const panelHeight = Math.max((Math.max(distribution.length, severity.length) || 1) * 28 + 100, 160);
+        const availableWidth = this.pageWidth - (this.margin * 2);
+        const columnWidth = (availableWidth - 20) / 2;
+
+        this.ensureSpace(panelHeight + 30);
+
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(13);
+        this.doc.text('Analyse par processus', this.margin, this.cursorY + 15);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+
+        const panelY = this.cursorY + 25;
+
+        this.drawPanel(this.margin, panelY, columnWidth, panelHeight, 'Répartition des risques', ({ x, y, width }) => {
+            if (!distribution.length) {
+                this.doc.text('Aucune donnée disponible', x + 15, y + 40);
+                return;
+            }
+
+            const maxCount = Math.max(...distribution.map((entry) => entry.count || 0), 1);
+            const chartLeft = x + 20;
+            const chartTop = y + 40;
+            const barHeight = 16;
+            const barMaxWidth = width - 80;
+
+            distribution.forEach((entry, index) => {
+                const barY = chartTop + index * (barHeight + 12);
+                const barWidth = ((entry.count || 0) / maxCount) * barMaxWidth;
+                this.doc.setFont('helvetica', 'bold');
+                this.doc.setFontSize(10);
+                this.doc.text(entry.label || 'Non défini', chartLeft, barY - 4);
+                this.doc.setFillColor(this.palette.accent.r, this.palette.accent.g, this.palette.accent.b);
+                this.doc.rect(chartLeft, barY, barWidth || 2, barHeight, 'F');
+                this.doc.setFont('helvetica', 'normal');
+                this.doc.setFontSize(10);
+                this.doc.text(String(formatters.formatNumber ? formatters.formatNumber(entry.count) : entry.count), chartLeft + barMaxWidth + 5, barY + barHeight - 4);
+            });
+        });
+
+        this.drawPanel(this.margin + columnWidth + 20, panelY, columnWidth, panelHeight, 'Scores nets moyens', ({ x, y }) => {
+            if (!severity.length) {
+                this.doc.text('Pas de tendance disponible', x + 25, y + 40);
+                return;
+            }
+
+            const tableTop = y + 40;
+            const rowHeight = 20;
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(10);
+            this.doc.text('Processus', x + 20, tableTop);
+            this.doc.text('Score moyen', x + 20 + columnWidth - 60, tableTop);
+            this.doc.setFont('helvetica', 'normal');
+
+            severity.forEach((entry, index) => {
+                const rowY = tableTop + 15 + index * rowHeight;
+                this.doc.text(entry.label || 'Non défini', x + 20, rowY);
+                const value = formatters.formatNumber
+                    ? formatters.formatNumber(entry.average, { decimals: 1 })
+                    : entry.average;
+                this.doc.text(String(value || '—'), x + 20 + columnWidth - 60, rowY);
+            });
+        });
+
+        this.cursorY += panelHeight + 40;
+    }
+
+    renderRiskMatrix(stats, formatters) {
+        const matrixHeight = 200;
+        this.ensureSpace(matrixHeight);
+        const startY = this.cursorY;
+
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(13);
+        this.doc.text('Matrice de criticité', this.margin, startY + 15);
+        this.doc.setFont('helvetica', 'normal');
+
+        const gridTop = startY + 35;
+        const cellSize = 80;
+        const gap = 8;
+        const rows = 2;
+        const cols = 2;
+        const cells = [
+            { label: 'Critiques', value: stats.critical, color: { r: 200, g: 54, b: 54 } },
+            { label: 'Élevés', value: stats.high, color: { r: 235, g: 152, b: 0 } },
+            { label: 'Modérés', value: stats.medium, color: { r: 241, g: 196, b: 15 } },
+            { label: 'Faibles', value: stats.low, color: { r: 88, g: 214, b: 141 } }
+        ];
+
+        const startX = this.margin;
+        cells.forEach((cell, index) => {
+            const row = Math.floor(index / cols);
+            const col = index % cols;
+            const x = startX + col * (cellSize + gap);
+            const y = gridTop + row * (cellSize + gap);
+            this.doc.setFillColor(cell.color.r, cell.color.g, cell.color.b);
+            this.doc.roundedRect(x, y, cellSize, cellSize, 6, 6, 'F');
+            this.doc.setTextColor(255, 255, 255);
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.setFontSize(12);
+            this.doc.text(String(formatters.formatNumber ? formatters.formatNumber(cell.value) : cell.value), x + cellSize / 2, y + cellSize / 2, { align: 'center' });
+            this.doc.setFont('helvetica', 'normal');
+            this.doc.setFontSize(10);
+            this.doc.text(cell.label, x + cellSize / 2, y + cellSize - 12, { align: 'center' });
+        });
+
+        this.doc.setTextColor(33, 37, 41);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(10);
+        const commentaryX = startX + (cols * (cellSize + gap)) + 30;
+        const commentaryWidth = this.pageWidth - commentaryX - this.margin;
+        const summaryText = `Répartition globale des ${formatters.formatNumber ? formatters.formatNumber(stats.total) : stats.total} risques validés par niveau de criticité.`;
+        const lines = this.doc.splitTextToSize(summaryText, commentaryWidth);
+        this.doc.text(lines, commentaryX, gridTop + 15);
+
+        this.cursorY += matrixHeight;
+    }
+
+    renderTopRisksTable(topRisks, formatters) {
+        const rows = Math.min(topRisks.length, 6);
+        const tableHeight = rows ? rows * 30 + 80 : 140;
+        this.ensureSpace(tableHeight);
+        const startY = this.cursorY;
+
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(13);
+        this.doc.text('Top risques nets', this.margin, startY + 15);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+
+        if (!rows) {
+            this.doc.text('Aucun risque validé disponible pour cette période.', this.margin, startY + 40);
+            this.cursorY += 80;
+            return;
+        }
+
+        const tableWidth = this.pageWidth - (this.margin * 2);
+        const tableTop = startY + 30;
+        const headerHeight = 24;
+        this.doc.setFillColor(this.palette.primary.r, this.palette.primary.g, this.palette.primary.b);
+        this.doc.rect(this.margin, tableTop, tableWidth, headerHeight, 'F');
+        this.doc.setTextColor(255, 255, 255);
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.text('#', this.margin + 10, tableTop + 16);
+        this.doc.text('Risque & Processus', this.margin + 40, tableTop + 16);
+        this.doc.text('Scores', this.margin + tableWidth - 160, tableTop + 16);
+
+        this.doc.setTextColor(33, 37, 41);
+        this.doc.setFont('helvetica', 'normal');
+
+        const rowHeight = 30;
+        topRisks.slice(0, rows).forEach((risk, index) => {
+            const rowY = tableTop + headerHeight + index * rowHeight;
+            this.doc.setFillColor(index % 2 === 0 ? 248 : 255, index % 2 === 0 ? 250 : 255, 255);
+            this.doc.rect(this.margin, rowY, tableWidth, rowHeight, 'F');
+            this.doc.setFont('helvetica', 'bold');
+            this.doc.text(String(risk.rank), this.margin + 10, rowY + 18);
+            this.doc.setFont('helvetica', 'normal');
+            const processLabel = risk.sousProcessus
+                ? `${risk.processus} / ${risk.sousProcessus}`
+                : risk.processus;
+            const infoLines = this.doc.splitTextToSize(`${risk.titre} — ${processLabel}`, tableWidth - 220).slice(0, 2);
+            this.doc.text(infoLines, this.margin + 40, rowY + 16);
+            const scoreLabel = `Brut ${formatters.formatNumber ? formatters.formatNumber(risk.brutScore) : risk.brutScore} → Net ${formatters.formatNumber ? formatters.formatNumber(risk.score) : risk.score}`;
+            const reductionLabel = `Réduction ${risk.reduction}%${risk.effectivenessLabel ? ` (${risk.effectivenessLabel})` : ''}`;
+            this.doc.text(scoreLabel, this.margin + tableWidth - 10, rowY + 14, { align: 'right' });
+            this.doc.setFontSize(9);
+            this.doc.text(reductionLabel, this.margin + tableWidth - 10, rowY + 24, { align: 'right' });
+            this.doc.setFontSize(11);
+        });
+
+        this.cursorY += tableHeight;
+    }
+
+    renderAlertsPanels(alerts, formatters) {
+        const panelHeight = 160;
+        const availableWidth = this.pageWidth - (this.margin * 2);
+        const columnWidth = (availableWidth - 20) / 2;
+        this.ensureSpace(panelHeight + 20);
+        const startY = this.cursorY;
+
+        const severeRisks = Array.isArray(alerts.severeRisks) ? alerts.severeRisks : [];
+        const overduePlans = Array.isArray(alerts.overdueActionPlans) ? alerts.overdueActionPlans : [];
+
+        this.drawPanel(this.margin, startY + 10, columnWidth, panelHeight, 'Alertes critiques', ({ x, y }) => {
+            if (!severeRisks.length) {
+                this.doc.text("Aucun risque critique en attente de plan d'action.", x + 15, y + 30);
+                return;
+            }
+
+            severeRisks.slice(0, 4).forEach((risk, index) => {
+                const rowY = y + 40 + index * 24;
+                const label = `${risk.process} • ${risk.level}`;
+                this.doc.setFillColor(this.palette.accent.r, this.palette.accent.g, this.palette.accent.b);
+                this.doc.circle(x + 15, rowY - 4, 2, 'F');
+                this.doc.text(risk.description || 'Risque sans titre', x + 22, rowY);
+                this.doc.setFontSize(9);
+                this.doc.text(`${label} - Score ${formatters.formatNumber ? formatters.formatNumber(risk.score) : risk.score}`, x + 22, rowY + 10);
+                this.doc.setFontSize(11);
+            });
+        });
+
+        this.drawPanel(this.margin + columnWidth + 20, startY + 10, columnWidth, panelHeight, "Plans d'actions sensibles", ({ x, y }) => {
+            if (!overduePlans.length) {
+                this.doc.text('Aucun plan en retard.', x + 15, y + 30);
+                return;
+            }
+
+            overduePlans.slice(0, 4).forEach((plan, index) => {
+                const rowY = y + 40 + index * 24;
+                this.doc.setFillColor(this.palette.success.r, this.palette.success.g, this.palette.success.b);
+                this.doc.circle(x + 15, rowY - 4, 2, 'F');
+                this.doc.text(plan.title || 'Plan sans nom', x + 22, rowY);
+                this.doc.setFontSize(9);
+                const status = plan.statusLabel ? `• ${plan.statusLabel}` : '';
+                this.doc.text(`${plan.owner || 'Responsable ?'} ${status} • Échéance ${plan.formattedDueDate || '-'}`, x + 22, rowY + 10);
+                this.doc.setFontSize(11);
+            });
+        });
+
+        this.cursorY += panelHeight + 30;
+    }
+
+    drawPanel(x, y, width, height, title, contentCallback) {
+        this.doc.setFillColor(255, 255, 255);
+        this.doc.setDrawColor(224, 230, 237);
+        this.doc.roundedRect(x, y, width, height, 8, 8, 'FD');
+        this.doc.setFont('helvetica', 'bold');
+        this.doc.setFontSize(11);
+        this.doc.text(title, x + 15, y + 22);
+        this.doc.setFont('helvetica', 'normal');
+        this.doc.setFontSize(11);
+        if (typeof contentCallback === 'function') {
+            contentCallback({ x, y, width, height });
+        }
+    }
+
+    getImageType(dataUrl) {
+        if (typeof dataUrl !== 'string') {
+            return 'PNG';
+        }
+        if (dataUrl.startsWith('data:image/jpeg') || dataUrl.startsWith('data:image/jpg')) {
+            return 'JPEG';
+        }
+        if (dataUrl.startsWith('data:image/webp')) {
+            return 'WEBP';
+        }
+        return 'PNG';
     }
 
     splitText(text, widthOffset = 0) {
