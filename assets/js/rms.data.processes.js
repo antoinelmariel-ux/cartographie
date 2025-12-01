@@ -1,305 +1,146 @@
 (function (global) {
     const defaultProcesses = [
-        {
-            value: 'R&D',
-            label: 'R&D',
-            referents: [
-                'Dr Isabelle Laurent (France)',
-                'Dr Miguel Torres (USA)',
-                'Dr Aisha Campbell (Royaume-Uni)'
-            ]
-        },
-        {
-            value: 'Achats',
-            label: 'Achats',
-            referents: [
-                'Sonia Keller (France)',
-                'Diego Martínez (Mexique)',
-                'Laura Chen (USA)'
-            ]
-        },
-        {
-            value: 'Marketing',
-            label: 'Marketing',
-            referents: [
-                'Claire Dubois (France)',
-                'Emily Foster (Royaume-Uni)',
-                'Javier Ortega (Espagne)'
-            ]
-        },
-        {
-            value: 'Ventes',
-            label: 'Ventes',
-            referents: [
-                'James Cooper (USA)',
-                'Anke Schreiber (Allemagne)',
-                'María López (Espagne)'
-            ]
-        },
-        {
-            value: 'RH',
-            label: 'RH',
-            referents: [
-                'Hélène Rousseau (France)',
-                'Patrick O’Neill (Royaume-Uni)',
-                'Sofía Hernández (Mexique)'
-            ]
-        },
-        {
-            value: 'Production',
-            label: 'Production',
-            referents: [
-                'Marc Giraud (France)',
-                'Sven Richter (Allemagne)',
-                'Patricia Nguyen (USA)'
-            ]
-        },
-        {
-            value: 'Finance',
-            label: 'Finance',
-            referents: [
-                'Sophie Bernard (France)',
-                'Liam Turner (Royaume-Uni)',
-                'Carla Jiménez (Espagne)'
-            ]
-        },
-        {
-            value: 'Juridique',
-            label: 'Juridique',
-            referents: [
-                'Nathalie Perrot (France)',
-                'Alexander Hughes (USA)',
-                'Helena Vogt (Allemagne)'
-            ]
-        }
+        { value: 'Stratégie', label: 'Stratégie' },
+        { value: 'Communication', label: 'Communication' },
+        { value: "Management Qualité et Risques d'entreprise", label: "Management Qualité et Risques d'entreprise" },
+        { value: 'Mesure et Amélioration Qualité', label: 'Mesure et Amélioration Qualité' },
+        { value: 'Gestion de la performance', label: 'Gestion de la performance' },
+        { value: 'R&D et Réglementaire', label: 'R&D et Réglementaire' },
+        { value: 'Production', label: 'Production' },
+        { value: 'Commercialisation des produits', label: 'Commercialisation des produits' },
+        { value: 'Supply Chain', label: 'Supply Chain' },
+        { value: 'Gestion des prestations', label: 'Gestion des prestations' },
+        { value: 'Ressources humaines', label: 'Ressources humaines' },
+        { value: 'Achats', label: 'Achats' },
+        { value: 'Finance', label: 'Finance' },
+        { value: 'Systèmes transverses de connaissance et de documentation', label: 'Systèmes transverses de connaissance et de documentation' },
+        { value: "Système d’information (SI)", label: "Système d’information (SI)" },
+        { value: 'Sites et Equipement', label: 'Sites et Equipement' },
+        { value: 'Juridique Compliance Propriété Intellectuelle Assurances', label: 'Juridique Compliance Propriété Intellectuelle Assurances' }
     ];
 
     const defaultSubProcesses = {
-        'R&D': [
-            {
-                value: 'Recherche fondamentale',
-                label: 'Recherche fondamentale',
-                referents: ['Dr Isabelle Laurent (France)', 'Dr Felix Braun (Allemagne)']
-            },
-            {
-                value: 'Développement préclinique',
-                label: 'Développement préclinique',
-                referents: ['Dr Miguel Torres (USA)', 'Dr Aisha Campbell (Royaume-Uni)']
-            },
-            {
-                value: 'Études cliniques',
-                label: 'Études cliniques',
-                referents: ['Dr Olivia Bennett (USA)', 'Dr Marta González (Espagne)']
-            },
-            {
-                value: 'Affaires réglementaires',
-                label: 'Affaires réglementaires',
-                referents: ['Amélie Charvet (France)', 'Robert Fields (USA)']
-            },
-            {
-                value: 'Pharmacovigilance',
-                label: 'Pharmacovigilance',
-                referents: ['Dr Lina Moretti (Italie)', 'Dr Sophie Klein (Allemagne)']
-            }
+        'Stratégie': [
+            { value: 'Stratégie globale et objectifs', label: 'Stratégie globale et objectifs' },
+            { value: 'Gestion des projets Produits', label: 'Gestion des projets Produits' },
+            { value: 'Gestion des projets Industriels', label: 'Gestion des projets Industriels' }
         ],
-        'Achats': [
-            {
-                value: 'Sourcing fournisseurs',
-                label: 'Sourcing fournisseurs',
-                referents: ['Diego Martínez (Mexique)', 'Sonia Keller (France)']
-            },
-            {
-                value: "Appels d'offres",
-                label: "Appels d'offres",
-                referents: ['Laura Chen (USA)', 'Patrick O’Neill (Royaume-Uni)']
-            },
-            {
-                value: 'Négociation/contrats',
-                label: 'Négociation/contrats',
-                referents: ['Sonia Keller (France)', 'Javier Ortega (Espagne)']
-            },
-            {
-                value: 'Gestion des commandes',
-                label: 'Gestion des commandes',
-                referents: ['María López (Espagne)', 'Anke Schreiber (Allemagne)']
-            },
-            {
-                value: 'Réception et contrôles',
-                label: 'Réception et contrôles',
-                referents: ['Marc Giraud (France)', 'Patricia Nguyen (USA)']
-            }
+        'Communication': [
+            { value: 'Communication interne', label: 'Communication interne' },
+            { value: 'Communication externe', label: 'Communication externe' }
         ],
-        'Marketing': [
-            {
-                value: 'Études de marché',
-                label: 'Études de marché',
-                referents: ['Claire Dubois (France)', 'Carla Jiménez (Espagne)']
-            },
-            {
-                value: 'Promotion médicale',
-                label: 'Promotion médicale',
-                referents: ['Emily Foster (Royaume-Uni)', 'Dr Marta González (Espagne)']
-            },
-            {
-                value: 'Communication digitale',
-                label: 'Communication digitale',
-                referents: ['Javier Ortega (Espagne)', 'Olivia Chen (USA)']
-            },
-            {
-                value: "Organisation d’événements",
-                label: "Organisation d’événements",
-                referents: ['Claire Dubois (France)', 'Sofía Hernández (Mexique)']
-            },
-            {
-                value: 'Gestion de la marque',
-                label: 'Gestion de la marque',
-                referents: ['Emily Foster (Royaume-Uni)', 'James Cooper (USA)']
-            }
+        "Management Qualité et Risques d'entreprise": [
+            { value: 'Cartographie des risques', label: 'Cartographie des risques' },
+            { value: 'Contrôle interne', label: 'Contrôle interne' },
+            { value: 'Audit interne', label: 'Audit interne' },
+            { value: 'Management du système qualité', label: 'Management du système qualité' },
+            { value: 'Quality Risk Management (QRM)', label: 'Quality Risk Management (QRM)' }
         ],
-        'Ventes': [
-            {
-                value: 'Prospection commerciale',
-                label: 'Prospection commerciale',
-                referents: ['James Cooper (USA)', 'María López (Espagne)']
-            },
-            {
-                value: "Soumissions d’offres",
-                label: "Soumissions d’offres",
-                referents: ['Anke Schreiber (Allemagne)', 'Laura Chen (USA)']
-            },
-            {
-                value: 'Négociation/contrats',
-                label: 'Négociation/contrats',
-                referents: ['James Cooper (USA)', 'Alexander Hughes (USA)']
-            },
-            {
-                value: 'Distribution',
-                label: 'Distribution',
-                referents: ['Patricia Nguyen (USA)', 'Diego Martínez (Mexique)']
-            },
-            {
-                value: 'Suivi client',
-                label: 'Suivi client',
-                referents: ['María López (Espagne)', 'Carla Jiménez (Espagne)']
-            }
+        'Mesure et Amélioration Qualité': [
+            { value: 'Déviations', label: 'Déviations' },
+            { value: 'Out Of Specifications/Out of Trend', label: 'Out Of Specifications/Out of Trend' },
+            { value: 'Actions Correctives et Préventives', label: 'Actions Correctives et Préventives' },
+            { value: 'Changements Industriels', label: 'Changements Industriels' },
+            { value: 'Audits qualité internes', label: 'Audits qualité internes' },
+            { value: 'Revues qualité produits', label: 'Revues qualité produits' }
         ],
-        'RH': [
-            {
-                value: 'Recrutement',
-                label: 'Recrutement',
-                referents: ['Hélène Rousseau (France)', 'Sofía Hernández (Mexique)']
-            },
-            {
-                value: 'Gestion des carrières',
-                label: 'Gestion des carrières',
-                referents: ['Patrick O’Neill (Royaume-Uni)', 'Liam Turner (Royaume-Uni)']
-            },
-            {
-                value: 'Formation',
-                label: 'Formation',
-                referents: ['Hélène Rousseau (France)', 'Emily Foster (Royaume-Uni)']
-            },
-            {
-                value: 'Paie et avantages sociaux',
-                label: 'Paie et avantages sociaux',
-                referents: ['Sophie Bernard (France)', 'Carla Jiménez (Espagne)']
-            },
-            {
-                value: 'Évaluation des performances',
-                label: 'Évaluation des performances',
-                referents: ['Patrick O’Neill (Royaume-Uni)', 'Sven Richter (Allemagne)']
-            }
+        'Gestion de la performance': [
+            { value: 'Budget', label: 'Budget' },
+            { value: 'Reportings', label: 'Reportings' },
+            { value: 'Responsabilité Sociétale d’Entreprise (RSE)', label: 'Responsabilité Sociétale d’Entreprise (RSE)' }
+        ],
+        'R&D et Réglementaire': [
+            { value: 'Recherche', label: 'Recherche' },
+            { value: 'Développement', label: 'Développement' },
+            { value: 'Etudes cliniques', label: 'Etudes cliniques' },
+            { value: 'Industrialisation des procédés', label: 'Industrialisation des procédés' },
+            { value: 'Gestion réglementaire', label: 'Gestion réglementaire' }
         ],
         'Production': [
-            {
-                value: 'Planification',
-                label: 'Planification',
-                referents: ['Marc Giraud (France)', 'Sven Richter (Allemagne)']
-            },
-            {
-                value: 'Approvisionnement en matières premières',
-                label: 'Approvisionnement en matières premières',
-                referents: ['Diego Martínez (Mexique)', 'Patricia Nguyen (USA)']
-            },
-            {
-                value: 'Fabrication',
-                label: 'Fabrication',
-                referents: ['Marc Giraud (France)', 'Helena Vogt (Allemagne)']
-            },
-            {
-                value: 'Contrôle qualité',
-                label: 'Contrôle qualité',
-                referents: ['Sven Richter (Allemagne)', 'Patricia Nguyen (USA)']
-            },
-            {
-                value: 'Libération des lots',
-                label: 'Libération des lots',
-                referents: ['Marc Giraud (France)', 'Helena Vogt (Allemagne)']
-            },
-            {
-                value: 'Maintenance des équipements',
-                label: 'Maintenance des équipements',
-                referents: ['Sven Richter (Allemagne)', 'Patricia Nguyen (USA)']
-            }
+            { value: 'Collecte plasma /lait', label: 'Collecte plasma /lait' },
+            { value: 'Réception et acceptation  du plasma /lait', label: 'Réception et acceptation  du plasma /lait' },
+            { value: 'Réception et acceptation des matières et articles', label: 'Réception et acceptation des matières et articles' },
+            { value: 'Décongélation/préparation du plasma', label: 'Décongélation/préparation du plasma' },
+            { value: 'Fractionnement /Bioproduction', label: 'Fractionnement /Bioproduction' },
+            { value: 'Mise en forme pharmaceutique', label: 'Mise en forme pharmaceutique' },
+            { value: 'Conditionnement secondaire', label: 'Conditionnement secondaire' },
+            { value: 'Contrôles matières, produits (sous toutes les formes)', label: 'Contrôles matières, produits (sous toutes les formes)' },
+            { value: "Contrôles de l'environnement de production", label: "Contrôles de l'environnement de production" },
+            { value: 'Certification et Libération', label: 'Certification et Libération' }
+        ],
+        'Commercialisation des produits': [
+            { value: 'Lancement de produit', label: 'Lancement de produit' },
+            { value: 'Gestion des marchés et des clients', label: 'Gestion des marchés et des clients' },
+            { value: 'Administration des ventes', label: 'Administration des ventes' },
+            { value: 'Information scientifique et médicale', label: 'Information scientifique et médicale' },
+            { value: 'Réclamations et litiges', label: 'Réclamations et litiges' },
+            { value: 'Vigilances', label: 'Vigilances' },
+            { value: 'Alertes et rappels', label: 'Alertes et rappels' },
+            { value: 'Arrêt de produit', label: 'Arrêt de produit' },
+            { value: 'Ruptures de stocks et tensions d’approvisionnement', label: 'Ruptures de stocks et tensions d’approvisionnement' }
+        ],
+        'Supply Chain': [
+            { value: 'Planification, organisation de la production', label: 'Planification, organisation de la production' },
+            { value: 'Approvisionnement plasma', label: 'Approvisionnement plasma' },
+            { value: 'Approvisionnement des matières et articles', label: 'Approvisionnement des matières et articles' },
+            { value: 'Transport des matières/produits internes', label: 'Transport des matières/produits internes' },
+            { value: 'Stockage des matières et productions Sites', label: 'Stockage des matières et productions Sites' },
+            { value: 'Stockage et distribution des produits commercialisés', label: 'Stockage et distribution des produits commercialisés' }
+        ],
+        'Gestion des prestations': [
+            { value: 'Travail à façon/Prestation', label: 'Travail à façon/Prestation' },
+            { value: 'Transfert de technologie', label: 'Transfert de technologie' }
+        ],
+        'Ressources humaines': [
+            { value: 'Recrutement', label: 'Recrutement' },
+            { value: 'Gestion du personnel', label: 'Gestion du personnel' },
+            { value: 'Développement et performance', label: 'Développement et performance' },
+            { value: 'Rémunérations et avantages', label: 'Rémunérations et avantages' },
+            { value: 'Paye', label: 'Paye' },
+            { value: 'Relations sociales', label: 'Relations sociales' },
+            { value: 'Déplacements et Notes de frais professionnels', label: 'Déplacements et Notes de frais professionnels' },
+            { value: 'Santé et sécurité (HSE)', label: 'Santé et sécurité (HSE)' }
+        ],
+        'Achats': [
+            { value: 'Sélection et référencement', label: 'Sélection et référencement' },
+            { value: 'Agrément et Suivi pharmaceutique', label: 'Agrément et Suivi pharmaceutique' },
+            { value: 'Engagement de dépense et Factures', label: 'Engagement de dépense et Factures' },
+            { value: 'Investissement', label: 'Investissement' }
         ],
         'Finance': [
-            {
-                value: 'Comptabilité fournisseurs',
-                label: 'Comptabilité fournisseurs',
-                referents: ['Sophie Bernard (France)', 'Liam Turner (Royaume-Uni)']
-            },
-            {
-                value: 'Comptabilité clients',
-                label: 'Comptabilité clients',
-                referents: ['Carla Jiménez (Espagne)', 'María López (Espagne)']
-            },
-            {
-                value: 'Trésorerie',
-                label: 'Trésorerie',
-                referents: ['Sophie Bernard (France)', 'James Cooper (USA)']
-            },
-            {
-                value: 'Paiements',
-                label: 'Paiements',
-                referents: ['Sophie Bernard (France)', 'Liam Turner (Royaume-Uni)']
-            },
-            {
-                value: 'Contrôle de gestion',
-                label: 'Contrôle de gestion',
-                referents: ['Liam Turner (Royaume-Uni)', 'Carla Jiménez (Espagne)']
-            },
-            {
-                value: 'Fiscalité',
-                label: 'Fiscalité',
-                referents: ['Sophie Bernard (France)', 'Alexander Hughes (USA)']
-            }
+            { value: 'Comptabilité et Fiscalité', label: 'Comptabilité et Fiscalité' },
+            { value: 'Contrôle de gestion', label: 'Contrôle de gestion' },
+            { value: 'Trésorerie', label: 'Trésorerie' }
         ],
-        'Juridique': [
-            {
-                value: 'Rédaction/gestion des contrats',
-                label: 'Rédaction/gestion des contrats',
-                referents: ['Nathalie Perrot (France)', 'Alexander Hughes (USA)']
-            },
-            {
-                value: 'Veille réglementaire',
-                label: 'Veille réglementaire',
-                referents: ['Helena Vogt (Allemagne)', 'Amélie Charvet (France)']
-            },
-            {
-                value: 'Gestion des litiges',
-                label: 'Gestion des litiges',
-                referents: ['Nathalie Perrot (France)', 'Helena Vogt (Allemagne)']
-            },
-            {
-                value: 'Propriété intellectuelle',
-                label: 'Propriété intellectuelle',
-                referents: ['Alexander Hughes (USA)', 'Dr Isabelle Laurent (France)']
-            },
-            {
-                value: 'Conformité & éthique',
-                label: 'Conformité & éthique',
-                referents: ['Nathalie Perrot (France)', 'Helena Vogt (Allemagne)']
-            }
+        'Systèmes transverses de connaissance et de documentation': [
+            { value: 'Gestion des procédures et dossiers de lot', label: 'Gestion des procédures et dossiers de lot' },
+            { value: 'Gestion de la donnée pharmaceutique (DI)', label: 'Gestion de la donnée pharmaceutique (DI)' },
+            { value: 'Gestion de la connaissance procédé /produit', label: 'Gestion de la connaissance procédé /produit' },
+            { value: 'Archivage', label: 'Archivage' }
+        ],
+        "Système d’information (SI)": [
+            { value: 'Maintenance SI et gestion du changement', label: 'Maintenance SI et gestion du changement' },
+            { value: 'Exploitation SI', label: 'Exploitation SI' },
+            { value: 'Projets et développements SI', label: 'Projets et développements SI' },
+            { value: 'Sécurisation SI', label: 'Sécurisation SI' },
+            { value: 'Pilotage de sous-traitance SI', label: 'Pilotage de sous-traitance SI' },
+            { value: 'Compliance Validation SI', label: 'Compliance Validation SI' }
+        ],
+        'Sites et Equipement': [
+            { value: 'Qualification/validation', label: 'Qualification/validation' },
+            { value: 'Maintenance et renouvellement des équipements de production', label: 'Maintenance et renouvellement des équipements de production' },
+            { value: 'Maintenance des locaux techniques et utilités', label: 'Maintenance des locaux techniques et utilités' },
+            { value: "Assurance de l'environnement stérile", label: "Assurance de l'environnement stérile" },
+            { value: 'Sûreté des sites (HSE)', label: 'Sûreté des sites (HSE)' },
+            { value: 'Déchets et environnement (HSE)', label: 'Déchets et environnement (HSE)' },
+            { value: 'Services généraux et Immobilier', label: 'Services généraux et Immobilier' }
+        ],
+        'Juridique Compliance Propriété Intellectuelle Assurances': [
+            { value: 'Droit des sociétés', label: 'Droit des sociétés' },
+            { value: 'Contrats et contentieux', label: 'Contrats et contentieux' },
+            { value: 'Propriété intellectuelle (marques, brevets…)', label: 'Propriété intellectuelle (marques, brevets…)' },
+            { value: 'Compliance juridique', label: 'Compliance juridique' },
+            { value: 'Assurances', label: 'Assurances' }
         ]
     };
 
