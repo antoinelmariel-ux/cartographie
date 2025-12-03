@@ -334,6 +334,8 @@ class RiskManagementSystem {
             ];
         }
 
+        config.referentDirectory = this.normalizeReferentDirectory(parameterConfig.referentDirectory);
+
         const subProcesses = config.subProcesses && typeof config.subProcesses === 'object'
             ? config.subProcesses
             : {};
@@ -480,6 +482,14 @@ class RiskManagementSystem {
             if (baseConfig.processes !== undefined) {
                 updated = true;
             }
+        }
+
+        const referentDirectory = this.normalizeReferentDirectory(baseConfig.referentDirectory);
+        this.config.referentDirectory = referentDirectory.length > 0
+            ? referentDirectory
+            : this.normalizeReferentDirectory(fallback.referentDirectory);
+        if (!Array.isArray(baseConfig.referentDirectory) && baseConfig.referentDirectory !== undefined) {
+            updated = true;
         }
 
         this.config.processes.forEach(process => {
@@ -2188,6 +2198,13 @@ class RiskManagementSystem {
         });
         filtersBar.appendChild(referentInput);
 
+        const referentDirectoryButton = document.createElement('button');
+        referentDirectoryButton.type = 'button';
+        referentDirectoryButton.className = 'btn btn-secondary process-filter-directory';
+        referentDirectoryButton.textContent = '📋 Pré-charger des référents';
+        referentDirectoryButton.addEventListener('click', () => this.openReferentDirectoryModal());
+        filtersBar.appendChild(referentDirectoryButton);
+
         if ((this.processManagerFilters.query || '').trim() || (this.processManagerFilters.referent || '').trim()) {
             const resetButton = document.createElement('button');
             resetButton.type = 'button';
@@ -2278,6 +2295,74 @@ class RiskManagementSystem {
             option.value = referent;
             datalist.appendChild(option);
         });
+    }
+
+    openReferentDirectoryModal() {
+        const modal = document.getElementById('referentDirectoryModal');
+        const textarea = document.getElementById('referentDirectoryInput');
+
+        if (!modal || !textarea) {
+            return;
+        }
+
+        textarea.value = this.normalizeReferentDirectory(this.config?.referentDirectory).join('\n');
+
+        if (!textarea.dataset.listenerAttached) {
+            textarea.addEventListener('input', () => this.updateReferentDirectoryPreview());
+            textarea.dataset.listenerAttached = 'true';
+        }
+
+        this.updateReferentDirectoryPreview();
+        modal.classList.add('show');
+        setTimeout(() => textarea.focus(), 50);
+    }
+
+    closeReferentDirectoryModal() {
+        const modal = document.getElementById('referentDirectoryModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    parseReferentDirectoryInput(rawInput) {
+        if (typeof rawInput !== 'string') {
+            return [];
+        }
+
+        return this.normalizeReferentDirectory(
+            rawInput
+                .split(/[\n,;]+/)
+                .map((entry) => entry.trim())
+                .filter(Boolean)
+        );
+    }
+
+    updateReferentDirectoryPreview() {
+        const textarea = document.getElementById('referentDirectoryInput');
+        const helper = document.getElementById('referentDirectoryHelper');
+
+        if (!textarea || !helper) {
+            return;
+        }
+
+        const entries = this.parseReferentDirectoryInput(textarea.value);
+        helper.textContent = entries.length === 0
+            ? 'Aucun référent détecté pour le moment.'
+            : `${entries.length} référent${entries.length > 1 ? 's' : ''} seront proposés lors de la saisie.`;
+    }
+
+    saveReferentDirectoryFromModal() {
+        const textarea = document.getElementById('referentDirectoryInput');
+        if (!textarea) {
+            return;
+        }
+
+        const entries = this.parseReferentDirectoryInput(textarea.value);
+        this.config.referentDirectory = entries;
+        this.saveConfig();
+        this.ensureReferentDatalist(this.processManagerContainer || document.body);
+        this.rerenderProcessManager();
+        this.closeReferentDirectoryModal();
     }
 
     getProcessFilterState() {
@@ -2933,8 +3018,34 @@ class RiskManagementSystem {
         }
     }
 
+    normalizeReferentDirectory(list) {
+        if (!Array.isArray(list)) {
+            return [];
+        }
+
+        const cleaned = [];
+        const seen = new Set();
+
+        list.forEach((entry) => {
+            const value = typeof entry === 'string' ? entry.trim() : '';
+            if (!value) {
+                return;
+            }
+
+            const key = value.toLowerCase();
+            if (seen.has(key)) {
+                return;
+            }
+
+            seen.add(key);
+            cleaned.push(value);
+        });
+
+        return cleaned;
+    }
+
     collectAllReferents() {
-        const referents = new Set();
+        const referents = new Set(this.normalizeReferentDirectory(this.config?.referentDirectory));
         const add = (value) => {
             if (!value || typeof value !== 'string') {
                 return;

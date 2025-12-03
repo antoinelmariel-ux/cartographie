@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.18</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.21</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -668,8 +668,29 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.20</span>
+            <span class="app-version">Version 2.11.21</span>
         </footer>
+    </div>
+
+    <div id="referentDirectoryModal" class="modal">
+        <div class="modal-content medium">
+            <div class="modal-header">
+                <h3 class="modal-title">Pré-charger des référents</h3>
+                <button class="modal-close" onclick="rms.closeReferentDirectoryModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-section">
+                    <div class="form-section-title">Coller votre liste</div>
+                    <p class="referent-directory-hint">Ajoutez plusieurs noms séparés par des retours à la ligne, des virgules ou des points-virgules.</p>
+                    <textarea id="referentDirectoryInput" class="form-textarea" rows="6" placeholder="Ex. Jean Dupont&#10;Marie Martin&#10;Service Achats"></textarea>
+                    <div id="referentDirectoryHelper" class="referent-directory-helper">Aucun référent détecté pour le moment.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" onclick="rms.closeReferentDirectoryModal()">Annuler</button>
+                <button class="btn btn-primary" type="button" onclick="rms.saveReferentDirectoryFromModal()">Enregistrer</button>
+            </div>
+        </div>
     </div>
 
     <div id="interviewModal" class="modal">

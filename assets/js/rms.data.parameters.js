@@ -112,6 +112,7 @@
             { value: 'en-revision', label: 'En cours de révision' },
             { value: 'obsolete', label: 'Obsolète' }
         ],
+        referentDirectory: [],
         interviewTemplates: [
             {
                 value: 'entretien-standard-interne',

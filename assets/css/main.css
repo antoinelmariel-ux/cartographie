@@ -3912,6 +3912,10 @@ tbody tr:hover {
     gap: 12px;
 }
 
+.process-filter-directory {
+    white-space: nowrap;
+}
+
 .process-filter-input {
     flex: 1 1 240px;
     padding: 10px 12px;
@@ -3926,6 +3930,20 @@ tbody tr:hover {
     outline: none;
     border-color: var(--primary-color);
     box-shadow: 0 0 0 3px rgba(11, 61, 96, 0.2);
+}
+
+.referent-directory-hint,
+.referent-directory-helper {
+    color: var(--muted-text-color);
+    font-size: 0.95em;
+}
+
+.referent-directory-hint {
+    margin: 8px 0 4px;
+}
+
+.referent-directory-helper {
+    margin-top: 6px;
 }
 
 .process-filter-reset {
