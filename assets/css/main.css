@@ -36,6 +36,22 @@ body {
     position: relative;
 }
 
+.dependency-warning {
+    margin: 16px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    background: #fff6e5;
+    border: 1px solid #f2d7a4;
+    color: #6b4b06;
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.06);
+    font-size: 0.95rem;
+}
+
+.dependency-warning__title {
+    font-weight: 700;
+    margin-bottom: 6px;
+}
+
 body.feedback-mode {
     cursor: crosshair;
 }
