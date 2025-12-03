@@ -3,12 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.21</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.22</title>
     <link rel="stylesheet" href="assets/css/main.css">
+    <!-- Gestion des dépendances locales avec repli CDN -->
+    <script>
+        const LIBRARY_FALLBACKS = {
+            'Chart.js': 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js',
+            html2canvas: 'https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js',
+            jsPDF: 'https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js'
+        };
+
+        function handleLibLoadError(libName) {
+            const fallbackUrl = LIBRARY_FALLBACKS[libName];
+            if (fallbackUrl) {
+                const fallbackScript = document.createElement('script');
+                fallbackScript.src = fallbackUrl;
+                fallbackScript.async = false;
+                fallbackScript.crossOrigin = 'anonymous';
+                fallbackScript.onload = () => console.info(`${libName} chargé via CDN`);
+                fallbackScript.onerror = () => showDependencyWarning(libName, fallbackUrl);
+                document.head.appendChild(fallbackScript);
+            } else {
+                showDependencyWarning(libName);
+            }
+        }
+
+        function showDependencyWarning(libName, url) {
+            const container = document.createElement('div');
+            container.className = 'dependency-warning';
+            container.innerHTML = `
+                <div class="dependency-warning__title">Impossible de charger ${libName}</div>
+                <p>Copiez les bibliothèques du dossier <code>assets/libs</code> ou assurez-vous d'être connecté à Internet.</p>
+                ${url ? `<p>Tentative de repli échouée sur : <code>${url}</code></p>` : ''}
+            `;
+            (document.body || document.documentElement).prepend(container);
+        }
+    </script>
     <!-- Local libraries for offline use -->
-    <script src="assets/libs/chart.umd.min.js"></script>
-    <script src="assets/libs/html2canvas.min.js"></script>
-    <script src="assets/libs/jspdf.umd.min.js"></script>
+    <script src="assets/libs/chart.umd.min.js" onerror="handleLibLoadError('Chart.js')"></script>
+    <script src="assets/libs/html2canvas.min.js" onerror="handleLibLoadError('html2canvas')"></script>
+    <script src="assets/libs/jspdf.umd.min.js" onerror="handleLibLoadError('jsPDF')"></script>
 </head>
 <body>
     <div class="container">
@@ -668,7 +702,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.21</span>
+            <span class="app-version">Version 2.11.22</span>
         </footer>
     </div>
 
