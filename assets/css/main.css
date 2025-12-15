@@ -2165,6 +2165,318 @@ tbody tr:hover {
     border-top: 1px solid var(--border-color);
 }
 
+.modal.mindmap-modal {
+    align-items: stretch;
+    padding: 24px;
+}
+
+.mindmap-content.fullscreen {
+    width: 96%;
+    max-width: 96%;
+    height: 94vh;
+    max-height: 94vh;
+    border-radius: 18px;
+    display: flex;
+    flex-direction: column;
+}
+
+.mindmap-header {
+    background: linear-gradient(120deg, #1d4ed8 0%, #0ea5e9 60%, #14b8a6 100%);
+    padding: 24px 30px;
+    border-bottom: 1px solid rgba(255,255,255,0.2);
+}
+
+.mindmap-header-titles {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.mindmap-subtitle {
+    margin: 0;
+    color: rgba(255,255,255,0.9);
+    font-size: 0.95rem;
+}
+
+.mindmap-header-actions {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mindmap-zoom-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #fff;
+    background: rgba(255,255,255,0.1);
+    padding: 8px 12px;
+    border-radius: 12px;
+}
+
+.mindmap-zoom-control input[type="range"] {
+    accent-color: #0ea5e9;
+}
+
+.mindmap-zoom-value {
+    font-weight: 700;
+}
+
+.mindmap-body {
+    background: var(--light-bg);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 20px;
+}
+
+.mindmap-toolbar {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.mindmap-toolbar-info {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.mindmap-pill {
+    background: rgba(11, 61, 96, 0.08);
+    color: var(--primary-color);
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: 1px solid rgba(11, 61, 96, 0.14);
+    box-shadow: 0 6px 14px rgba(0,0,0,0.05);
+}
+
+.mindmap-toolbar-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.mindmap-workspace-wrapper {
+    position: relative;
+    flex: 1;
+    overflow: auto;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: radial-gradient(circle at 20% 20%, rgba(13,110,253,0.08), transparent 35%),
+        radial-gradient(circle at 80% 0%, rgba(20,184,166,0.08), transparent 30%),
+        linear-gradient(180deg, rgba(255,255,255,0.8), rgba(255,255,255,0.95));
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
+    padding: 16px;
+}
+
+.mindmap-workspace {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(260px, 1fr);
+    gap: 18px;
+    min-width: max-content;
+    transform-origin: top left;
+}
+
+.mindmap-column {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-left: 10px solid var(--mindmap-accent, #2563eb);
+    border-radius: 16px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.08);
+    min-height: 340px;
+}
+
+.mindmap-column-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+}
+
+.mindmap-column-label {
+    font-weight: 700;
+    color: var(--text-color);
+    margin-bottom: 4px;
+}
+
+.mindmap-column-subtitle {
+    color: var(--muted-text-color);
+    font-size: 0.9rem;
+    line-height: 1.35;
+}
+
+.mindmap-column-counter {
+    background: rgba(0,0,0,0.05);
+    color: var(--text-color);
+    border-radius: 999px;
+    padding: 6px 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+}
+
+.mindmap-column-body {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 220px;
+}
+
+.mindmap-add-button {
+    width: 100%;
+    border-style: dashed;
+    border-color: var(--mindmap-accent, var(--primary-color));
+    color: var(--mindmap-accent, var(--primary-color));
+    background: rgba(11, 61, 96, 0.04);
+}
+
+.mindmap-node {
+    position: relative;
+}
+
+.mindmap-node-bubble {
+    background: linear-gradient(145deg, rgba(255,255,255,0.95), rgba(246,248,250,0.95));
+    border: 1px solid rgba(11, 61, 96, 0.14);
+    border-left: 8px solid var(--mindmap-accent, #2563eb);
+    border-radius: 14px;
+    padding: 12px;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.06);
+}
+
+.mindmap-node-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
+.mindmap-node-action {
+    background: rgba(0,0,0,0.05);
+    border: none;
+    border-radius: 10px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-weight: 700;
+    transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.mindmap-node-action:hover {
+    background: rgba(0,0,0,0.1);
+    transform: translateY(-1px);
+}
+
+.mindmap-node-text {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 12px;
+    border: 1px dashed rgba(11, 61, 96, 0.25);
+    background: rgba(12, 74, 110, 0.04);
+    min-height: 28px;
+    outline: none;
+    font-weight: 600;
+}
+
+.mindmap-node-text:focus {
+    border-style: solid;
+    border-color: var(--mindmap-accent, var(--primary-color));
+    box-shadow: 0 0 0 3px rgba(37,99,235,0.15);
+}
+
+.mindmap-helper {
+    margin-top: 6px;
+    font-size: 0.85rem;
+    color: var(--muted-text-color);
+}
+
+.mindmap-children {
+    margin-left: 14px;
+    padding-left: 12px;
+    border-left: 2px dashed rgba(11, 61, 96, 0.16);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.mindmap-children.collapsed {
+    display: none;
+}
+
+.mindmap-tag-row {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.mindmap-tag-label {
+    font-size: 0.9rem;
+    color: var(--muted-text-color);
+}
+
+.mindmap-tag-select {
+    flex: 1;
+    padding: 8px 10px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+    background: var(--surface-color);
+}
+
+.mindmap-mini-map {
+    position: absolute;
+    bottom: 12px;
+    right: 12px;
+    width: 240px;
+    height: 150px;
+    border-radius: 14px;
+    overflow: hidden;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 22px rgba(0,0,0,0.1);
+    padding: 6px;
+}
+
+.mindmap-mini-map .mindmap-minimap-canvas {
+    pointer-events: none;
+    opacity: 0.95;
+}
+
+.mindmap-footer {
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.mindmap-shortcuts {
+    color: var(--muted-text-color);
+    font-size: 0.95rem;
+}
+
+.mindmap-footer-actions {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 1024px) {
+    .mindmap-content.fullscreen {
+        height: 90vh;
+    }
+
+    .mindmap-workspace {
+        grid-auto-columns: minmax(220px, 1fr);
+    }
+}
+
 /* Styles spécifiques pour le formulaire de contrôles */
 .risk-selection {
     border: 2px solid var(--border-color);

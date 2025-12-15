@@ -171,6 +171,9 @@ class RiskManagementSystem {
         this.interviewTemplateListContainer = null;
         this.unsavedContexts = new Set();
         this.hasUnsavedChanges = false;
+        this.mindMapColumns = this.getMindMapColumns();
+        this.interviewMindMapState = this.createEmptyMindMapState();
+        this.mindMapDragContext = null;
         this.init();
     }
 
@@ -903,8 +906,650 @@ class RiskManagementSystem {
             processes: Array.from(processesMap.values()),
             subProcesses,
             createdAt,
-            updatedAt
+            updatedAt,
+            mindMap: this.normalizeMindMapState(interview.mindMap)
         };
+    }
+
+    getMindMapColumns() {
+        return [
+            { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#7c3aed' },
+            { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#2563eb' },
+            { key: 'comportements', title: 'Comportements attendus', subtitle: "Quels sont les comportements des tiers que l'on espère ?", color: '#0ea5e9' },
+            { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#ea580c' },
+            { key: 'controle', title: 'Contrôle', subtitle: 'Qu\'est-ce qui permet prévenir ce comportement ?', color: '#16a34a' },
+            { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#a855f7' },
+            { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#f59e0b' }
+        ];
+    }
+
+    createEmptyMindMapState() {
+        const nodes = {};
+        this.getMindMapColumns().forEach(column => {
+            nodes[column.key] = [];
+        });
+
+        return {
+            zoom: 1,
+            nodes
+        };
+    }
+
+    generateMindMapNodeId() {
+        if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+            return crypto.randomUUID();
+        }
+
+        return `mindmap-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+    }
+
+    createMindMapNode(text = 'Nouvelle idée') {
+        return {
+            id: this.generateMindMapNodeId(),
+            text,
+            children: [],
+            collapsed: false,
+            tag: ''
+        };
+    }
+
+    normalizeMindMapNode(node) {
+        if (!node || typeof node !== 'object') {
+            return this.createMindMapNode();
+        }
+
+        const text = typeof node.text === 'string' && node.text.trim()
+            ? node.text.trim()
+            : 'Nouvelle idée';
+
+        const children = Array.isArray(node.children)
+            ? node.children.map(child => this.normalizeMindMapNode(child)).filter(Boolean)
+            : [];
+
+        const tag = typeof node.tag === 'string' ? node.tag : '';
+        const collapsed = Boolean(node.collapsed);
+
+        return {
+            id: node.id || this.generateMindMapNodeId(),
+            text,
+            children,
+            collapsed,
+            tag
+        };
+    }
+
+    normalizeMindMapState(state) {
+        const base = this.createEmptyMindMapState();
+        if (!state || typeof state !== 'object') {
+            return base;
+        }
+
+        const zoom = Math.min(Math.max(Number(state.zoom) || 1, 0.7), 1.5);
+        const normalizedNodes = {};
+
+        this.getMindMapColumns().forEach(column => {
+            const rawNodes = Array.isArray(state.nodes?.[column.key]) ? state.nodes[column.key] : [];
+            normalizedNodes[column.key] = rawNodes
+                .map(node => this.normalizeMindMapNode(node))
+                .filter(Boolean);
+        });
+
+        return {
+            zoom,
+            nodes: normalizedNodes
+        };
+    }
+
+    getCurrentMindMapState() {
+        return this.normalizeMindMapState(this.interviewMindMapState);
+    }
+
+    getMindMapColumnColor(columnKey) {
+        const column = this.getMindMapColumns().find(entry => entry.key === columnKey);
+        return column?.color || '#0ea5e9';
+    }
+
+    resetMindMapState() {
+        this.interviewMindMapState = this.createEmptyMindMapState();
+        this.renderMindMap();
+        this.markUnsavedChange('interviewForm');
+    }
+
+    updateMindMapZoom(value) {
+        const numeric = Number(value) || 100;
+        const ratio = Math.min(Math.max(numeric / 100, 0.7), 1.5);
+        this.interviewMindMapState = {
+            ...this.getCurrentMindMapState(),
+            zoom: ratio
+        };
+        this.syncMindMapZoomControls(ratio);
+        this.renderMindMap();
+    }
+
+    syncMindMapZoomControls(zoom) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const zoomInput = document.getElementById('mindmapZoom');
+        const zoomLabel = document.getElementById('mindmapZoomValue');
+        const percentage = Math.round((zoom || 1) * 100);
+
+        if (zoomInput) {
+            zoomInput.value = percentage;
+        }
+
+        if (zoomLabel) {
+            zoomLabel.textContent = `${percentage}%`;
+        }
+    }
+
+    openMindMapModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('mindmapModal');
+        this.interviewMindMapState = this.getCurrentMindMapState();
+        this.renderMindMap();
+
+        if (modal) {
+            modal.classList.add('show');
+        }
+    }
+
+    closeMindMapModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('mindmapModal');
+        if (modal) {
+            modal.classList.remove('show');
+        }
+    }
+
+    renderMindMap(focusNodeId = null) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const workspace = document.getElementById('mindmapWorkspace');
+        if (!workspace) {
+            return;
+        }
+
+        const state = this.getCurrentMindMapState();
+        this.interviewMindMapState = state;
+
+        workspace.innerHTML = '';
+        workspace.style.transform = `scale(${state.zoom})`;
+        workspace.style.setProperty('--mindmap-zoom', state.zoom);
+
+        const columns = this.getMindMapColumns();
+        columns.forEach(column => {
+            const columnElement = document.createElement('div');
+            columnElement.className = 'mindmap-column';
+            columnElement.dataset.column = column.key;
+            columnElement.style.setProperty('--mindmap-accent', column.color);
+
+            const header = document.createElement('div');
+            header.className = 'mindmap-column-header';
+            header.innerHTML = `
+                <div class="mindmap-column-title">
+                    <div class="mindmap-column-label">${column.title}</div>
+                    <div class="mindmap-column-subtitle">${column.subtitle}</div>
+                </div>
+                <span class="mindmap-column-counter">${(state.nodes[column.key] || []).length} point(s)</span>
+            `;
+            columnElement.appendChild(header);
+
+            const body = document.createElement('div');
+            body.className = 'mindmap-column-body';
+            body.addEventListener('dragover', event => this.handleMindMapDragOver(event));
+            body.addEventListener('drop', event => this.handleMindMapDrop(event, column.key));
+
+            const nodes = Array.isArray(state.nodes?.[column.key]) ? state.nodes[column.key] : [];
+            nodes.forEach(node => {
+                body.appendChild(this.renderMindMapNode(node, column.key));
+            });
+
+            columnElement.appendChild(body);
+
+            const addButton = document.createElement('button');
+            addButton.type = 'button';
+            addButton.className = 'btn btn-outline mindmap-add-button';
+            addButton.textContent = '+ Ajouter une idée';
+            addButton.addEventListener('click', () => {
+                const newId = this.addMindMapNode(column.key);
+                this.renderMindMap(newId);
+                this.markUnsavedChange('interviewForm');
+            });
+            columnElement.appendChild(addButton);
+
+            workspace.appendChild(columnElement);
+        });
+
+        this.syncMindMapZoomControls(state.zoom);
+        this.refreshMindMapMiniMap();
+
+        if (focusNodeId) {
+            this.focusMindMapNode(focusNodeId);
+        }
+    }
+
+    renderMindMapNode(node, columnKey) {
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mindmap-node';
+        wrapper.dataset.nodeId = node.id;
+        wrapper.dataset.column = columnKey;
+        wrapper.draggable = true;
+
+        wrapper.addEventListener('dragstart', event => this.startMindMapDrag(event, columnKey, node.id));
+        wrapper.addEventListener('dragover', event => this.handleMindMapDragOver(event));
+        wrapper.addEventListener('drop', event => this.handleMindMapDrop(event, columnKey, node.id));
+
+        const bubble = document.createElement('div');
+        bubble.className = 'mindmap-node-bubble';
+        bubble.style.setProperty('--mindmap-accent', this.getMindMapColumnColor(columnKey));
+
+        const actions = document.createElement('div');
+        actions.className = 'mindmap-node-actions';
+
+        const toggleButton = document.createElement('button');
+        toggleButton.type = 'button';
+        toggleButton.className = 'mindmap-node-action';
+        toggleButton.textContent = node.collapsed ? '➕' : '➖';
+        toggleButton.title = node.collapsed ? 'Déplier' : 'Replier';
+        toggleButton.addEventListener('click', () => {
+            this.toggleMindMapCollapse(columnKey, node.id);
+        });
+        actions.appendChild(toggleButton);
+
+        const deleteButton = document.createElement('button');
+        deleteButton.type = 'button';
+        deleteButton.className = 'mindmap-node-action';
+        deleteButton.textContent = '✕';
+        deleteButton.title = 'Supprimer ce nœud';
+        deleteButton.addEventListener('click', () => {
+            this.deleteMindMapNode(columnKey, node.id);
+        });
+        actions.appendChild(deleteButton);
+
+        const text = document.createElement('div');
+        text.className = 'mindmap-node-text';
+        text.contentEditable = 'true';
+        text.role = 'textbox';
+        text.textContent = node.text || 'Nouvelle idée';
+        text.dataset.placeholder = 'Idée...';
+        text.addEventListener('input', () => {
+            this.updateMindMapNodeText(columnKey, node.id, text.textContent);
+        });
+        text.addEventListener('keydown', event => this.handleMindMapKeyDown(event, columnKey, node.id));
+
+        bubble.appendChild(actions);
+        bubble.appendChild(text);
+
+        if (columnKey === 'controle') {
+            const tagWrapper = document.createElement('div');
+            tagWrapper.className = 'mindmap-tag-row';
+            const label = document.createElement('label');
+            label.textContent = 'Nature du contrôle';
+            label.className = 'mindmap-tag-label';
+
+            const select = document.createElement('select');
+            select.className = 'mindmap-tag-select';
+            ['','Préventif','Réactif'].forEach(optionValue => {
+                const option = document.createElement('option');
+                option.value = optionValue;
+                option.textContent = optionValue || 'Non renseigné';
+                if (optionValue === (node.tag || '')) {
+                    option.selected = true;
+                }
+                select.appendChild(option);
+            });
+            select.addEventListener('change', () => {
+                this.updateMindMapNodeTag(columnKey, node.id, select.value);
+            });
+
+            tagWrapper.appendChild(label);
+            tagWrapper.appendChild(select);
+            bubble.appendChild(tagWrapper);
+        }
+
+        const helper = document.createElement('div');
+        helper.className = 'mindmap-helper';
+        helper.textContent = 'Entrée = pair · Tabulation = enfant · Glisser pour lier';
+        bubble.appendChild(helper);
+
+        wrapper.appendChild(bubble);
+
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = 'mindmap-children';
+        if (node.collapsed) {
+            childrenContainer.classList.add('collapsed');
+        }
+
+        if (!node.collapsed && Array.isArray(node.children)) {
+            node.children.forEach(child => {
+                childrenContainer.appendChild(this.renderMindMapNode(child, columnKey));
+            });
+        }
+
+        wrapper.appendChild(childrenContainer);
+        return wrapper;
+    }
+
+    updateMindMapNodeText(columnKey, nodeId, value) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.node) {
+            return;
+        }
+
+        target.node.text = (value || '').trim() || 'Nouvelle idée';
+        this.markUnsavedChange('interviewForm');
+        this.refreshMindMapMiniMap();
+    }
+
+    updateMindMapNodeTag(columnKey, nodeId, value) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.node) {
+            return;
+        }
+
+        target.node.tag = value;
+        this.markUnsavedChange('interviewForm');
+    }
+
+    handleMindMapKeyDown(event, columnKey, nodeId) {
+        const key = event?.key || '';
+        if (key === 'Enter') {
+            event.preventDefault();
+            const newId = this.addMindMapSibling(columnKey, nodeId);
+            this.renderMindMap(newId);
+            this.markUnsavedChange('interviewForm');
+        }
+
+        if (key === 'Tab') {
+            event.preventDefault();
+            const newId = this.addMindMapChild(columnKey, nodeId);
+            this.renderMindMap(newId);
+            this.markUnsavedChange('interviewForm');
+        }
+    }
+
+    addMindMapNode(columnKey, parentId = null) {
+        const state = this.getCurrentMindMapState();
+        const newNode = this.createMindMapNode();
+
+        if (parentId) {
+            const target = this.findMindMapNodeWithParent(columnKey, parentId, state.nodes[columnKey]);
+            if (target?.node) {
+                target.node.children.push(newNode);
+            }
+        } else {
+            state.nodes[columnKey].push(newNode);
+        }
+
+        this.interviewMindMapState = state;
+        this.markUnsavedChange('interviewForm');
+        return newNode.id;
+    }
+
+    addMindMapSibling(columnKey, nodeId) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.list) {
+            return null;
+        }
+
+        const newNode = this.createMindMapNode();
+        target.list.splice(target.index + 1, 0, newNode);
+        this.markUnsavedChange('interviewForm');
+        return newNode.id;
+    }
+
+    addMindMapChild(columnKey, nodeId) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.node) {
+            return null;
+        }
+
+        const newNode = this.createMindMapNode();
+        if (!Array.isArray(target.node.children)) {
+            target.node.children = [];
+        }
+        target.node.children.push(newNode);
+        this.markUnsavedChange('interviewForm');
+        return newNode.id;
+    }
+
+    deleteMindMapNode(columnKey, nodeId) {
+        const removed = this.removeMindMapNode(columnKey, nodeId);
+        if (removed) {
+            this.renderMindMap();
+            this.markUnsavedChange('interviewForm');
+        }
+    }
+
+    toggleMindMapCollapse(columnKey, nodeId) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.node) {
+            return;
+        }
+
+        target.node.collapsed = !target.node.collapsed;
+        this.renderMindMap(nodeId);
+        this.markUnsavedChange('interviewForm');
+    }
+
+    expandAllMindMapNodes() {
+        this.walkMindMapNodes(node => {
+            node.collapsed = false;
+        });
+        this.renderMindMap();
+    }
+
+    collapseAllMindMapNodes() {
+        this.walkMindMapNodes(node => {
+            if (Array.isArray(node.children) && node.children.length) {
+                node.collapsed = true;
+            }
+        });
+        this.renderMindMap();
+    }
+
+    addMindMapIdeaToAllColumns() {
+        const state = this.getCurrentMindMapState();
+        this.getMindMapColumns().forEach(column => {
+            state.nodes[column.key].push(this.createMindMapNode(column.title));
+        });
+        this.interviewMindMapState = state;
+        this.renderMindMap();
+        this.markUnsavedChange('interviewForm');
+    }
+
+    walkMindMapNodes(callback) {
+        if (typeof callback !== 'function') {
+            return;
+        }
+
+        const traverse = (nodes) => {
+            nodes.forEach(node => {
+                callback(node);
+                if (Array.isArray(node.children) && node.children.length) {
+                    traverse(node.children);
+                }
+            });
+        };
+
+        this.getMindMapColumns().forEach(column => {
+            traverse(this.interviewMindMapState?.nodes?.[column.key] || []);
+        });
+    }
+
+    findMindMapNodeWithParent(columnKey, nodeId, nodes = null, parent = null) {
+        const list = nodes || (this.interviewMindMapState?.nodes?.[columnKey] || []);
+        for (let index = 0; index < list.length; index += 1) {
+            const node = list[index];
+            if (!node) {
+                continue;
+            }
+
+            if (node.id === nodeId) {
+                return { node, parent, list, index };
+            }
+
+            if (Array.isArray(node.children) && node.children.length) {
+                const result = this.findMindMapNodeWithParent(columnKey, nodeId, node.children, node);
+                if (result) {
+                    return result;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    removeMindMapNode(columnKey, nodeId) {
+        const target = this.findMindMapNodeWithParent(columnKey, nodeId);
+        if (!target || !target.list) {
+            return null;
+        }
+
+        const [removed] = target.list.splice(target.index, 1);
+        return removed || null;
+    }
+
+    isMindMapDescendant(node, targetId) {
+        if (!node || !targetId) {
+            return false;
+        }
+
+        if (node.id === targetId) {
+            return true;
+        }
+
+        return Array.isArray(node.children)
+            ? node.children.some(child => this.isMindMapDescendant(child, targetId))
+            : false;
+    }
+
+    moveMindMapNode(fromColumn, toColumn, nodeId, targetParentId = null) {
+        if (!fromColumn || !toColumn || !nodeId) {
+            return;
+        }
+
+        const movedNode = this.removeMindMapNode(fromColumn, nodeId);
+        if (!movedNode) {
+            return;
+        }
+
+        if (targetParentId) {
+            const target = this.findMindMapNodeWithParent(toColumn, targetParentId);
+            if (target?.node) {
+                if (this.isMindMapDescendant(movedNode, targetParentId)) {
+                    this.renderMindMap();
+                    return;
+                }
+                target.node.children = target.node.children || [];
+                target.node.children.push(movedNode);
+            }
+        } else {
+            this.interviewMindMapState.nodes[toColumn] = this.interviewMindMapState.nodes[toColumn] || [];
+            this.interviewMindMapState.nodes[toColumn].push(movedNode);
+        }
+
+        this.renderMindMap(nodeId);
+        this.markUnsavedChange('interviewForm');
+    }
+
+    startMindMapDrag(event, columnKey, nodeId) {
+        if (!event) {
+            return;
+        }
+
+        this.mindMapDragContext = { columnKey, nodeId };
+        if (event.dataTransfer) {
+            try {
+                event.dataTransfer.setData('text/plain', JSON.stringify({ columnKey, nodeId }));
+            } catch (error) {
+                console.warn('Unable to persist drag data', error);
+            }
+        }
+    }
+
+    handleMindMapDragOver(event) {
+        if (!event) {
+            return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+    }
+
+    handleMindMapDrop(event, targetColumn, targetParentId = null) {
+        if (!event) {
+            return;
+        }
+        event.preventDefault();
+
+        let payload = this.mindMapDragContext;
+        if (!payload && event.dataTransfer) {
+            try {
+                payload = JSON.parse(event.dataTransfer.getData('text/plain'));
+            } catch (error) {
+                payload = null;
+            }
+        }
+
+        if (!payload || !payload.nodeId || !payload.columnKey) {
+            return;
+        }
+
+        this.moveMindMapNode(payload.columnKey, targetColumn, payload.nodeId, targetParentId);
+        this.mindMapDragContext = null;
+    }
+
+    focusMindMapNode(nodeId) {
+        if (typeof document === 'undefined' || !nodeId) {
+            return;
+        }
+
+        window.requestAnimationFrame(() => {
+            const target = document.querySelector(`[data-node-id="${nodeId}"] .mindmap-node-text`);
+            if (target) {
+                target.focus();
+                const selection = window.getSelection();
+                if (selection && document.createRange) {
+                    const range = document.createRange();
+                    range.selectNodeContents(target);
+                    range.collapse(false);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                }
+            }
+        });
+    }
+
+    refreshMindMapMiniMap() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const miniMap = document.getElementById('mindmapMiniMap');
+        const workspace = document.getElementById('mindmapWorkspace');
+        if (!miniMap || !workspace) {
+            return;
+        }
+
+        miniMap.innerHTML = '';
+        const clone = workspace.cloneNode(true);
+        clone.removeAttribute('id');
+        clone.classList.add('mindmap-minimap-canvas');
+        clone.style.transform = 'scale(0.2)';
+        clone.style.transformOrigin = 'top left';
+        miniMap.appendChild(clone);
     }
 
     getSnapshot() {
@@ -7078,6 +7723,9 @@ class RiskManagementSystem {
 
         notesElement.innerHTML = targetInterview?.notes || '';
 
+        this.interviewMindMapState = this.normalizeMindMapState(targetInterview?.mindMap);
+        this.renderMindMap();
+
         if (modalTitle) {
             modalTitle.textContent = targetInterview ? 'Modifier le compte-rendu' : 'Nouveau compte-rendu';
         }
@@ -7117,6 +7765,8 @@ class RiskManagementSystem {
             notes.innerHTML = '';
         }
 
+        this.interviewMindMapState = this.createEmptyMindMapState();
+        this.closeMindMapModal();
         this.interviewEditorState = null;
     }
 
@@ -7411,6 +8061,7 @@ class RiskManagementSystem {
             scopes: selectedScopes,
             processes: Array.from(processesMap.values()),
             subProcesses,
+            mindMap: this.getCurrentMindMapState(),
             createdAt: existingInterview?.createdAt || timestamp,
             updatedAt: timestamp
         };
