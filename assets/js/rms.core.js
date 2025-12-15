@@ -159,6 +159,9 @@ class RiskManagementSystem {
             referent: '',
             search: ''
         };
+
+        this.mindMapToolbarExpanded = false;
+        this.mindMapMiniMapVisible = false;
         this.collapsedProcesses = new Set();
         this.initializeProcessCollapseState();
         this.activeInsertionForm = null;
@@ -1067,14 +1070,69 @@ class RiskManagementSystem {
         }
     }
 
+    toggleMindMapToolbar() {
+        this.mindMapToolbarExpanded = !this.mindMapToolbarExpanded;
+        this.applyMindMapLayoutPreferences();
+    }
+
+    toggleMindMapMiniMap() {
+        this.mindMapMiniMapVisible = !this.mindMapMiniMapVisible;
+        this.applyMindMapLayoutPreferences();
+        if (this.mindMapMiniMapVisible) {
+            this.refreshMindMapMiniMap();
+        }
+    }
+
+    applyMindMapLayoutPreferences() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modalContent = document.querySelector('#mindmapModal .mindmap-content');
+        const toolbar = document.querySelector('#mindmapModal .mindmap-toolbar');
+        const miniMap = document.getElementById('mindmapMiniMap');
+        const toolbarToggle = document.getElementById('mindmapToolbarToggle');
+        const miniMapToggle = document.getElementById('mindmapMiniMapToggle');
+
+        if (modalContent) {
+            modalContent.classList.toggle('toolbar-visible', this.mindMapToolbarExpanded);
+        }
+
+        if (toolbar) {
+            toolbar.hidden = !this.mindMapToolbarExpanded;
+        }
+
+        if (miniMap) {
+            miniMap.classList.toggle('is-visible', this.mindMapMiniMapVisible);
+        }
+
+        if (toolbarToggle) {
+            toolbarToggle.textContent = this.mindMapToolbarExpanded
+                ? 'Masquer les actions'
+                : 'Afficher les actions';
+            toolbarToggle.setAttribute('aria-pressed', this.mindMapToolbarExpanded.toString());
+        }
+
+        if (miniMapToggle) {
+            miniMapToggle.textContent = this.mindMapMiniMapVisible
+                ? 'Masquer la mini-carte'
+                : 'Afficher la mini-carte';
+            miniMapToggle.setAttribute('aria-pressed', this.mindMapMiniMapVisible.toString());
+        }
+    }
+
     openMindMapModal() {
         if (typeof document === 'undefined') {
             return;
         }
 
         const modal = document.getElementById('mindmapModal');
+        this.mindMapToolbarExpanded = false;
+        this.mindMapMiniMapVisible = false;
         this.interviewMindMapState = this.getCurrentMindMapState();
         this.renderMindMap();
+
+        this.applyMindMapLayoutPreferences();
 
         if (modal) {
             modal.classList.add('show');
@@ -1167,7 +1225,14 @@ class RiskManagementSystem {
         });
 
         this.syncMindMapZoomControls(state.zoom);
-        this.refreshMindMapMiniMap();
+        if (this.mindMapMiniMapVisible) {
+            this.refreshMindMapMiniMap();
+        } else {
+            const miniMap = document.getElementById('mindmapMiniMap');
+            if (miniMap) {
+                miniMap.innerHTML = '';
+            }
+        }
 
         if (focusNodeId) {
             this.focusMindMapNode(focusNodeId);

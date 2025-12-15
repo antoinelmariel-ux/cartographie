@@ -702,7 +702,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.26</span>
+            <span class="app-version">Version 2.11.27</span>
         </footer>
     </div>
 
@@ -804,6 +804,8 @@
                         <input id="mindmapZoom" type="range" min="70" max="150" value="100" oninput="rms.updateMindMapZoom(this.value)">
                         <span id="mindmapZoomValue" class="mindmap-zoom-value">100%</span>
                     </div>
+                    <button class="btn btn-outline" type="button" id="mindmapToolbarToggle" aria-pressed="false" onclick="rms.toggleMindMapToolbar()">Afficher les actions</button>
+                    <button class="btn btn-outline" type="button" id="mindmapMiniMapToggle" aria-pressed="false" onclick="rms.toggleMindMapMiniMap()">Afficher la mini-carte</button>
                     <button class="btn btn-outline" type="button" onclick="rms.resetMindMapState()">Réinitialiser la carte</button>
                     <button class="modal-close" type="button" aria-label="Fermer" onclick="rms.closeMindMapModal()">&times;</button>
                 </div>
