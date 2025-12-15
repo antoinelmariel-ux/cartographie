@@ -1339,6 +1339,17 @@ function bindEvents() {
     const probNet = document.getElementById('probNet');
     const impactNet = document.getElementById('impactNet');
 
+    const mindmapButton = document.getElementById('openMindmapButton');
+    if (mindmapButton) {
+        mindmapButton.addEventListener('click', (event) => {
+            event.preventDefault();
+
+            if (window.rms && typeof rms.openMindMapModal === 'function') {
+                rms.openMindMapModal();
+            }
+        });
+    }
+
     const refreshBrutScores = () => {
         if (typeof calculateScore === 'function') {
             calculateScore('brut');
