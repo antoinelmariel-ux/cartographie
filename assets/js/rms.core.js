@@ -913,13 +913,13 @@ class RiskManagementSystem {
 
     getMindMapColumns() {
         return [
-            { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#7c3aed' },
-            { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#2563eb' },
+            { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#34d399' },
+            { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#22c55e' },
             { key: 'comportements', title: 'Comportements attendus', subtitle: "Quels sont les comportements des tiers que l'on espère ?", color: '#0ea5e9' },
-            { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#ea580c' },
-            { key: 'controle', title: 'Contrôle', subtitle: 'Qu\'est-ce qui permet prévenir ce comportement ?', color: '#16a34a' },
-            { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#a855f7' },
-            { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#f59e0b' }
+            { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#1d4ed8' },
+            { key: 'controle', title: 'Contrôle', subtitle: 'Qu\'est-ce qui permet prévenir ce comportement ?', color: '#eab308' },
+            { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#f97316' },
+            { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#ef4444' }
         ];
     }
 
@@ -949,7 +949,8 @@ class RiskManagementSystem {
             text,
             children: [],
             collapsed: false,
-            tag: ''
+            tag: '',
+            linkedFrom: null
         };
     }
 
@@ -968,13 +969,19 @@ class RiskManagementSystem {
 
         const tag = typeof node.tag === 'string' ? node.tag : '';
         const collapsed = Boolean(node.collapsed);
+        const linkedFrom = node.linkedFrom && typeof node.linkedFrom === 'object'
+            && typeof node.linkedFrom.column === 'string'
+            && typeof node.linkedFrom.nodeId === 'string'
+            ? { column: node.linkedFrom.column, nodeId: node.linkedFrom.nodeId }
+            : null;
 
         return {
             id: node.id || this.generateMindMapNodeId(),
             text,
             children,
             collapsed,
-            tag
+            tag,
+            linkedFrom
         };
     }
 
@@ -1007,6 +1014,20 @@ class RiskManagementSystem {
     getMindMapColumnColor(columnKey) {
         const column = this.getMindMapColumns().find(entry => entry.key === columnKey);
         return column?.color || '#0ea5e9';
+    }
+
+    getMindMapColumnTitle(columnKey) {
+        const column = this.getMindMapColumns().find(entry => entry.key === columnKey);
+        return column?.title || 'Colonne suivante';
+    }
+
+    getNextMindMapColumnKey(currentKey) {
+        const columns = this.getMindMapColumns();
+        const currentIndex = columns.findIndex(column => column.key === currentKey);
+        if (currentIndex === -1 || currentIndex >= columns.length - 1) {
+            return null;
+        }
+        return columns[currentIndex + 1].key;
     }
 
     resetMindMapState() {
@@ -1153,6 +1174,23 @@ class RiskManagementSystem {
         bubble.className = 'mindmap-node-bubble';
         bubble.style.setProperty('--mindmap-accent', this.getMindMapColumnColor(columnKey));
 
+        const linkedFrom = node.linkedFrom;
+        if (linkedFrom?.nodeId && linkedFrom?.column) {
+            const link = document.createElement('div');
+            link.className = 'mindmap-node-link';
+            link.style.setProperty('--mindmap-accent', this.getMindMapColumnColor(linkedFrom.column));
+
+            const sourceTitle = this.getMindMapColumnTitle(linkedFrom.column);
+            const sourceText = this.findMindMapNodeText(linkedFrom.column, linkedFrom.nodeId) || 'Idée précédente';
+
+            link.innerHTML = `
+                <div class="mindmap-link-label">↗ ${sourceTitle}</div>
+                <div class="mindmap-link-text">${sourceText}</div>
+            `;
+
+            bubble.appendChild(link);
+        }
+
         const actions = document.createElement('div');
         actions.className = 'mindmap-node-actions';
 
@@ -1219,7 +1257,7 @@ class RiskManagementSystem {
 
         const helper = document.createElement('div');
         helper.className = 'mindmap-helper';
-        helper.textContent = 'Entrée = pair · Tabulation = enfant · Glisser pour lier';
+        helper.textContent = 'Entrée = bulle sœur · Tabulation = colonne suivante + liaison';
         bubble.appendChild(helper);
 
         wrapper.appendChild(bubble);
@@ -1268,11 +1306,15 @@ class RiskManagementSystem {
             const newId = this.addMindMapSibling(columnKey, nodeId);
             this.renderMindMap(newId);
             this.markUnsavedChange('interviewForm');
+            return;
         }
 
         if (key === 'Tab') {
             event.preventDefault();
-            const newId = this.addMindMapChild(columnKey, nodeId);
+            const nextColumn = this.getNextMindMapColumnKey(columnKey);
+            const newId = nextColumn
+                ? this.addMindMapLinkedNode(columnKey, nodeId, nextColumn)
+                : this.addMindMapChild(columnKey, nodeId);
             this.renderMindMap(newId);
             this.markUnsavedChange('interviewForm');
         }
@@ -1319,6 +1361,21 @@ class RiskManagementSystem {
             target.node.children = [];
         }
         target.node.children.push(newNode);
+        this.markUnsavedChange('interviewForm');
+        return newNode.id;
+    }
+
+    addMindMapLinkedNode(fromColumnKey, fromNodeId, targetColumnKey) {
+        const state = this.getCurrentMindMapState();
+        if (!targetColumnKey || !state.nodes[targetColumnKey]) {
+            return null;
+        }
+
+        const newNode = this.createMindMapNode();
+        newNode.linkedFrom = { column: fromColumnKey, nodeId: fromNodeId };
+
+        state.nodes[targetColumnKey].push(newNode);
+        this.interviewMindMapState = state;
         this.markUnsavedChange('interviewForm');
         return newNode.id;
     }
@@ -1410,6 +1467,11 @@ class RiskManagementSystem {
         return null;
     }
 
+    findMindMapNodeText(columnKey, nodeId) {
+        const result = this.findMindMapNodeWithParent(columnKey, nodeId);
+        return result?.node?.text || '';
+    }
+
     removeMindMapNode(columnKey, nodeId) {
         const target = this.findMindMapNodeWithParent(columnKey, nodeId);
         if (!target || !target.list) {
@@ -1417,7 +1479,22 @@ class RiskManagementSystem {
         }
 
         const [removed] = target.list.splice(target.index, 1);
+        if (removed?.id) {
+            this.removeMindMapLinksTo(removed.id);
+        }
         return removed || null;
+    }
+
+    removeMindMapLinksTo(nodeId) {
+        if (!nodeId) {
+            return;
+        }
+
+        this.walkMindMapNodes(node => {
+            if (node.linkedFrom?.nodeId === nodeId) {
+                node.linkedFrom = null;
+            }
+        });
     }
 
     isMindMapDescendant(node, targetId) {

@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.24</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.25</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -702,7 +702,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.24</span>
+            <span class="app-version">Version 2.11.25</span>
         </footer>
     </div>
 
@@ -796,7 +796,7 @@
             <div class="modal-header mindmap-header">
                 <div class="mindmap-header-titles">
                     <h3 class="modal-title">Mind mapping du compte-rendu</h3>
-                    <p class="mindmap-subtitle">Glissez-déposez vos idées, utilisez Entrée pour un point frère, Tabulation pour un enfant, et repliez/dépliez pour garder la carte lisible.</p>
+                    <p class="mindmap-subtitle">Glissez-déposez vos idées, utilisez Entrée pour une bulle dans la même colonne, Tabulation pour passer à la colonne suivante avec une liaison.</p>
                 </div>
                 <div class="mindmap-header-actions">
                     <div class="mindmap-zoom-control">
@@ -815,6 +815,7 @@
                         <span class="mindmap-pill">Drag &amp; drop</span>
                         <span class="mindmap-pill">Raccourcis clavier</span>
                         <span class="mindmap-pill">Mini-carte</span>
+                        <span class="mindmap-pill">Connecteurs inter-colonnes</span>
                     </div>
                     <div class="mindmap-toolbar-actions">
                         <button class="btn btn-primary" type="button" onclick="rms.addMindMapIdeaToAllColumns()">+ Idée par colonne</button>
@@ -829,7 +830,7 @@
             </div>
             <div class="modal-footer mindmap-footer">
                 <div class="mindmap-shortcuts">
-                    <strong>Raccourcis :</strong> Entrée = point frère | Tabulation = enfant | Glisser-déposer = déplacer/lier | Curseur = zoom
+                    <strong>Raccourcis :</strong> Entrée = nouvelle bulle dans la colonne | Tabulation = bulle liée dans la colonne suivante | Glisser-déposer = déplacer/lier | Curseur = zoom
                 </div>
                 <div class="mindmap-footer-actions">
                     <button class="btn btn-secondary" type="button" onclick="rms.closeMindMapModal()">Revenir au compte-rendu</button>
