@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.22</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.23</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -702,7 +702,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.22</span>
+            <span class="app-version">Version 2.11.23</span>
         </footer>
     </div>
 
@@ -766,6 +766,9 @@
                             <button type="button" class="btn btn-outline" onclick="rms.openInterviewTemplateModal()">
                                 📄 Choisir une trame
                             </button>
+                            <button type="button" class="btn btn-secondary" onclick="rms.openMindMapModal()">
+                                🧠 Atelier mind mapping
+                            </button>
                         </div>
                         <div class="wysiwyg-editor">
                             <div class="wysiwyg-toolbar">
@@ -784,6 +787,53 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewModal()">Annuler</button>
                 <button class="btn btn-primary" type="submit" form="interviewForm">Enregistrer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mindmapModal" class="modal mindmap-modal">
+        <div class="modal-content fullscreen mindmap-content">
+            <div class="modal-header mindmap-header">
+                <div class="mindmap-header-titles">
+                    <h3 class="modal-title">Mind mapping du compte-rendu</h3>
+                    <p class="mindmap-subtitle">Glissez-déposez vos idées, utilisez Entrée pour un point frère, Tabulation pour un enfant, et repliez/dépliez pour garder la carte lisible.</p>
+                </div>
+                <div class="mindmap-header-actions">
+                    <div class="mindmap-zoom-control">
+                        <label for="mindmapZoom">Zoom</label>
+                        <input id="mindmapZoom" type="range" min="70" max="150" value="100" oninput="rms.updateMindMapZoom(this.value)">
+                        <span id="mindmapZoomValue" class="mindmap-zoom-value">100%</span>
+                    </div>
+                    <button class="btn btn-outline" type="button" onclick="rms.resetMindMapState()">Réinitialiser la carte</button>
+                    <button class="modal-close" type="button" aria-label="Fermer" onclick="rms.closeMindMapModal()">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body mindmap-body">
+                <div class="mindmap-toolbar">
+                    <div class="mindmap-toolbar-info">
+                        <span class="mindmap-pill">Impact mapping structuré</span>
+                        <span class="mindmap-pill">Drag &amp; drop</span>
+                        <span class="mindmap-pill">Raccourcis clavier</span>
+                        <span class="mindmap-pill">Mini-carte</span>
+                    </div>
+                    <div class="mindmap-toolbar-actions">
+                        <button class="btn btn-primary" type="button" onclick="rms.addMindMapIdeaToAllColumns()">+ Idée par colonne</button>
+                        <button class="btn btn-secondary" type="button" onclick="rms.expandAllMindMapNodes()">Tout déplier</button>
+                        <button class="btn btn-outline" type="button" onclick="rms.collapseAllMindMapNodes()">Tout replier</button>
+                    </div>
+                </div>
+                <div class="mindmap-workspace-wrapper">
+                    <div id="mindmapWorkspace" class="mindmap-workspace" role="tree" aria-label="Carte mentale d'impact mapping"></div>
+                    <div id="mindmapMiniMap" class="mindmap-mini-map" aria-hidden="true"></div>
+                </div>
+            </div>
+            <div class="modal-footer mindmap-footer">
+                <div class="mindmap-shortcuts">
+                    <strong>Raccourcis :</strong> Entrée = point frère | Tabulation = enfant | Glisser-déposer = déplacer/lier | Curseur = zoom
+                </div>
+                <div class="mindmap-footer-actions">
+                    <button class="btn btn-secondary" type="button" onclick="rms.closeMindMapModal()">Revenir au compte-rendu</button>
+                </div>
             </div>
         </div>
     </div>
