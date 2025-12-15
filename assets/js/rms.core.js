@@ -174,6 +174,8 @@ class RiskManagementSystem {
         this.mindMapColumns = this.getMindMapColumns();
         this.interviewMindMapState = this.createEmptyMindMapState();
         this.mindMapDragContext = null;
+        this.mindMapLinkListenersRegistered = false;
+        this.mindMapLinkUpdateHandler = null;
         this.init();
     }
 
@@ -1107,6 +1109,19 @@ class RiskManagementSystem {
         workspace.style.transform = `scale(${state.zoom})`;
         workspace.style.setProperty('--mindmap-zoom', state.zoom);
 
+        const linkLayer = document.getElementById('mindmapLinkLayer');
+        const workspaceWrapper = workspace.closest('.mindmap-workspace-wrapper');
+
+        if (workspaceWrapper) {
+            workspaceWrapper.style.setProperty('--mindmap-zoom', state.zoom);
+        }
+
+        if (linkLayer) {
+            linkLayer.style.transform = `scale(${state.zoom})`;
+        }
+
+        this.registerMindMapLinkListeners(workspaceWrapper);
+
         const columns = this.getMindMapColumns();
         columns.forEach(column => {
             const columnElement = document.createElement('div');
@@ -1157,6 +1172,110 @@ class RiskManagementSystem {
         if (focusNodeId) {
             this.focusMindMapNode(focusNodeId);
         }
+
+        this.updateMindMapLinks();
+    }
+
+    registerMindMapLinkListeners(workspaceWrapper) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        if (!workspaceWrapper || this.mindMapLinkListenersRegistered) {
+            return;
+        }
+
+        this.mindMapLinkUpdateHandler = () => this.updateMindMapLinks();
+        workspaceWrapper.addEventListener('scroll', this.mindMapLinkUpdateHandler, { passive: true });
+        window.addEventListener('resize', this.mindMapLinkUpdateHandler);
+        this.mindMapLinkListenersRegistered = true;
+    }
+
+    updateMindMapLinks() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const linkLayer = document.getElementById('mindmapLinkLayer');
+        const workspace = document.getElementById('mindmapWorkspace');
+        const wrapper = workspace?.closest('.mindmap-workspace-wrapper');
+
+        if (!linkLayer || !workspace || !wrapper) {
+            return;
+        }
+
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const width = Math.max(wrapper.scrollWidth, wrapperRect.width);
+        const height = Math.max(wrapper.scrollHeight, wrapperRect.height);
+
+        linkLayer.setAttribute('width', width);
+        linkLayer.setAttribute('height', height);
+        linkLayer.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        linkLayer.innerHTML = '';
+
+        const state = this.getCurrentMindMapState();
+        const columns = this.getMindMapColumns();
+
+        const drawLinksForNodes = (nodes) => {
+            if (!Array.isArray(nodes)) {
+                return;
+            }
+
+            nodes.forEach(node => {
+                if (node?.linkedFrom?.nodeId && node?.linkedFrom?.column) {
+                    this.drawMindMapLink(node, wrapperRect, linkLayer);
+                }
+
+                if (Array.isArray(node?.children) && !node.collapsed) {
+                    drawLinksForNodes(node.children);
+                }
+            });
+        };
+
+        columns.forEach(column => drawLinksForNodes(state.nodes?.[column.key]));
+    }
+
+    drawMindMapLink(node, wrapperRect, linkLayer) {
+        const sourceSelector = `[data-node-id="${node.linkedFrom.nodeId}"] .mindmap-node-bubble`;
+        const targetSelector = `[data-node-id="${node.id}"] .mindmap-node-bubble`;
+
+        const sourceBubble = document.querySelector(sourceSelector);
+        const targetBubble = document.querySelector(targetSelector);
+
+        if (!sourceBubble || !targetBubble) {
+            return;
+        }
+
+        const sourceRect = sourceBubble.getBoundingClientRect();
+        const targetRect = targetBubble.getBoundingClientRect();
+        const startX = sourceRect.right - wrapperRect.left;
+        const startY = sourceRect.top + sourceRect.height / 2 - wrapperRect.top;
+        const endX = targetRect.left - wrapperRect.left;
+        const endY = targetRect.top + targetRect.height / 2 - wrapperRect.top;
+        const distance = Math.abs(endX - startX);
+        const curvature = Math.max(60, distance * 0.35);
+
+        const accent = this.getMindMapColumnColor(node.linkedFrom.column) || 'var(--primary-color)';
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${startX} ${startY} C ${startX + curvature} ${startY}, ${endX - curvature} ${endY}, ${endX} ${endY}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', accent);
+        path.setAttribute('stroke-width', '3');
+        path.setAttribute('class', 'mindmap-link-path');
+        path.setAttribute('stroke-opacity', '0.9');
+
+        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        marker.setAttribute('cx', endX);
+        marker.setAttribute('cy', endY);
+        marker.setAttribute('r', '6');
+        marker.setAttribute('fill', '#ffffff');
+        marker.setAttribute('stroke', accent);
+        marker.setAttribute('stroke-width', '2');
+        marker.setAttribute('class', 'mindmap-link-marker');
+
+        linkLayer.appendChild(path);
+        linkLayer.appendChild(marker);
     }
 
     renderMindMapNode(node, columnKey) {
@@ -1287,6 +1406,7 @@ class RiskManagementSystem {
         target.node.text = (value || '').trim() || 'Nouvelle idée';
         this.markUnsavedChange('interviewForm');
         this.refreshMindMapMiniMap();
+        this.updateMindMapLinks();
     }
 
     updateMindMapNodeTag(columnKey, nodeId, value) {

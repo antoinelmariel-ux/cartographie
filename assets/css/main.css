@@ -2274,12 +2274,33 @@ tbody tr:hover {
 }
 
 .mindmap-workspace {
+    position: relative;
+    z-index: 1;
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(260px, 1fr);
     gap: 22px;
     min-width: max-content;
     transform-origin: top left;
+}
+
+.mindmap-link-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    overflow: visible;
+    transform-origin: top left;
+}
+
+.mindmap-link-layer path {
+    filter: drop-shadow(0 4px 10px rgba(0,0,0,0.08));
+    stroke-linecap: round;
+    opacity: 0.9;
+}
+
+.mindmap-link-marker {
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.12));
 }
 
 .mindmap-column {
@@ -2362,6 +2383,20 @@ tbody tr:hover {
 
 .mindmap-node {
     position: relative;
+    padding-left: 6px;
+}
+
+.mindmap-node::before {
+    content: '';
+    position: absolute;
+    left: -2px;
+    top: 18px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--mindmap-accent, var(--primary-color));
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--mindmap-accent, #2563eb) 25%, rgba(255,255,255,0.95));
+    opacity: 0.9;
 }
 
 .mindmap-node-bubble {
