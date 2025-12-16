@@ -1238,7 +1238,7 @@ class RiskManagementSystem {
             this.focusMindMapNode(focusNodeId);
         }
 
-        this.updateMindMapLinks();
+        this.applyMindMapAutoLayout();
     }
 
     registerMindMapLinkListeners(workspaceWrapper) {
@@ -1276,12 +1276,14 @@ class RiskManagementSystem {
         linkLayer.setAttribute('width', width);
         linkLayer.setAttribute('height', height);
         linkLayer.setAttribute('viewBox', `0 0 ${width} ${height}`);
+        linkLayer.style.width = `${width}px`;
+        linkLayer.style.height = `${height}px`;
         linkLayer.innerHTML = '';
 
         const state = this.getCurrentMindMapState();
         const columns = this.getMindMapColumns();
 
-        const drawLinksForNodes = (nodes) => {
+        const drawLinksForNodes = (nodes, columnKey) => {
             if (!Array.isArray(nodes)) {
                 return;
             }
@@ -1292,12 +1294,15 @@ class RiskManagementSystem {
                 }
 
                 if (Array.isArray(node?.children) && !node.collapsed) {
-                    drawLinksForNodes(node.children);
+                    node.children.forEach(child => {
+                        this.drawMindMapHierarchyLink(node, child, columnKey, wrapperRect, linkLayer);
+                    });
+                    drawLinksForNodes(node.children, columnKey);
                 }
             });
         };
 
-        columns.forEach(column => drawLinksForNodes(state.nodes?.[column.key]));
+        columns.forEach(column => drawLinksForNodes(state.nodes?.[column.key], column.key));
     }
 
     drawMindMapLink(node, wrapperRect, linkLayer) {
@@ -1341,6 +1346,155 @@ class RiskManagementSystem {
 
         linkLayer.appendChild(path);
         linkLayer.appendChild(marker);
+    }
+
+    drawMindMapHierarchyLink(parentNode, childNode, columnKey, wrapperRect, linkLayer) {
+        const parentBubble = document.querySelector(`[data-node-id="${parentNode.id}"] .mindmap-node-bubble`);
+        const childBubble = document.querySelector(`[data-node-id="${childNode.id}"] .mindmap-node-bubble`);
+
+        if (!parentBubble || !childBubble) {
+            return;
+        }
+
+        const parentRect = parentBubble.getBoundingClientRect();
+        const childRect = childBubble.getBoundingClientRect();
+
+        const startX = parentRect.left - wrapperRect.left + parentRect.width / 2;
+        const startY = parentRect.bottom - wrapperRect.top - 4;
+        const endX = childRect.left - wrapperRect.left + childRect.width / 2;
+        const endY = childRect.top - wrapperRect.top + 4;
+        const curvature = Math.max(28, Math.abs(endY - startY) * 0.35);
+
+        const accent = this.getMindMapColumnColor(columnKey) || 'var(--primary-color)';
+
+        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        path.setAttribute('d', `M ${startX} ${startY} C ${startX} ${startY + curvature}, ${endX} ${endY - curvature}, ${endX} ${endY}`);
+        path.setAttribute('fill', 'none');
+        path.setAttribute('stroke', accent);
+        path.setAttribute('stroke-width', '2');
+        path.setAttribute('class', 'mindmap-link-path');
+
+        linkLayer.appendChild(path);
+    }
+
+    applyMindMapAutoLayout() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const wrapper = document.querySelector('.mindmap-workspace-wrapper');
+        if (!wrapper) {
+            return;
+        }
+
+        this.resetMindMapNodeOffsets();
+
+        window.requestAnimationFrame(() => {
+            this.centerMindMapParents(wrapper);
+            this.updateMindMapLinks();
+        });
+    }
+
+    resetMindMapNodeOffsets() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        document.querySelectorAll('.mindmap-node').forEach(node => {
+            node.style.removeProperty('--mindmap-offset');
+            node.style.transform = '';
+            node.classList.remove('is-auto-positioned');
+        });
+    }
+
+    centerMindMapParents(wrapper) {
+        if (typeof document === 'undefined' || !wrapper) {
+            return;
+        }
+
+        const wrapperRect = wrapper.getBoundingClientRect();
+        const childrenMap = this.getMindMapChildrenMap();
+        const nodeElements = new Map();
+
+        document.querySelectorAll('.mindmap-node').forEach(node => {
+            nodeElements.set(node.dataset.nodeId, node);
+        });
+
+        childrenMap.forEach((childrenIds, parentId) => {
+            const parentElement = nodeElements.get(parentId);
+            if (!parentElement) {
+                return;
+            }
+
+            const parentBubble = parentElement.querySelector('.mindmap-node-bubble');
+            if (!parentBubble) {
+                return;
+            }
+
+            const childCenters = Array.from(childrenIds)
+                .map(childId => {
+                    const childElement = nodeElements.get(childId);
+                    const bubble = childElement?.querySelector('.mindmap-node-bubble');
+                    if (!bubble) {
+                        return null;
+                    }
+
+                    const rect = bubble.getBoundingClientRect();
+                    return (rect.top + rect.bottom) / 2 - wrapperRect.top + wrapper.scrollTop;
+                })
+                .filter(value => typeof value === 'number');
+
+            if (!childCenters.length) {
+                return;
+            }
+
+            const childrenCenter = (Math.min(...childCenters) + Math.max(...childCenters)) / 2;
+            const parentRect = parentBubble.getBoundingClientRect();
+            const parentCenter = (parentRect.top + parentRect.bottom) / 2 - wrapperRect.top + wrapper.scrollTop;
+            const offset = childrenCenter - parentCenter;
+
+            parentElement.style.setProperty('--mindmap-offset', `${offset}px`);
+            parentElement.style.transform = `translateY(${offset}px)`;
+            parentElement.classList.toggle('is-auto-positioned', Math.abs(offset) > 1);
+        });
+    }
+
+    getMindMapChildrenMap() {
+        const mapping = new Map();
+        const state = this.getCurrentMindMapState();
+        const columns = this.getMindMapColumns();
+
+        const registerChild = (parentId, childId) => {
+            if (!parentId || !childId) {
+                return;
+            }
+
+            if (!mapping.has(parentId)) {
+                mapping.set(parentId, new Set());
+            }
+
+            mapping.get(parentId).add(childId);
+        };
+
+        const traverseNodes = (nodes) => {
+            if (!Array.isArray(nodes)) {
+                return;
+            }
+
+            nodes.forEach(node => {
+                if (node?.linkedFrom?.nodeId) {
+                    registerChild(node.linkedFrom.nodeId, node.id);
+                }
+
+                if (Array.isArray(node?.children)) {
+                    node.children.forEach(child => registerChild(node.id, child.id));
+                    traverseNodes(node.children);
+                }
+            });
+        };
+
+        columns.forEach(column => traverseNodes(state.nodes?.[column.key]));
+        return mapping;
     }
 
     renderMindMapNode(node, columnKey) {
