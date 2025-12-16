@@ -2175,29 +2175,55 @@ tbody tr:hover {
     max-width: 96%;
     height: 94vh;
     max-height: 94vh;
-    border-radius: 18px;
+    border-radius: 24px;
     display: flex;
     flex-direction: column;
-    background: #ffffff;
-    border: 1px solid var(--border-color);
+    background: radial-gradient(circle at 15% 20%, #f0f7ff, #f8f9fd 45%, #eef2ff 100%);
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    box-shadow: 0 26px 60px rgba(15, 23, 42, 0.12);
 }
 
 .mindmap-header {
-    background: #ffffff;
-    padding: 24px 30px;
-    border-bottom: 1px solid var(--border-color);
+    background: linear-gradient(120deg, rgba(37, 99, 235, 0.06), rgba(14, 165, 233, 0.05));
+    padding: 26px 32px 20px 32px;
+    border-bottom: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 22px 22px 0 0;
 }
 
 .mindmap-header-titles {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 8px;
+}
+
+.mindmap-breadcrumb {
+    font-size: 0.9rem;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
 }
 
 .mindmap-subtitle {
     margin: 0;
     color: var(--muted-text-color);
     font-size: 0.95rem;
+}
+
+.mindmap-meta {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.mindmap-meta-chip {
+    background: rgba(37, 99, 235, 0.08);
+    border: 1px solid rgba(37, 99, 235, 0.15);
+    color: #0f172a;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
 }
 
 .mindmap-header-actions {
@@ -2216,6 +2242,7 @@ tbody tr:hover {
     padding: 8px 12px;
     border-radius: 12px;
     border: 1px solid var(--border-color);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
 }
 
 .mindmap-zoom-control input[type="range"] {
@@ -2226,12 +2253,23 @@ tbody tr:hover {
     font-weight: 700;
 }
 
+.mindmap-cta-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn.btn-outline.danger {
+    color: #ef4444;
+    border-color: rgba(239, 68, 68, 0.4);
+}
+
 .mindmap-body {
-    background: #ffffff;
+    background: transparent;
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: 18px 20px;
+    padding: 18px 24px 24px 24px;
 }
 
 .mindmap-toolbar {
@@ -2240,10 +2278,11 @@ tbody tr:hover {
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
-    border: 1px solid var(--border-color);
-    border-radius: 12px;
-    padding: 12px 14px;
-    background: #ffffff;
+    border: 1px solid rgba(37, 99, 235, 0.12);
+    border-radius: 16px;
+    padding: 14px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
 }
 
 .mindmap-content.toolbar-visible .mindmap-toolbar {
@@ -2257,14 +2296,14 @@ tbody tr:hover {
 }
 
 .mindmap-pill {
-    background: #f8fafc;
-    color: var(--text-color);
+    background: linear-gradient(120deg, #f8fafc, #eef2ff);
+    color: #0f172a;
     border-radius: 999px;
     padding: 8px 12px;
-    font-weight: 600;
+    font-weight: 700;
     font-size: 0.9rem;
-    border: 1px solid var(--border-color);
-    box-shadow: none;
+    border: 1px solid rgba(37, 99, 235, 0.1);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
 .mindmap-toolbar-actions {
@@ -2289,7 +2328,7 @@ tbody tr:hover {
     display: grid;
     grid-auto-flow: column;
     grid-auto-columns: minmax(260px, 1fr);
-    gap: 28px;
+    gap: 32px;
     min-width: max-content;
     transform-origin: top left;
     align-items: start;
@@ -2297,33 +2336,39 @@ tbody tr:hover {
 
 .mindmap-link-layer {
     position: absolute;
-    inset: 0;
+    inset: 12px;
+    width: calc(100% - 24px);
+    height: calc(100% - 24px);
     pointer-events: none;
     z-index: 0;
     overflow: visible;
     transform-origin: top left;
+    filter: drop-shadow(0 14px 28px rgba(0,0,0,0.06));
 }
 
 .mindmap-link-layer path {
     stroke-linecap: round;
-    opacity: 0.8;
+    opacity: 0.9;
+    stroke: rgba(15, 23, 42, 0.4);
+    stroke-width: 2.4;
 }
 
 .mindmap-link-marker {
     filter: none;
+    fill: rgba(15, 23, 42, 0.4);
 }
 
 .mindmap-column {
     position: relative;
-    background: #ffffff;
-    border: 1px solid var(--border-color);
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(37, 99, 235, 0.08);
     border-left: 6px solid var(--mindmap-accent, #2563eb);
-    border-radius: 14px;
-    padding: 14px 14px 14px 16px;
+    border-radius: 18px;
+    padding: 16px;
     display: flex;
     flex-direction: column;
     gap: 12px;
-    box-shadow: none;
+    box-shadow: 0 12px 40px rgba(15, 23, 42, 0.12);
     min-height: 320px;
     overflow: hidden;
 }
@@ -2338,9 +2383,10 @@ tbody tr:hover {
 
 .mindmap-column-label {
     font-weight: 800;
-    color: var(--text-color);
+    color: #0f172a;
     text-transform: uppercase;
     letter-spacing: 0.6px;
+    font-size: 1.08rem;
 }
 
 .mindmap-column-subtitle {
@@ -2362,8 +2408,8 @@ tbody tr:hover {
 .mindmap-add-button {
     width: 100%;
     border-style: dashed;
-    border-color: var(--border-color);
-    color: var(--text-color);
+    border-color: rgba(37, 99, 235, 0.2);
+    color: #2563eb;
     background: #f8fafc;
     font-weight: 700;
 }
@@ -2373,12 +2419,14 @@ tbody tr:hover {
 }
 
 .mindmap-node-bubble {
-    background: var(--mindmap-accent, var(--primary-color));
-    border: none;
+    background: linear-gradient(135deg, var(--mindmap-accent, var(--primary-color)), #0b1729);
+    border: 1px solid rgba(255, 255, 255, 0.16);
     border-radius: 16px;
-    padding: 12px;
-    box-shadow: 0 4px 14px rgba(0,0,0,0.08);
+    padding: 16px;
+    box-shadow: 0 18px 40px rgba(15, 23, 42, 0.28);
     color: #ffffff;
+    position: relative;
+    overflow: hidden;
 }
 
 .mindmap-node-actions {
@@ -2388,15 +2436,16 @@ tbody tr:hover {
 }
 
 .mindmap-node-action {
-    background: rgba(255,255,255,0.15);
-    border: none;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(255,255,255,0.35);
     border-radius: 10px;
-    width: 32px;
-    height: 32px;
+    width: 34px;
+    height: 34px;
     cursor: pointer;
     color: #ffffff;
     font-weight: 700;
     transition: background 0.2s ease, transform 0.2s ease;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,0.3);
 }
 
 .mindmap-node-action:hover {
@@ -2406,10 +2455,10 @@ tbody tr:hover {
 
 .mindmap-node-text {
     margin-top: 8px;
-    padding: 8px 10px;
+    padding: 12px 14px;
     border-radius: 12px;
-    border: 1px dashed rgba(255,255,255,0.45);
-    background: rgba(255,255,255,0.12);
+    border: 1px dashed rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.1);
     min-height: 28px;
     outline: none;
     font-weight: 700;
@@ -2432,7 +2481,7 @@ tbody tr:hover {
     border-left: none;
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 12px;
 }
 
 .mindmap-children.collapsed {
@@ -2453,20 +2502,20 @@ tbody tr:hover {
 
 .mindmap-tag-select {
     flex: 1;
-    padding: 8px 10px;
-    border-radius: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
     border: 1px solid rgba(255,255,255,0.5);
-    background: rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.12);
     color: #ffffff;
 }
 
 .mindmap-node-link {
     position: relative;
-    padding: 10px 12px;
+    padding: 12px 14px;
     border-radius: 12px;
-    border: 1px dashed rgba(255,255,255,0.4);
-    background: rgba(255,255,255,0.15);
-    margin-bottom: 8px;
+    border: 1px dashed rgba(255,255,255,0.35);
+    background: rgba(255,255,255,0.12);
+    margin-bottom: 10px;
 }
 
 .mindmap-node-link::before {
@@ -2495,10 +2544,10 @@ tbody tr:hover {
     height: 150px;
     border-radius: 14px;
     overflow: hidden;
-    background: #ffffff;
+    background: rgba(255, 255, 255, 0.94);
     border: 1px solid var(--border-color);
-    box-shadow: none;
-    padding: 6px;
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.14);
+    padding: 8px;
     display: none;
 }
 
