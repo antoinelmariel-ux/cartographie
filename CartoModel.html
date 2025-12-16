@@ -702,7 +702,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.28</span>
+            <span class="app-version">Version 2.11.29</span>
         </footer>
     </div>
 
@@ -795,8 +795,14 @@
         <div class="modal-content fullscreen mindmap-content">
             <div class="modal-header mindmap-header">
                 <div class="mindmap-header-titles">
+                    <div class="mindmap-breadcrumb">Atelier • Carte mentale</div>
                     <h3 class="modal-title">Mind mapping du compte-rendu</h3>
-                    <p class="mindmap-subtitle">Glissez-déposez vos idées, utilisez Entrée pour une bulle dans la même colonne, Tabulation pour passer à la colonne suivante avec une liaison.</p>
+                    <p class="mindmap-subtitle">Inspiré de MindMeister : bulles colorées, connecteurs fluides et contrôles rapides pour structurer votre atelier.</p>
+                    <div class="mindmap-meta">
+                        <span class="mindmap-meta-chip">Drag &amp; drop libre</span>
+                        <span class="mindmap-meta-chip">Liens inter-colonnes</span>
+                        <span class="mindmap-meta-chip">Clavier : Entrée / Tab</span>
+                    </div>
                 </div>
                 <div class="mindmap-header-actions">
                     <div class="mindmap-zoom-control">
@@ -804,9 +810,11 @@
                         <input id="mindmapZoom" type="range" min="70" max="150" value="100" oninput="rms.updateMindMapZoom(this.value)">
                         <span id="mindmapZoomValue" class="mindmap-zoom-value">100%</span>
                     </div>
-                    <button class="btn btn-outline" type="button" id="mindmapToolbarToggle" aria-pressed="false" onclick="rms.toggleMindMapToolbar()">Afficher les actions</button>
-                    <button class="btn btn-outline" type="button" id="mindmapMiniMapToggle" aria-pressed="false" onclick="rms.toggleMindMapMiniMap()">Afficher la mini-carte</button>
-                    <button class="btn btn-outline" type="button" onclick="rms.resetMindMapState()">Réinitialiser la carte</button>
+                    <div class="mindmap-cta-group">
+                        <button class="btn btn-outline" type="button" id="mindmapToolbarToggle" aria-pressed="false" onclick="rms.toggleMindMapToolbar()">Afficher les actions</button>
+                        <button class="btn btn-outline" type="button" id="mindmapMiniMapToggle" aria-pressed="false" onclick="rms.toggleMindMapMiniMap()">Mini-carte</button>
+                        <button class="btn btn-outline danger" type="button" onclick="rms.resetMindMapState()">Réinitialiser la carte</button>
+                    </div>
                     <button class="modal-close" type="button" aria-label="Fermer" onclick="rms.closeMindMapModal()">&times;</button>
                 </div>
             </div>
@@ -814,10 +822,10 @@
                 <div class="mindmap-toolbar">
                     <div class="mindmap-toolbar-info">
                         <span class="mindmap-pill">Impact mapping structuré</span>
-                        <span class="mindmap-pill">Drag &amp; drop</span>
-                        <span class="mindmap-pill">Raccourcis clavier</span>
+                        <span class="mindmap-pill">Vue panoramique</span>
+                        <span class="mindmap-pill">Palette vibrante</span>
                         <span class="mindmap-pill">Mini-carte</span>
-                        <span class="mindmap-pill">Connecteurs inter-colonnes</span>
+                        <span class="mindmap-pill">Connecteurs fluides</span>
                     </div>
                     <div class="mindmap-toolbar-actions">
                         <button class="btn btn-primary" type="button" onclick="rms.addMindMapIdeaToAllColumns()">+ Idée par colonne</button>
