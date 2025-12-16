@@ -2232,11 +2232,15 @@ tbody tr:hover {
 }
 
 .mindmap-toolbar {
-    display: flex;
+    display: none;
     justify-content: space-between;
     gap: 12px;
     align-items: center;
     flex-wrap: wrap;
+}
+
+.mindmap-content.toolbar-visible .mindmap-toolbar {
+    display: flex;
 }
 
 .mindmap-toolbar-info {
@@ -2537,6 +2541,11 @@ tbody tr:hover {
     border: 1px solid var(--border-color);
     box-shadow: 0 8px 22px rgba(0,0,0,0.1);
     padding: 6px;
+    display: none;
+}
+
+.mindmap-mini-map.is-visible {
+    display: block;
 }
 
 .mindmap-mini-map .mindmap-minimap-canvas {
