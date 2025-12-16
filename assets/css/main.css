@@ -2204,28 +2204,6 @@ tbody tr:hover {
     font-weight: 700;
 }
 
-.mindmap-subtitle {
-    margin: 0;
-    color: var(--muted-text-color);
-    font-size: 0.95rem;
-}
-
-.mindmap-meta {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.mindmap-meta-chip {
-    background: rgba(37, 99, 235, 0.08);
-    border: 1px solid rgba(37, 99, 235, 0.15);
-    color: #0f172a;
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-size: 0.9rem;
-    font-weight: 600;
-}
-
 .mindmap-header-actions {
     display: flex;
     gap: 12px;
@@ -2287,23 +2265,6 @@ tbody tr:hover {
 
 .mindmap-content.toolbar-visible .mindmap-toolbar {
     display: flex;
-}
-
-.mindmap-toolbar-info {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-}
-
-.mindmap-pill {
-    background: linear-gradient(120deg, #f8fafc, #eef2ff);
-    color: #0f172a;
-    border-radius: 999px;
-    padding: 8px 12px;
-    font-weight: 700;
-    font-size: 0.9rem;
-    border: 1px solid rgba(37, 99, 235, 0.1);
-    box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
 }
 
 .mindmap-toolbar-actions {
