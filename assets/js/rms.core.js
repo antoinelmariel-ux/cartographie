@@ -172,11 +172,13 @@ class RiskManagementSystem {
         this.interviewEditorState = null;
         this.interviewTemplateManagerContainer = null;
         this.interviewTemplateListContainer = null;
+        this.mindMapThemeManagerContainer = null;
         this.unsavedContexts = new Set();
         this.hasUnsavedChanges = false;
         this.mindMapColumns = this.getMindMapColumns();
         this.interviewMindMapState = this.createEmptyMindMapState();
         this.mindMapDragContext = null;
+        this.mindMapThemeDragState = null;
         this.mindMapLinkListenersRegistered = false;
         this.mindMapLinkUpdateHandler = null;
         this.mindMapRenderer = null;
@@ -281,6 +283,15 @@ class RiskManagementSystem {
                 : []
         }));
 
+        const cloneMindMapThemes = (themes) => Array.isArray(themes)
+            ? themes.map(theme => ({
+                ...theme,
+                columns: Array.isArray(theme?.columns)
+                    ? theme.columns.map(column => ({ ...column }))
+                    : []
+            }))
+            : [];
+
         const cloneSubProcessMap = (map) => {
             if (!map || typeof map !== 'object' || Array.isArray(map)) {
                 return {};
@@ -333,6 +344,9 @@ class RiskManagementSystem {
             parameterConfig.countryColumns,
             availableCountries
         );
+
+        config.mindMapThemes = cloneMindMapThemes(parameterConfig.mindMapThemes);
+        config.mindMapActiveThemeId = parameterConfig.mindMapActiveThemeId || (config.mindMapThemes[0]?.id ?? '');
 
         if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
             config.riskStatuses = [
@@ -569,6 +583,22 @@ class RiskManagementSystem {
             }))
             .filter(template => template.value && template.label);
 
+        const { themes: normalizedMindMapThemes, activeId } = this.normalizeMindMapThemes(
+            baseConfig.mindMapThemes,
+            fallback.mindMapThemes,
+            baseConfig.mindMapActiveThemeId || fallback.mindMapActiveThemeId
+        );
+
+        if (JSON.stringify(this.config.mindMapThemes) !== JSON.stringify(normalizedMindMapThemes)) {
+            updated = true;
+        }
+        if (this.config.mindMapActiveThemeId !== activeId) {
+            updated = true;
+        }
+
+        this.config.mindMapThemes = normalizedMindMapThemes;
+        this.config.mindMapActiveThemeId = activeId;
+
         return updated;
     }
 
@@ -675,6 +705,103 @@ class RiskManagementSystem {
         }
 
         return distributeRemaining(columns, usedCountries);
+    }
+
+    getDefaultMindMapTheme() {
+        return {
+            id: 'impact-mapping',
+            name: 'Impact mapping',
+            columns: [
+                { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#34d399' },
+                { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#22c55e' },
+                { key: 'comportements', title: 'Comportements attendus', subtitle: "Quels sont les comportements des tiers que l'on espère ?", color: '#0ea5e9' },
+                { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#1d4ed8' },
+                { key: 'controle', title: 'Contrôle', subtitle: "Qu'est-ce qui permet prévenir ce comportement ?", color: '#eab308' },
+                { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#f97316' },
+                { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#ef4444' }
+            ]
+        };
+    }
+
+    normalizeMindMapThemeColumn(column, index, usedKeys, palette) {
+        const colors = Array.isArray(palette) && palette.length
+            ? palette
+            : ['#34d399', '#22c55e', '#0ea5e9', '#1d4ed8', '#eab308', '#f97316', '#ef4444', '#a855f7', '#06b6d4'];
+        const baseTitle = typeof column?.title === 'string' && column.title.trim()
+            ? column.title.trim()
+            : `Colonne ${index + 1}`;
+        const rawKey = typeof column?.key === 'string' && column.key.trim()
+            ? column.key.trim()
+            : (typeof slugifyLabel === 'function'
+                ? slugifyLabel(baseTitle)
+                : baseTitle.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+        let key = rawKey || `colonne-${index + 1}`;
+        let suffix = 2;
+        while (usedKeys.has(key)) {
+            key = `${rawKey || `colonne-${index + 1}`}-${suffix}`;
+            suffix += 1;
+        }
+        usedKeys.add(key);
+
+        return {
+            key,
+            title: baseTitle,
+            subtitle: typeof column?.subtitle === 'string' ? column.subtitle : '',
+            color: typeof column?.color === 'string' && column.color.trim()
+                ? column.color.trim()
+                : colors[index % colors.length]
+        };
+    }
+
+    normalizeMindMapThemes(source, fallback, activeId = '') {
+        const palette = ['#34d399', '#22c55e', '#0ea5e9', '#1d4ed8', '#eab308', '#f97316', '#ef4444', '#a855f7', '#06b6d4'];
+        const fallbackThemes = Array.isArray(fallback) && fallback.length
+            ? fallback
+            : [this.getDefaultMindMapTheme()];
+        const baseThemes = Array.isArray(source) && source.length ? source : fallbackThemes;
+
+        const themes = [];
+        const usedIds = new Set();
+
+        baseThemes.forEach((theme, themeIndex) => {
+            const title = typeof theme?.name === 'string' && theme.name.trim()
+                ? theme.name.trim()
+                : `Thème ${themeIndex + 1}`;
+            const rawId = typeof theme?.id === 'string' && theme.id.trim()
+                ? theme.id.trim()
+                : (typeof slugifyLabel === 'function'
+                    ? slugifyLabel(title)
+                    : title.toLowerCase().replace(/[^a-z0-9]+/g, '-'));
+
+            let id = rawId || `theme-${themeIndex + 1}`;
+            let suffix = 2;
+            while (usedIds.has(id)) {
+                id = `${rawId || `theme-${themeIndex + 1}`}-${suffix}`;
+                suffix += 1;
+            }
+            usedIds.add(id);
+
+            const usedKeys = new Set();
+            const normalizedColumns = (Array.isArray(theme?.columns) ? theme.columns : [])
+                .map((column, columnIndex) => this.normalizeMindMapThemeColumn(column, columnIndex, usedKeys, palette))
+                .filter(Boolean);
+
+            if (!normalizedColumns.length) {
+                normalizedColumns.push(this.normalizeMindMapThemeColumn({}, 0, usedKeys, palette));
+            }
+
+            themes.push({ id, name: title, columns: normalizedColumns });
+        });
+
+        if (!themes.length) {
+            themes.push(this.getDefaultMindMapTheme());
+        }
+
+        const resolvedActive = themes.some(theme => theme.id === activeId)
+            ? activeId
+            : (themes[0]?.id || '');
+
+        return { themes, activeId: resolvedActive };
     }
 
     normalizeRisk(risk) {
@@ -918,15 +1045,23 @@ class RiskManagementSystem {
     }
 
     getMindMapColumns() {
-        return [
-            { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#34d399' },
-            { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#22c55e' },
-            { key: 'comportements', title: 'Comportements attendus', subtitle: "Quels sont les comportements des tiers que l'on espère ?", color: '#0ea5e9' },
-            { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#1d4ed8' },
-            { key: 'controle', title: 'Contrôle', subtitle: 'Qu\'est-ce qui permet prévenir ce comportement ?', color: '#eab308' },
-            { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#f97316' },
-            { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#ef4444' }
-        ];
+        const themes = Array.isArray(this.config?.mindMapThemes) && this.config.mindMapThemes.length
+            ? this.config.mindMapThemes
+            : [this.getDefaultMindMapTheme()];
+        const activeId = typeof this.config?.mindMapActiveThemeId === 'string'
+            ? this.config.mindMapActiveThemeId
+            : (themes[0]?.id || '');
+        const activeTheme = themes.find(theme => theme.id === activeId) || themes[0];
+
+        if (!activeTheme || !Array.isArray(activeTheme.columns)) {
+            return this.getDefaultMindMapTheme().columns;
+        }
+
+        const normalizedColumns = activeTheme.columns
+            .map(column => ({ ...column }))
+            .filter(column => typeof column?.key === 'string' && column.key);
+
+        return normalizedColumns.length ? normalizedColumns : this.getDefaultMindMapTheme().columns;
     }
 
     getDefaultMindMapLinkStyle() {
@@ -2573,6 +2708,11 @@ class RiskManagementSystem {
                 label: "Trames d'entretien",
                 renderer: (body) => this.renderInterviewTemplateManager(body)
             },
+            {
+                key: 'mindMapThemes',
+                label: 'Thèmes du mindmap',
+                renderer: (body) => this.renderMindMapThemeManager(body)
+            },
             { key: 'riskTypes', label: 'Types de corruption' },
             { key: 'countries', label: 'Pays concernés' },
             {
@@ -3100,6 +3240,488 @@ class RiskManagementSystem {
         }
 
         return { value, label, content };
+    }
+
+    ensureMindMapThemesArray() {
+        if (!Array.isArray(this.config?.mindMapThemes)) {
+            const { themes, activeId } = this.normalizeMindMapThemes([], [this.getDefaultMindMapTheme()], '');
+            this.config.mindMapThemes = themes;
+            this.config.mindMapActiveThemeId = activeId;
+        }
+
+        return this.config.mindMapThemes;
+    }
+
+    generateMindMapThemeId(name = '') {
+        const base = typeof name === 'string' && name.trim()
+            ? (typeof slugifyLabel === 'function'
+                ? slugifyLabel(name.trim())
+                : name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-'))
+            : 'theme';
+        const used = new Set(this.ensureMindMapThemesArray().map(theme => theme.id));
+        let candidate = base || 'theme';
+        let suffix = 2;
+        while (used.has(candidate)) {
+            candidate = `${base || 'theme'}-${suffix}`;
+            suffix += 1;
+        }
+        return candidate;
+    }
+
+    refreshMindMapFromThemes() {
+        this.mindMapColumns = this.getMindMapColumns();
+        this.interviewMindMapState = this.normalizeMindMapState(this.interviewMindMapState);
+        this.renderMindMap();
+        if (typeof this.refreshMindMapMiniMap === 'function') {
+            this.refreshMindMapMiniMap();
+        }
+    }
+
+    setMindMapActiveTheme(themeId) {
+        const themes = this.ensureMindMapThemesArray();
+        if (!themes.some(theme => theme.id === themeId)) {
+            return false;
+        }
+
+        this.config.mindMapActiveThemeId = themeId;
+        this.saveConfig();
+        this.refreshMindMapFromThemes();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Thème activé pour le mindmap.');
+        }
+        return true;
+    }
+
+    addMindMapTheme(payload = {}) {
+        const themes = this.ensureMindMapThemesArray();
+        const name = typeof payload.name === 'string' && payload.name.trim()
+            ? payload.name.trim()
+            : 'Nouveau thème';
+        const id = this.generateMindMapThemeId(name);
+
+        const template = Array.isArray(payload.columns) && payload.columns.length
+            ? payload
+            : this.getDefaultMindMapTheme();
+
+        themes.push({
+            id,
+            name,
+            columns: Array.isArray(template.columns) ? template.columns.map(column => ({ ...column })) : []
+        });
+
+        if (!this.config.mindMapActiveThemeId) {
+            this.config.mindMapActiveThemeId = id;
+        }
+
+        this.saveConfig();
+        this.renderMindMapThemeManager(this.mindMapThemeManagerContainer);
+        return id;
+    }
+
+    duplicateMindMapTheme(themeId) {
+        const themes = this.ensureMindMapThemesArray();
+        const target = themes.find(theme => theme.id === themeId);
+        if (!target) {
+            return false;
+        }
+
+        const copyId = this.generateMindMapThemeId(`${target.name || target.id}-copie`);
+        const copy = {
+            id: copyId,
+            name: `${target.name || 'Thème'} (copie)`,
+            columns: target.columns.map(column => ({ ...column }))
+        };
+
+        themes.push(copy);
+        this.saveConfig();
+        this.renderMindMapThemeManager(this.mindMapThemeManagerContainer);
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Thème dupliqué.');
+        }
+        return true;
+    }
+
+    updateMindMapTheme(themeId, payload = {}) {
+        const themes = this.ensureMindMapThemesArray();
+        const index = themes.findIndex(theme => theme.id === themeId);
+        if (index === -1) {
+            return false;
+        }
+
+        const { themes: normalizedThemes, activeId } = this.normalizeMindMapThemes(
+            themes.map(theme => theme.id === themeId ? { ...theme, ...payload } : theme),
+            themes,
+            this.config.mindMapActiveThemeId
+        );
+
+        this.config.mindMapThemes = normalizedThemes;
+        this.config.mindMapActiveThemeId = activeId;
+        this.saveConfig();
+        this.renderMindMapThemeManager(this.mindMapThemeManagerContainer);
+        this.refreshMindMapFromThemes();
+        return true;
+    }
+
+    updateMindMapThemeColumn(themeId, index, payload = {}) {
+        const themes = this.ensureMindMapThemesArray();
+        const theme = themes.find(entry => entry.id === themeId);
+        if (!theme || !Array.isArray(theme.columns) || index < 0 || index >= theme.columns.length) {
+            return false;
+        }
+
+        const columns = theme.columns.map((column, idx) => idx === index ? { ...column, ...payload } : column);
+        return this.updateMindMapTheme(themeId, { columns });
+    }
+
+    addMindMapThemeColumn(themeId) {
+        const themes = this.ensureMindMapThemesArray();
+        const theme = themes.find(entry => entry.id === themeId);
+        if (!theme) {
+            return false;
+        }
+
+        const palette = ['#34d399', '#22c55e', '#0ea5e9', '#1d4ed8', '#eab308', '#f97316', '#ef4444', '#a855f7', '#06b6d4'];
+        const usedKeys = new Set((Array.isArray(theme.columns) ? theme.columns : []).map(column => column.key));
+        const newColumn = this.normalizeMindMapThemeColumn(
+            { title: 'Nouvelle colonne', subtitle: '' },
+            theme.columns.length,
+            usedKeys,
+            palette
+        );
+
+        const columns = [...(theme.columns || []), newColumn];
+        return this.updateMindMapTheme(themeId, { columns });
+    }
+
+    removeMindMapThemeColumn(themeId, index) {
+        const themes = this.ensureMindMapThemesArray();
+        const theme = themes.find(entry => entry.id === themeId);
+        if (!theme || !Array.isArray(theme.columns) || theme.columns.length <= 1) {
+            return false;
+        }
+
+        const columns = theme.columns.filter((_, idx) => idx !== index);
+        return this.updateMindMapTheme(themeId, { columns });
+    }
+
+    reorderMindMapThemeColumns(themeId, fromIndex, toIndex) {
+        const themes = this.ensureMindMapThemesArray();
+        const theme = themes.find(entry => entry.id === themeId);
+        if (!theme || !Array.isArray(theme.columns)) {
+            return false;
+        }
+
+        const columns = [...theme.columns];
+        const [moved] = columns.splice(fromIndex, 1);
+        columns.splice(toIndex, 0, moved);
+        return this.updateMindMapTheme(themeId, { columns });
+    }
+
+    startMindMapThemeColumnDrag(event, themeId, index) {
+        if (event?.dataTransfer) {
+            event.dataTransfer.effectAllowed = 'move';
+            try {
+                event.dataTransfer.setData('text/plain', `mindmap-theme:${themeId}:${index}`);
+            } catch (error) {
+                // ignore
+            }
+        }
+
+        this.mindMapThemeDragState = { themeId, fromIndex: index };
+    }
+
+    handleMindMapThemeColumnDragOver(event, row) {
+        if (!this.mindMapThemeDragState || !row) {
+            return;
+        }
+        event.preventDefault();
+        if (event.dataTransfer) {
+            event.dataTransfer.dropEffect = 'move';
+        }
+        row.classList.add('mindmap-theme-column-drop');
+    }
+
+    handleMindMapThemeColumnDragLeave(row) {
+        if (row) {
+            row.classList.remove('mindmap-theme-column-drop');
+        }
+    }
+
+    handleMindMapThemeColumnDrop(event, row, targetIndex) {
+        if (!this.mindMapThemeDragState) {
+            return;
+        }
+        event.preventDefault();
+        row.classList.remove('mindmap-theme-column-drop');
+        const { themeId, fromIndex } = this.mindMapThemeDragState;
+        this.mindMapThemeDragState = null;
+
+        if (fromIndex === targetIndex) {
+            return;
+        }
+        this.reorderMindMapThemeColumns(themeId, fromIndex, targetIndex);
+    }
+
+    renderMindMapThemeManager(container) {
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        this.mindMapThemeManagerContainer = container;
+        container.innerHTML = '';
+
+        const wrapper = document.createElement('div');
+        wrapper.className = 'mindmap-theme-manager';
+        container.appendChild(wrapper);
+
+        const helper = document.createElement('p');
+        helper.className = 'config-template-helper';
+        helper.textContent = 'Créez plusieurs thèmes de mindmap et personnalisez les colonnes, leur ordre et leur intitulé.';
+        wrapper.appendChild(helper);
+
+        const themes = this.ensureMindMapThemesArray();
+        const activeId = this.config?.mindMapActiveThemeId;
+
+        const list = document.createElement('div');
+        list.className = 'mindmap-theme-list';
+        wrapper.appendChild(list);
+
+        if (!themes.length) {
+            const empty = document.createElement('div');
+            empty.className = 'config-template-empty';
+            empty.textContent = 'Aucun thème défini pour le moment.';
+            list.appendChild(empty);
+        } else {
+            themes.forEach(theme => {
+                const card = document.createElement('article');
+                card.className = 'mindmap-theme-card';
+                list.appendChild(card);
+
+                const renderDisplay = () => {
+                    card.innerHTML = '';
+                    const header = document.createElement('div');
+                    header.className = 'mindmap-theme-card-header';
+
+                    const title = document.createElement('div');
+                    title.className = 'mindmap-theme-title';
+                    title.textContent = theme.name || theme.id;
+                    header.appendChild(title);
+
+                    if (theme.id === activeId) {
+                        const badge = document.createElement('span');
+                        badge.className = 'mindmap-theme-badge';
+                        badge.textContent = 'Thème actif';
+                        header.appendChild(badge);
+                    }
+
+                    card.appendChild(header);
+
+                    const meta = document.createElement('div');
+                    meta.className = 'mindmap-theme-meta';
+                    meta.textContent = `${Array.isArray(theme.columns) ? theme.columns.length : 0} colonne(s)`;
+                    card.appendChild(meta);
+
+                    const preview = document.createElement('div');
+                    preview.className = 'mindmap-theme-preview';
+                    (Array.isArray(theme.columns) ? theme.columns : []).slice(0, 4).forEach(column => {
+                        const pill = document.createElement('span');
+                        pill.className = 'mindmap-theme-pill';
+                        pill.style.setProperty('--mindmap-pill-color', column.color || '#0ea5e9');
+                        pill.textContent = column.title || column.key;
+                        preview.appendChild(pill);
+                    });
+                    card.appendChild(preview);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'mindmap-theme-actions';
+
+                    const activateButton = document.createElement('button');
+                    activateButton.type = 'button';
+                    activateButton.className = 'btn btn-secondary';
+                    activateButton.textContent = theme.id === activeId ? 'Thème sélectionné' : 'Définir comme thème actif';
+                    activateButton.disabled = theme.id === activeId;
+                    activateButton.addEventListener('click', () => {
+                        this.setMindMapActiveTheme(theme.id);
+                        this.renderMindMapThemeManager(container);
+                    });
+                    actions.appendChild(activateButton);
+
+                    const editButton = document.createElement('button');
+                    editButton.type = 'button';
+                    editButton.className = 'btn btn-outline';
+                    editButton.textContent = 'Modifier';
+                    editButton.addEventListener('click', () => renderEdit());
+                    actions.appendChild(editButton);
+
+                    const duplicateButton = document.createElement('button');
+                    duplicateButton.type = 'button';
+                    duplicateButton.className = 'btn btn-outline';
+                    duplicateButton.textContent = 'Dupliquer';
+                    duplicateButton.addEventListener('click', () => this.duplicateMindMapTheme(theme.id));
+                    actions.appendChild(duplicateButton);
+
+                    const deleteButton = document.createElement('button');
+                    deleteButton.type = 'button';
+                    deleteButton.className = 'btn btn-outline';
+                    deleteButton.textContent = 'Supprimer';
+                    deleteButton.disabled = themes.length <= 1;
+                    deleteButton.addEventListener('click', () => {
+                        if (themes.length <= 1) {
+                            return;
+                        }
+                        this.config.mindMapThemes = themes.filter(entry => entry.id !== theme.id);
+                        if (this.config.mindMapActiveThemeId === theme.id) {
+                            this.config.mindMapActiveThemeId = this.config.mindMapThemes[0]?.id || '';
+                        }
+                        this.saveConfig();
+                        this.renderMindMapThemeManager(container);
+                        this.refreshMindMapFromThemes();
+                    });
+                    actions.appendChild(deleteButton);
+
+                    card.appendChild(actions);
+                };
+
+                const renderEdit = () => {
+                    card.innerHTML = '';
+
+                    const form = document.createElement('div');
+                    form.className = 'mindmap-theme-form';
+                    card.appendChild(form);
+
+                    const nameInput = document.createElement('input');
+                    nameInput.type = 'text';
+                    nameInput.value = theme.name || '';
+                    nameInput.className = 'config-input-label';
+                    nameInput.placeholder = 'Nom du thème';
+                    nameInput.addEventListener('change', () => {
+                        this.updateMindMapTheme(theme.id, { name: nameInput.value });
+                    });
+                    form.appendChild(nameInput);
+
+                    const columnList = document.createElement('div');
+                    columnList.className = 'mindmap-theme-columns';
+                    form.appendChild(columnList);
+
+                    const renderColumns = () => {
+                        columnList.innerHTML = '';
+                        (Array.isArray(theme.columns) ? theme.columns : []).forEach((column, index) => {
+                            const row = document.createElement('div');
+                            row.className = 'mindmap-theme-column-row';
+                            row.draggable = true;
+                            row.dataset.index = String(index);
+
+                            row.addEventListener('dragstart', (event) => this.startMindMapThemeColumnDrag(event, theme.id, index));
+                            row.addEventListener('dragover', (event) => this.handleMindMapThemeColumnDragOver(event, row));
+                            row.addEventListener('dragleave', () => this.handleMindMapThemeColumnDragLeave(row));
+                            row.addEventListener('drop', (event) => this.handleMindMapThemeColumnDrop(event, row, index));
+
+                            const handle = document.createElement('span');
+                            handle.className = 'drag-handle';
+                            handle.setAttribute('role', 'presentation');
+                            row.appendChild(handle);
+
+                            const titleInput = document.createElement('input');
+                            titleInput.type = 'text';
+                            titleInput.className = 'config-input-label';
+                            titleInput.value = column.title || '';
+                            titleInput.placeholder = 'Titre de colonne';
+                            titleInput.addEventListener('change', () => {
+                                this.updateMindMapThemeColumn(theme.id, index, { title: titleInput.value });
+                            });
+                            row.appendChild(titleInput);
+
+                            const subtitleInput = document.createElement('input');
+                            subtitleInput.type = 'text';
+                            subtitleInput.className = 'config-input-value';
+                            subtitleInput.value = column.subtitle || '';
+                            subtitleInput.placeholder = 'Sous-titre (optionnel)';
+                            subtitleInput.addEventListener('change', () => {
+                                this.updateMindMapThemeColumn(theme.id, index, { subtitle: subtitleInput.value });
+                            });
+                            row.appendChild(subtitleInput);
+
+                            const colorInput = document.createElement('input');
+                            colorInput.type = 'color';
+                            colorInput.className = 'mindmap-theme-color';
+                            colorInput.value = column.color || '#0ea5e9';
+                            colorInput.addEventListener('input', () => {
+                                this.updateMindMapThemeColumn(theme.id, index, { color: colorInput.value });
+                            });
+                            row.appendChild(colorInput);
+
+                            const deleteButton = document.createElement('button');
+                            deleteButton.type = 'button';
+                            deleteButton.className = 'btn btn-outline btn-small';
+                            deleteButton.textContent = 'Supprimer';
+                            deleteButton.disabled = theme.columns.length <= 1;
+                            deleteButton.addEventListener('click', () => {
+                                this.removeMindMapThemeColumn(theme.id, index);
+                            });
+                            row.appendChild(deleteButton);
+
+                            columnList.appendChild(row);
+                        });
+                    };
+
+                    renderColumns();
+
+                    const addColumn = document.createElement('button');
+                    addColumn.type = 'button';
+                    addColumn.className = 'btn btn-secondary';
+                    addColumn.textContent = 'Ajouter une colonne';
+                    addColumn.addEventListener('click', () => this.addMindMapThemeColumn(theme.id));
+                    form.appendChild(addColumn);
+
+                    const actions = document.createElement('div');
+                    actions.className = 'mindmap-theme-actions';
+
+                    const closeButton = document.createElement('button');
+                    closeButton.type = 'button';
+                    closeButton.className = 'btn btn-outline';
+                    closeButton.textContent = 'Terminer';
+                    closeButton.addEventListener('click', () => {
+                        this.renderMindMapThemeManager(container);
+                    });
+                    actions.appendChild(closeButton);
+
+                    form.appendChild(actions);
+                };
+
+                renderDisplay();
+            });
+        }
+
+        const addForm = document.createElement('div');
+        addForm.className = 'mindmap-theme-form';
+        wrapper.appendChild(addForm);
+
+        const addTitle = document.createElement('p');
+        addTitle.className = 'config-template-helper';
+        addTitle.textContent = 'Créer un nouveau thème';
+        addForm.appendChild(addTitle);
+
+        const nameInput = document.createElement('input');
+        nameInput.type = 'text';
+        nameInput.placeholder = 'Nom du thème';
+        nameInput.className = 'config-input-label';
+        addForm.appendChild(nameInput);
+
+        const addButton = document.createElement('button');
+        addButton.type = 'button';
+        addButton.className = 'btn btn-success';
+        addButton.textContent = 'Ajouter le thème';
+        addButton.addEventListener('click', () => {
+            const value = nameInput.value.trim();
+            const id = this.addMindMapTheme({ name: value });
+            nameInput.value = '';
+            if (id) {
+                this.renderMindMapThemeManager(container);
+            }
+        });
+        addForm.appendChild(addButton);
     }
 
     renderInterviewTemplateManager(container) {

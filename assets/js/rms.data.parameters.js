@@ -129,10 +129,30 @@
                 label: 'Suivi de plan d’actions anticorruption',
                 content: '<p><strong>Avancement général</strong></p><ul><li>Rappels des actions engagées :</li><li>Niveau d’avancement :</li></ul><p><strong>Points de vigilance</strong></p><ul><li>Obstacles rencontrés :</li><li>Impacts sur les délais :</li></ul><p><strong>Décisions & arbitrages</strong></p><ul><li>Mesures correctrices :</li><li>Ressources nécessaires :</li></ul><p><strong>Prochaines étapes</strong></p><ul><li>Responsables assignés :</li><li>Calendrier de suivi :</li></ul>'
             }
-        ]
+        ],
+        mindMapThemes: [
+            {
+                id: 'impact-mapping',
+                name: 'Impact mapping',
+                columns: [
+                    { key: 'tiers', title: 'Tiers', subtitle: 'Quels tiers impactent vos activités ?', color: '#34d399' },
+                    { key: 'objectifs', title: 'Objectifs', subtitle: 'Quels sont vos objectifs ? Qui les portent ?', color: '#22c55e' },
+                    { key: 'comportements', title: 'Comportements attendus', subtitle: "Quels sont les comportements des tiers que l'on espère ?", color: '#0ea5e9' },
+                    { key: 'moyens', title: 'Moyens de corruption', subtitle: 'Quels moyens frauduleux pourraient faciliter ces comportements ?', color: '#1d4ed8' },
+                    { key: 'controle', title: 'Contrôle', subtitle: "Qu'est-ce qui permet prévenir ce comportement ?", color: '#eab308' },
+                    { key: 'contournement', title: 'Contournement', subtitle: 'Existe-t-il des moyens de contournement ?', color: '#f97316' },
+                    { key: 'probabilite', title: 'Probabilité', subtitle: 'Ce scénario est-il probable ?', color: '#ef4444' }
+                ]
+            }
+        ],
+        mindMapActiveThemeId: 'impact-mapping'
     };
 
     const cloneList = (list) => Object.freeze(list.map(item => Object.freeze({ ...item })));
+    const cloneMindMapThemes = (themes) => Object.freeze((Array.isArray(themes) ? themes : []).map(theme => Object.freeze({
+        ...theme,
+        columns: Object.freeze((Array.isArray(theme?.columns) ? theme.columns : []).map(column => Object.freeze({ ...column })))
+    })));
 
     global.RMS_DEFAULT_PARAMETER_CONFIG = Object.freeze({
         riskTypes: cloneList(parameterConfig.riskTypes),
@@ -146,6 +166,8 @@
         controlModes: cloneList(parameterConfig.controlModes),
         controlEffectiveness: cloneList(parameterConfig.controlEffectiveness),
         controlStatuses: cloneList(parameterConfig.controlStatuses),
-        interviewTemplates: cloneList(parameterConfig.interviewTemplates)
+        interviewTemplates: cloneList(parameterConfig.interviewTemplates),
+        mindMapThemes: cloneMindMapThemes(parameterConfig.mindMapThemes),
+        mindMapActiveThemeId: parameterConfig.mindMapActiveThemeId
     });
 })(typeof window !== 'undefined' ? window : globalThis);
