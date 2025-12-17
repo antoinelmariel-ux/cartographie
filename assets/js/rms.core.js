@@ -946,6 +946,7 @@ class RiskManagementSystem {
         return {
             zoom: 1,
             linkStyle: this.getDefaultMindMapLinkStyle(),
+            layoutMode: 'balanced',
             nodes
         };
     }
@@ -1008,6 +1009,7 @@ class RiskManagementSystem {
 
         const zoom = Math.min(Math.max(Number(state.zoom) || 1, 0.7), 1.5);
         const linkStyle = this.resolveMindMapLinkStyle(state.linkStyle);
+        const layoutMode = this.resolveMindMapLayoutMode(state.layoutMode);
         const normalizedNodes = {};
 
         this.getMindMapColumns().forEach(column => {
@@ -1020,6 +1022,7 @@ class RiskManagementSystem {
         return {
             zoom,
             linkStyle,
+            layoutMode,
             nodes: normalizedNodes
         };
     }
@@ -1032,6 +1035,11 @@ class RiskManagementSystem {
 
         const allowed = ['smooth', 'orthogonal', 'fluid'];
         return allowed.includes(styleKey) ? styleKey : this.getDefaultMindMapLinkStyle();
+    }
+
+    resolveMindMapLayoutMode(mode) {
+        const allowed = ['compact', 'balanced', 'radial'];
+        return allowed.includes(mode) ? mode : 'balanced';
     }
 
     getCurrentMindMapState() {
@@ -1103,6 +1111,17 @@ class RiskManagementSystem {
         }
     }
 
+    syncMindMapLayoutControls(mode) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const select = document.getElementById('mindmapLayoutMode');
+        if (select) {
+            select.value = this.resolveMindMapLayoutMode(mode);
+        }
+    }
+
     updateMindMapStyle(styleKey) {
         const resolvedStyle = this.resolveMindMapLinkStyle(styleKey);
         this.interviewMindMapState = {
@@ -1111,6 +1130,17 @@ class RiskManagementSystem {
         };
         this.syncMindMapStyleControls(resolvedStyle);
         this.updateMindMapLinks();
+        this.markUnsavedChange('interviewForm');
+    }
+
+    updateMindMapLayoutMode(mode) {
+        const resolvedMode = this.resolveMindMapLayoutMode(mode);
+        this.interviewMindMapState = {
+            ...this.getCurrentMindMapState(),
+            layoutMode: resolvedMode
+        };
+        this.syncMindMapLayoutControls(resolvedMode);
+        this.applyMindMapAutoLayout();
         this.markUnsavedChange('interviewForm');
     }
 
@@ -1270,6 +1300,7 @@ class RiskManagementSystem {
 
         this.syncMindMapZoomControls(state.zoom);
         this.syncMindMapStyleControls(state.linkStyle);
+        this.syncMindMapLayoutControls(state.layoutMode);
         if (this.mindMapMiniMapVisible) {
             this.refreshMindMapMiniMap();
         } else {
@@ -1423,14 +1454,43 @@ class RiskManagementSystem {
         }
 
         const wrapper = document.querySelector('.mindmap-workspace-wrapper');
-        if (!wrapper) {
+        const workspace = document.getElementById('mindmapWorkspace');
+        if (!wrapper || !workspace) {
             return;
         }
 
         this.resetMindMapNodeOffsets();
 
         window.requestAnimationFrame(() => {
-            this.centerMindMapParents(wrapper);
+            const layout = this.computeMindMapLayout(wrapper);
+            if (!layout) {
+                return;
+            }
+
+            workspace.style.setProperty('--mindmap-column-gap', `${layout.settings.columnGap}px`);
+            workspace.style.setProperty('--mindmap-column-width', `${layout.settings.columnWidth}px`);
+
+            wrapper.querySelectorAll('.mindmap-column-body').forEach(body => {
+                const columnKey = body.closest('.mindmap-column')?.dataset?.column;
+                body.classList.add('uses-auto-layout');
+                body.style.height = `${Math.max(layout.columnHeights.get(columnKey) || layout.settings.minimumColumnHeight, layout.settings.minimumColumnHeight)}px`;
+            });
+
+            layout.positions.forEach((position, nodeId) => {
+                const nodeElement = wrapper.querySelector(`[data-node-id="${nodeId}"]`);
+                if (!nodeElement) {
+                    return;
+                }
+
+                nodeElement.style.position = 'absolute';
+                nodeElement.style.left = `${position.x}px`;
+                nodeElement.style.top = `${position.y}px`;
+                nodeElement.style.width = '100%';
+                nodeElement.classList.add('is-auto-positioned');
+                nodeElement.style.removeProperty('--mindmap-offset');
+                nodeElement.style.transform = '';
+            });
+
             this.updateMindMapLinks();
         });
     }
@@ -1441,100 +1501,190 @@ class RiskManagementSystem {
         }
 
         document.querySelectorAll('.mindmap-node').forEach(node => {
+            node.style.position = '';
+            node.style.left = '';
+            node.style.top = '';
+            node.style.width = '';
             node.style.removeProperty('--mindmap-offset');
             node.style.transform = '';
             node.classList.remove('is-auto-positioned');
         });
-    }
 
-    centerMindMapParents(wrapper) {
-        if (typeof document === 'undefined' || !wrapper) {
-            return;
-        }
-
-        const wrapperRect = wrapper.getBoundingClientRect();
-        const childrenMap = this.getMindMapChildrenMap();
-        const nodeElements = new Map();
-
-        document.querySelectorAll('.mindmap-node').forEach(node => {
-            nodeElements.set(node.dataset.nodeId, node);
-        });
-
-        childrenMap.forEach((childrenIds, parentId) => {
-            const parentElement = nodeElements.get(parentId);
-            if (!parentElement) {
-                return;
-            }
-
-            const parentBubble = parentElement.querySelector('.mindmap-node-bubble');
-            if (!parentBubble) {
-                return;
-            }
-
-            const childCenters = Array.from(childrenIds)
-                .map(childId => {
-                    const childElement = nodeElements.get(childId);
-                    const bubble = childElement?.querySelector('.mindmap-node-bubble');
-                    if (!bubble) {
-                        return null;
-                    }
-
-                    const rect = bubble.getBoundingClientRect();
-                    return (rect.top + rect.bottom) / 2 - wrapperRect.top + wrapper.scrollTop;
-                })
-                .filter(value => typeof value === 'number');
-
-            if (!childCenters.length) {
-                return;
-            }
-
-            const childrenCenter = (Math.min(...childCenters) + Math.max(...childCenters)) / 2;
-            const parentRect = parentBubble.getBoundingClientRect();
-            const parentCenter = (parentRect.top + parentRect.bottom) / 2 - wrapperRect.top + wrapper.scrollTop;
-            const offset = childrenCenter - parentCenter;
-
-            parentElement.style.setProperty('--mindmap-offset', `${offset}px`);
-            parentElement.style.transform = `translateY(${offset}px)`;
-            parentElement.classList.toggle('is-auto-positioned', Math.abs(offset) > 1);
+        document.querySelectorAll('.mindmap-column-body').forEach(body => {
+            body.classList.remove('uses-auto-layout');
+            body.style.height = '';
         });
     }
 
-    getMindMapChildrenMap() {
-        const mapping = new Map();
-        const state = this.getCurrentMindMapState();
-        const columns = this.getMindMapColumns();
-
-        const registerChild = (parentId, childId) => {
-            if (!parentId || !childId) {
-                return;
+    getMindMapLayoutSettings(mode) {
+        const resolvedMode = this.resolveMindMapLayoutMode(mode);
+        const presets = {
+            compact: {
+                columnGap: 24,
+                columnWidth: 260,
+                nodeGap: 18,
+                rootGap: 32,
+                padding: 12,
+                minimumColumnHeight: 220,
+                radialBend: 0,
+                radialSpread: Math.PI
+            },
+            balanced: {
+                columnGap: 32,
+                columnWidth: 300,
+                nodeGap: 26,
+                rootGap: 38,
+                padding: 16,
+                minimumColumnHeight: 260,
+                radialBend: 0,
+                radialSpread: Math.PI
+            },
+            radial: {
+                columnGap: 40,
+                columnWidth: 320,
+                nodeGap: 24,
+                rootGap: 42,
+                padding: 20,
+                minimumColumnHeight: 320,
+                radialBend: 36,
+                radialSpread: Math.PI * 0.9
             }
-
-            if (!mapping.has(parentId)) {
-                mapping.set(parentId, new Set());
-            }
-
-            mapping.get(parentId).add(childId);
         };
 
-        const traverseNodes = (nodes) => {
-            if (!Array.isArray(nodes)) {
-                return;
-            }
+        return {
+            mode: resolvedMode,
+            estimatedNodeHeight: 96,
+            ...presets[resolvedMode]
+        };
+    }
 
+    computeMindMapLayout(wrapper) {
+        if (!wrapper) {
+            return null;
+        }
+
+        const state = this.getCurrentMindMapState();
+        const settings = this.getMindMapLayoutSettings(state.layoutMode);
+        const columns = this.getMindMapColumns();
+        const columnIndexMap = new Map();
+        columns.forEach((column, index) => columnIndexMap.set(column.key, index));
+
+        const nodeHeights = new Map();
+        wrapper.querySelectorAll('.mindmap-node').forEach(node => {
+            const bubble = node.querySelector('.mindmap-node-bubble');
+            const rect = bubble?.getBoundingClientRect();
+            nodeHeights.set(node.dataset.nodeId, rect?.height || settings.estimatedNodeHeight);
+        });
+
+        const entries = [];
+        const collectNodes = (nodes, columnKey, parentId = null) => {
             nodes.forEach(node => {
-                if (node?.linkedFrom?.nodeId) {
-                    registerChild(node.linkedFrom.nodeId, node.id);
-                }
+                entries.push({
+                    id: node.id,
+                    columnKey,
+                    columnIndex: columnIndexMap.get(columnKey) || 0,
+                    baseParentId: parentId,
+                    linkParentId: node?.linkedFrom?.nodeId || null,
+                    height: nodeHeights.get(node.id) || settings.estimatedNodeHeight
+                });
 
-                if (Array.isArray(node?.children)) {
-                    node.children.forEach(child => registerChild(node.id, child.id));
-                    traverseNodes(node.children);
+                if (Array.isArray(node.children) && node.children.length) {
+                    collectNodes(node.children, columnKey, node.id);
                 }
             });
         };
 
-        columns.forEach(column => traverseNodes(state.nodes?.[column.key]));
-        return mapping;
+        columns.forEach(column => collectNodes(state.nodes?.[column.key] || [], column.key));
+
+        const metaMap = new Map();
+        entries.forEach(entry => {
+            metaMap.set(entry.id, {
+                ...entry,
+                children: [],
+                parentId: null,
+                y: 0
+            });
+        });
+
+        const roots = [];
+        metaMap.forEach(meta => {
+            const parentId = meta.linkParentId || meta.baseParentId;
+            meta.parentId = parentId;
+        });
+
+        metaMap.forEach(meta => {
+            if (meta.parentId && metaMap.has(meta.parentId)) {
+                metaMap.get(meta.parentId).children.push(meta);
+            } else {
+                roots.push(meta);
+            }
+        });
+
+        if (!roots.length) {
+            return null;
+        }
+
+        let cursorY = settings.padding;
+        const layoutNode = (meta) => {
+            if (!meta.children.length) {
+                meta.y = cursorY;
+                cursorY += meta.height + settings.nodeGap;
+                return meta;
+            }
+
+            meta.children.forEach(child => layoutNode(child));
+            const first = meta.children[0];
+            const last = meta.children[meta.children.length - 1];
+            const firstCenter = first.y + first.height / 2;
+            const lastCenter = last.y + last.height / 2;
+            meta.y = (firstCenter + lastCenter) / 2 - meta.height / 2;
+            return meta;
+        };
+
+        roots.forEach((root, index) => {
+            layoutNode(root);
+            cursorY += settings.rootGap;
+        });
+
+        let maxY = 0;
+        metaMap.forEach(meta => {
+            maxY = Math.max(maxY, meta.y + meta.height);
+        });
+
+        const totalHeight = Math.max(maxY + settings.padding, settings.minimumColumnHeight);
+        const centerY = totalHeight / 2;
+        const positions = new Map();
+        const columnHeights = new Map();
+
+        metaMap.forEach(meta => {
+            let x = 0;
+            let y = meta.y;
+
+            if (settings.mode === 'radial') {
+                const angle = totalHeight ? ((y - centerY) / totalHeight) * settings.radialSpread : 0;
+                const sway = Math.sin(angle) * settings.radialBend;
+                const maxSway = settings.columnWidth * 0.25;
+                x = Math.max(Math.min(sway, maxSway), -maxSway);
+                y = centerY + Math.sin(angle) * ((meta.columnIndex + 1) * (settings.nodeGap + 12));
+            }
+
+            positions.set(meta.id, {
+                x,
+                y,
+                columnKey: meta.columnKey,
+                height: meta.height
+            });
+
+            const existingHeight = columnHeights.get(meta.columnKey) || settings.minimumColumnHeight;
+            columnHeights.set(meta.columnKey, Math.max(existingHeight, y + meta.height + settings.padding));
+        });
+
+        return {
+            positions,
+            columnHeights,
+            settings,
+            totalHeight
+        };
     }
 
     renderMindMapNode(node, columnKey) {

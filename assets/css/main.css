@@ -2288,8 +2288,8 @@ tbody tr:hover {
     z-index: 1;
     display: grid;
     grid-auto-flow: column;
-    grid-auto-columns: minmax(260px, 1fr);
-    gap: 32px;
+    grid-auto-columns: minmax(var(--mindmap-column-width, 260px), 1fr);
+    gap: var(--mindmap-column-gap, 32px);
     min-width: max-content;
     transform-origin: top left;
     align-items: start;
@@ -2364,6 +2364,10 @@ tbody tr:hover {
     gap: 14px;
     min-height: 220px;
     position: relative;
+}
+
+.mindmap-column-body.uses-auto-layout {
+    display: block;
 }
 
 .mindmap-add-button {
