@@ -740,7 +740,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.12.0</span>
+            <span class="app-version">Version 2.13.0</span>
         </footer>
     </div>
 
@@ -848,6 +848,14 @@
                             <option value="smooth">Courbes lissées</option>
                             <option value="orthogonal">Orthogonaux</option>
                             <option value="fluid">Fluide</option>
+                        </select>
+                    </div>
+                    <div class="mindmap-zoom-control">
+                        <label for="mindmapLayoutMode">Disposition</label>
+                        <select id="mindmapLayoutMode" onchange="rms.updateMindMapLayoutMode(this.value)">
+                            <option value="compact">Compact</option>
+                            <option value="balanced" selected>Équilibré</option>
+                            <option value="radial">Radial</option>
                         </select>
                     </div>
                     <div class="mindmap-cta-group">
