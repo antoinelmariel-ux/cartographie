@@ -2297,9 +2297,9 @@ tbody tr:hover {
 
 .mindmap-link-layer {
     position: absolute;
-    inset: 12px;
-    width: calc(100% - 24px);
-    height: calc(100% - 24px);
+    inset: 0;
+    width: 100%;
+    height: 100%;
     pointer-events: none;
     z-index: 0;
     overflow: visible;
@@ -2377,6 +2377,12 @@ tbody tr:hover {
 
 .mindmap-node {
     position: relative;
+    transform: translateY(var(--mindmap-offset, 0px));
+    transition: transform 0.25s ease;
+}
+
+.mindmap-node.is-auto-positioned {
+    will-change: transform;
 }
 
 .mindmap-node-bubble {
