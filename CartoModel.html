@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.11.31</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.12.0</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -38,6 +38,44 @@
             `;
             (document.body || document.documentElement).prepend(container);
         }
+
+        const OPTIONAL_LIBRARIES = {
+            Bezier: {
+                local: 'assets/libs/bezier.min.js',
+                cdn: 'https://cdn.jsdelivr.net/npm/bezier-js@6.1.4/dist/bezier.min.js'
+            }
+        };
+
+        function loadOptionalLibraries() {
+            Object.entries(OPTIONAL_LIBRARIES).forEach(([globalName, { local, cdn }]) => {
+                if (window[globalName]) {
+                    return;
+                }
+
+                const script = document.createElement('script');
+                script.src = local;
+                script.async = false;
+                script.onload = () => console.info(`${globalName} chargé localement (optionnel)`);
+                script.onerror = () => handleOptionalLibFallback(globalName, cdn);
+                document.head.appendChild(script);
+            });
+        }
+
+        function handleOptionalLibFallback(globalName, cdn) {
+            if (!cdn || window[globalName]) {
+                console.info(`${globalName} non disponible, utilisation du moteur natif.`);
+                return;
+            }
+
+            const fallbackScript = document.createElement('script');
+            fallbackScript.src = cdn;
+            fallbackScript.async = false;
+            fallbackScript.onload = () => console.info(`${globalName} chargé via CDN (optionnel)`);
+            fallbackScript.onerror = () => console.info(`${globalName} absent, rendu natif utilisé.`);
+            document.head.appendChild(fallbackScript);
+        }
+
+        document.addEventListener('DOMContentLoaded', loadOptionalLibraries);
     </script>
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js" onerror="handleLibLoadError('Chart.js')"></script>
@@ -702,7 +740,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.11.31</span>
+            <span class="app-version">Version 2.12.0</span>
         </footer>
     </div>
 
@@ -803,6 +841,14 @@
                         <label for="mindmapZoom">Zoom</label>
                         <input id="mindmapZoom" type="range" min="70" max="150" value="100" oninput="rms.updateMindMapZoom(this.value)">
                         <span id="mindmapZoomValue" class="mindmap-zoom-value">100%</span>
+                    </div>
+                    <div class="mindmap-zoom-control">
+                        <label for="mindmapLinkStyle">Style des liens</label>
+                        <select id="mindmapLinkStyle" onchange="rms.updateMindMapStyle(this.value)">
+                            <option value="smooth">Courbes lissées</option>
+                            <option value="orthogonal">Orthogonaux</option>
+                            <option value="fluid">Fluide</option>
+                        </select>
                     </div>
                     <div class="mindmap-cta-group">
                         <button class="btn btn-outline" type="button" id="mindmapToolbarToggle" aria-pressed="false" onclick="rms.toggleMindMapToolbar()">Afficher les actions</button>
@@ -1361,6 +1407,7 @@
         </div>
     </div>
 
+    <script defer src="assets/js/mindmap.renderer.js"></script>
     <script defer src="assets/js/rms.utils.js"></script>
     <script defer src="assets/js/rms.constants.js"></script>
     <script defer src="assets/js/rms.data.processes.js"></script>

@@ -179,6 +179,7 @@ class RiskManagementSystem {
         this.mindMapDragContext = null;
         this.mindMapLinkListenersRegistered = false;
         this.mindMapLinkUpdateHandler = null;
+        this.mindMapRenderer = null;
         this.init();
     }
 
@@ -928,6 +929,14 @@ class RiskManagementSystem {
         ];
     }
 
+    getDefaultMindMapLinkStyle() {
+        if (typeof MindMapRenderer !== 'undefined' && MindMapRenderer.DEFAULT_STYLE_KEY) {
+            return MindMapRenderer.DEFAULT_STYLE_KEY;
+        }
+
+        return 'smooth';
+    }
+
     createEmptyMindMapState() {
         const nodes = {};
         this.getMindMapColumns().forEach(column => {
@@ -936,6 +945,7 @@ class RiskManagementSystem {
 
         return {
             zoom: 1,
+            linkStyle: this.getDefaultMindMapLinkStyle(),
             nodes
         };
     }
@@ -997,6 +1007,7 @@ class RiskManagementSystem {
         }
 
         const zoom = Math.min(Math.max(Number(state.zoom) || 1, 0.7), 1.5);
+        const linkStyle = this.resolveMindMapLinkStyle(state.linkStyle);
         const normalizedNodes = {};
 
         this.getMindMapColumns().forEach(column => {
@@ -1008,8 +1019,19 @@ class RiskManagementSystem {
 
         return {
             zoom,
+            linkStyle,
             nodes: normalizedNodes
         };
+    }
+
+    resolveMindMapLinkStyle(styleKey) {
+        if (typeof MindMapRenderer !== 'undefined' && typeof MindMapRenderer.prototype?.resolveStyleKey === 'function') {
+            const renderer = this.getMindMapRenderer();
+            return renderer.resolveStyleKey(styleKey);
+        }
+
+        const allowed = ['smooth', 'orthogonal', 'fluid'];
+        return allowed.includes(styleKey) ? styleKey : this.getDefaultMindMapLinkStyle();
     }
 
     getCurrentMindMapState() {
@@ -1068,6 +1090,28 @@ class RiskManagementSystem {
         if (zoomLabel) {
             zoomLabel.textContent = `${percentage}%`;
         }
+    }
+
+    syncMindMapStyleControls(styleKey) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const select = document.getElementById('mindmapLinkStyle');
+        if (select) {
+            select.value = this.resolveMindMapLinkStyle(styleKey);
+        }
+    }
+
+    updateMindMapStyle(styleKey) {
+        const resolvedStyle = this.resolveMindMapLinkStyle(styleKey);
+        this.interviewMindMapState = {
+            ...this.getCurrentMindMapState(),
+            linkStyle: resolvedStyle
+        };
+        this.syncMindMapStyleControls(resolvedStyle);
+        this.updateMindMapLinks();
+        this.markUnsavedChange('interviewForm');
     }
 
     toggleMindMapToolbar() {
@@ -1225,6 +1269,7 @@ class RiskManagementSystem {
         });
 
         this.syncMindMapZoomControls(state.zoom);
+        this.syncMindMapStyleControls(state.linkStyle);
         if (this.mindMapMiniMapVisible) {
             this.refreshMindMapMiniMap();
         } else {
@@ -1239,6 +1284,29 @@ class RiskManagementSystem {
         }
 
         this.applyMindMapAutoLayout();
+    }
+
+    getMindMapRenderer() {
+        if (typeof MindMapRenderer === 'undefined') {
+            return null;
+        }
+
+        if (!this.mindMapRenderer) {
+            const externalFactory = typeof window !== 'undefined' && typeof window.createMindMapRenderingEngine === 'function'
+                ? () => window.createMindMapRenderingEngine()
+                : null;
+
+            this.mindMapRenderer = new MindMapRenderer({
+                engineFactory: externalFactory,
+                externalBezierClass: typeof Bezier !== 'undefined' ? Bezier : undefined
+            });
+        }
+
+        if (!this.mindMapRenderer.externalBezierClass && typeof Bezier !== 'undefined') {
+            this.mindMapRenderer.setExternalBezierClass(Bezier);
+        }
+
+        return this.mindMapRenderer;
     }
 
     registerMindMapLinkListeners(workspaceWrapper) {
@@ -1264,24 +1332,15 @@ class RiskManagementSystem {
         const linkLayer = document.getElementById('mindmapLinkLayer');
         const workspace = document.getElementById('mindmapWorkspace');
         const wrapper = workspace?.closest('.mindmap-workspace-wrapper');
+        const renderer = this.getMindMapRenderer();
 
-        if (!linkLayer || !workspace || !wrapper) {
+        if (!linkLayer || !workspace || !wrapper || !renderer) {
             return;
         }
 
-        const wrapperRect = wrapper.getBoundingClientRect();
-        const width = Math.max(wrapper.scrollWidth, wrapperRect.width);
-        const height = Math.max(wrapper.scrollHeight, wrapperRect.height);
-
-        linkLayer.setAttribute('width', width);
-        linkLayer.setAttribute('height', height);
-        linkLayer.setAttribute('viewBox', `0 0 ${width} ${height}`);
-        linkLayer.style.width = `${width}px`;
-        linkLayer.style.height = `${height}px`;
-        linkLayer.innerHTML = '';
-
         const state = this.getCurrentMindMapState();
         const columns = this.getMindMapColumns();
+        const linkDescriptors = [];
 
         const drawLinksForNodes = (nodes, columnKey) => {
             if (!Array.isArray(nodes)) {
@@ -1290,12 +1349,18 @@ class RiskManagementSystem {
 
             nodes.forEach(node => {
                 if (node?.linkedFrom?.nodeId && node?.linkedFrom?.column) {
-                    this.drawMindMapLink(node, wrapperRect, linkLayer);
+                    const descriptor = this.drawMindMapLink(node);
+                    if (descriptor) {
+                        linkDescriptors.push(descriptor);
+                    }
                 }
 
                 if (Array.isArray(node?.children) && !node.collapsed) {
                     node.children.forEach(child => {
-                        this.drawMindMapHierarchyLink(node, child, columnKey, wrapperRect, linkLayer);
+                        const descriptor = this.drawMindMapHierarchyLink(node, child, columnKey);
+                        if (descriptor) {
+                            linkDescriptors.push(descriptor);
+                        }
                     });
                     drawLinksForNodes(node.children, columnKey);
                 }
@@ -1303,9 +1368,16 @@ class RiskManagementSystem {
         };
 
         columns.forEach(column => drawLinksForNodes(state.nodes?.[column.key], column.key));
+
+        renderer.render({
+            linkLayer,
+            wrapper,
+            links: linkDescriptors,
+            style: state.linkStyle
+        });
     }
 
-    drawMindMapLink(node, wrapperRect, linkLayer) {
+    drawMindMapLink(node) {
         const sourceSelector = `[data-node-id="${node.linkedFrom.nodeId}"] .mindmap-node-bubble`;
         const targetSelector = `[data-node-id="${node.id}"] .mindmap-node-bubble`;
 
@@ -1316,39 +1388,17 @@ class RiskManagementSystem {
             return;
         }
 
-        const sourceRect = sourceBubble.getBoundingClientRect();
-        const targetRect = targetBubble.getBoundingClientRect();
-        const startX = sourceRect.right - wrapperRect.left;
-        const startY = sourceRect.top + sourceRect.height / 2 - wrapperRect.top;
-        const endX = targetRect.left - wrapperRect.left;
-        const endY = targetRect.top + targetRect.height / 2 - wrapperRect.top;
-        const distance = Math.abs(endX - startX);
-        const curvature = Math.max(60, distance * 0.35);
-
         const accent = this.getMindMapColumnColor(node.linkedFrom.column) || 'var(--primary-color)';
-
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${startX} ${startY} C ${startX + curvature} ${startY}, ${endX - curvature} ${endY}, ${endX} ${endY}`);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', accent);
-        path.setAttribute('stroke-width', '3');
-        path.setAttribute('class', 'mindmap-link-path');
-        path.setAttribute('stroke-opacity', '0.9');
-
-        const marker = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        marker.setAttribute('cx', endX);
-        marker.setAttribute('cy', endY);
-        marker.setAttribute('r', '6');
-        marker.setAttribute('fill', '#ffffff');
-        marker.setAttribute('stroke', accent);
-        marker.setAttribute('stroke-width', '2');
-        marker.setAttribute('class', 'mindmap-link-marker');
-
-        linkLayer.appendChild(path);
-        linkLayer.appendChild(marker);
+        return {
+            type: 'reference',
+            source: sourceBubble,
+            target: targetBubble,
+            accent,
+            columnKey: node.linkedFrom.column
+        };
     }
 
-    drawMindMapHierarchyLink(parentNode, childNode, columnKey, wrapperRect, linkLayer) {
+    drawMindMapHierarchyLink(parentNode, childNode, columnKey) {
         const parentBubble = document.querySelector(`[data-node-id="${parentNode.id}"] .mindmap-node-bubble`);
         const childBubble = document.querySelector(`[data-node-id="${childNode.id}"] .mindmap-node-bubble`);
 
@@ -1356,25 +1406,15 @@ class RiskManagementSystem {
             return;
         }
 
-        const parentRect = parentBubble.getBoundingClientRect();
-        const childRect = childBubble.getBoundingClientRect();
-
-        const startX = parentRect.left - wrapperRect.left + parentRect.width / 2;
-        const startY = parentRect.bottom - wrapperRect.top - 4;
-        const endX = childRect.left - wrapperRect.left + childRect.width / 2;
-        const endY = childRect.top - wrapperRect.top + 4;
-        const curvature = Math.max(28, Math.abs(endY - startY) * 0.35);
-
         const accent = this.getMindMapColumnColor(columnKey) || 'var(--primary-color)';
 
-        const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-        path.setAttribute('d', `M ${startX} ${startY} C ${startX} ${startY + curvature}, ${endX} ${endY - curvature}, ${endX} ${endY}`);
-        path.setAttribute('fill', 'none');
-        path.setAttribute('stroke', accent);
-        path.setAttribute('stroke-width', '2');
-        path.setAttribute('class', 'mindmap-link-path');
-
-        linkLayer.appendChild(path);
+        return {
+            type: 'hierarchy',
+            source: parentBubble,
+            target: childBubble,
+            accent,
+            columnKey
+        };
     }
 
     applyMindMapAutoLayout() {
