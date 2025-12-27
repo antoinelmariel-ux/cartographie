@@ -3191,6 +3191,10 @@ tbody tr:hover {
     background: #3498db;
 }
 
+.interview-action-btn.download {
+    background: #27ae60;
+}
+
 .interview-action-btn.delete {
     background: #e74c3c;
 }

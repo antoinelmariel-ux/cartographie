@@ -112,13 +112,12 @@ class RiskManagementSystem {
         const storedHistory = this.loadData('history');
         this.history = Array.isArray(storedHistory) ? storedHistory : this.getDefaultHistory();
 
-        const storedInterviews = this.loadData('interviews');
         const defaultInterviews = this.getDefaultInterviews();
-        this.interviews = Array.isArray(storedInterviews)
-            ? storedInterviews
+        this.interviews = Array.isArray(defaultInterviews)
+            ? defaultInterviews
                 .map(entry => this.normalizeInterview(entry))
                 .filter(Boolean)
-            : defaultInterviews;
+            : [];
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
         this.readOnlyConfigKeys = new Set(['riskStatuses']);
@@ -209,6 +208,12 @@ class RiskManagementSystem {
         }
         this.saveData();
         this.updateLastSaveTime();
+        this.loadInterviewFiles().then((hasUpdates) => {
+            if (hasUpdates) {
+                this.populateSelects();
+                this.updateInterviewsList();
+            }
+        });
     }
 
     renderAll() {
@@ -1029,8 +1034,11 @@ class RiskManagementSystem {
             ? interview.updatedAt
             : createdAt;
 
+        const fileIndex = this.getInterviewFileIndex(interview);
+
         return {
             id: interview.id,
+            fileIndex: fileIndex || undefined,
             title,
             referents: uniqueReferents,
             date: normalizedDate,
@@ -5920,6 +5928,178 @@ class RiskManagementSystem {
         }
     }
 
+    async loadInterviewFiles() {
+        if (typeof fetch === 'undefined' || typeof document === 'undefined') {
+            return false;
+        }
+
+        const loadedInterviews = [];
+        let index = 1;
+        let missingCount = 0;
+        const maxMissing = 5;
+
+        while (missingCount < maxMissing) {
+            const interview = await this.fetchInterviewFile(index);
+            if (interview) {
+                const withIndex = {
+                    ...interview,
+                    fileIndex: this.getInterviewFileIndex(interview) || index
+                };
+                const normalized = this.normalizeInterview(withIndex);
+                if (normalized) {
+                    loadedInterviews.push(normalized);
+                }
+                missingCount = 0;
+            } else {
+                missingCount += 1;
+            }
+            index += 1;
+        }
+
+        if (!loadedInterviews.length) {
+            return false;
+        }
+
+        this.interviews = loadedInterviews;
+        return true;
+    }
+
+    async fetchInterviewFile(index) {
+        const baseName = `interview${index}`;
+        const jsonInterview = await this.fetchInterviewJson(`${baseName}.json`);
+        if (jsonInterview) {
+            return jsonInterview;
+        }
+        return this.fetchInterviewScript(baseName);
+    }
+
+    async fetchInterviewJson(path) {
+        try {
+            const response = await fetch(path, { cache: 'no-store' });
+            if (!response.ok) {
+                return null;
+            }
+            const data = await response.json();
+            if (!data) {
+                return null;
+            }
+            if (data && typeof data === 'object' && data.interview) {
+                return data.interview;
+            }
+            return data;
+        } catch (error) {
+            return null;
+        }
+    }
+
+    fetchInterviewScript(baseName) {
+        if (typeof document === 'undefined') {
+            return Promise.resolve(null);
+        }
+
+        if (!window.RMS_INTERVIEW_FILES || typeof window.RMS_INTERVIEW_FILES !== 'object') {
+            window.RMS_INTERVIEW_FILES = {};
+        }
+
+        const existing = window.RMS_INTERVIEW_FILES[baseName];
+        if (existing) {
+            return Promise.resolve(existing);
+        }
+
+        return new Promise(resolve => {
+            const script = document.createElement('script');
+            script.src = `${baseName}.js`;
+            script.async = true;
+
+            const cleanup = () => {
+                if (script.parentNode) {
+                    script.parentNode.removeChild(script);
+                }
+            };
+
+            script.onload = () => {
+                const loaded = window.RMS_INTERVIEW_FILES[baseName] || null;
+                cleanup();
+                resolve(loaded);
+            };
+            script.onerror = () => {
+                cleanup();
+                resolve(null);
+            };
+
+            document.head.appendChild(script);
+        });
+    }
+
+    getInterviewFileIndex(interview) {
+        if (!interview) {
+            return null;
+        }
+        const rawIndex = interview.fileIndex ?? interview.storageIndex ?? interview.fileId;
+        const parsed = Number.parseInt(rawIndex, 10);
+        if (!Number.isNaN(parsed) && parsed > 0) {
+            return parsed;
+        }
+        return null;
+    }
+
+    getNextInterviewFileIndex() {
+        const used = new Set(
+            (Array.isArray(this.interviews) ? this.interviews : [])
+                .map(interview => this.getInterviewFileIndex(interview))
+                .filter(index => Number.isInteger(index))
+        );
+        let candidate = 1;
+        while (used.has(candidate)) {
+            candidate += 1;
+        }
+        return candidate;
+    }
+
+    saveInterviewFile(interview, format = 'json') {
+        if (!interview) {
+            return;
+        }
+
+        const fileIndex = this.getInterviewFileIndex(interview) || this.getNextInterviewFileIndex();
+        const payload = {
+            ...interview,
+            fileIndex
+        };
+
+        if (format === 'js') {
+            const json = JSON.stringify(payload);
+            const fileContent = `window.RMS_INTERVIEW_FILES = window.RMS_INTERVIEW_FILES || {};\n` +
+                `window.RMS_INTERVIEW_FILES['interview${fileIndex}'] = ${json};\n`;
+            const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
+            if (typeof triggerBlobDownload === 'function') {
+                triggerBlobDownload(blob, `interview${fileIndex}.js`);
+            }
+            return;
+        }
+
+        const json = JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        if (typeof triggerBlobDownload === 'function') {
+            triggerBlobDownload(blob, `interview${fileIndex}.json`);
+        }
+    }
+
+    downloadInterviewFile(interviewId, format = 'json') {
+        if (!Array.isArray(this.interviews)) {
+            return;
+        }
+        const interview = this.interviews.find(entry => idsEqual(entry?.id, interviewId));
+        if (!interview) {
+            alert('Compte-rendu introuvable.');
+            return;
+        }
+        this.saveInterviewFile(interview, format);
+        if (typeof showNotification === 'function') {
+            showNotification('success', `Fichier interview${this.getInterviewFileIndex(interview) || ''} téléchargé.`);
+        }
+    }
+
     // Data persistence
     saveData() {
         if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
@@ -5930,7 +6110,6 @@ class RiskManagementSystem {
         localStorage.setItem('rms_controls', JSON.stringify(this.controls));
         localStorage.setItem('rms_actionPlans', JSON.stringify(this.actionPlans));
         localStorage.setItem('rms_history', JSON.stringify(this.history));
-        localStorage.setItem('rms_interviews', JSON.stringify(this.interviews));
         this.updateLastSaveTime();
     }
 
@@ -9253,6 +9432,9 @@ class RiskManagementSystem {
         if (this.interviewEditorState.editingId != null && Array.isArray(this.interviews)) {
             existingInterview = this.interviews.find(entry => idsEqual(entry.id, this.interviewEditorState.editingId)) || null;
         }
+        const fileIndex = existingInterview
+            ? this.getInterviewFileIndex(existingInterview)
+            : this.getNextInterviewFileIndex();
 
         const processesMap = new Map();
         selectedScopes.forEach(scope => {
@@ -9282,6 +9464,7 @@ class RiskManagementSystem {
             id: this.interviewEditorState.editingId != null
                 ? this.interviewEditorState.editingId
                 : getNextSequentialId(this.interviews),
+            fileIndex,
             title,
             referents,
             date: dateValue,
@@ -9312,6 +9495,7 @@ class RiskManagementSystem {
 
         this.interviewEditorState = null;
         this.saveData();
+        this.saveInterviewFile(normalizedInterview);
         this.clearUnsavedChanges('interviewForm');
         this.updateInterviewsList();
         this.closeInterviewModal();
@@ -9557,6 +9741,7 @@ class RiskManagementSystem {
                         <div class="interview-card-actions">
                             <button class="interview-action-btn view" onclick="rms.openInterviewViewer(${idAttribute})">Lire</button>
                             <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Modifier</button>
+                            <button class="interview-action-btn download" onclick="rms.downloadInterviewFile(${idAttribute})">Exporter</button>
                             <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Supprimer</button>
                         </div>
                     </footer>
