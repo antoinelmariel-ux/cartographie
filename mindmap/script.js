@@ -572,7 +572,7 @@ let activeLanguage = defaultLanguage;
 let mapTemplates = buildMapTemplates(activeLanguage);
 let activeTemplateKey = templateOrder[0];
 let columns = mapTemplates[activeTemplateKey].columns;
-const questionConfigByLanguage = {
+let questionConfigByLanguage = {
   fr: buildQuestionConfig('fr'),
   en: buildQuestionConfig('en'),
 };
@@ -2652,3 +2652,125 @@ function ensureFirstObjectiveVisible() {
   updateSelection();
   requestAnimationFrame(() => centerOnNode(firstObjective.id));
 }
+
+function cloneState(value) {
+  try {
+    return JSON.parse(JSON.stringify(value));
+  } catch (error) {
+    return value;
+  }
+}
+
+function resetTemplateStates(nextStates) {
+  Object.keys(templateStates).forEach((key) => {
+    delete templateStates[key];
+  });
+  if (!nextStates || typeof nextStates !== 'object') return;
+  Object.entries(nextStates).forEach(([key, value]) => {
+    templateStates[key] = value;
+  });
+}
+
+function applyMindMapPayload(payload = {}) {
+  const normalized = payload && typeof payload === 'object' ? payload : {};
+  const nextLanguage = translations[normalized.activeLanguage] ? normalized.activeLanguage : defaultLanguage;
+  const nextQuestionConfig = normalized.questionConfigByLanguage;
+
+  if (nextQuestionConfig && typeof nextQuestionConfig === 'object') {
+    questionConfigByLanguage = {
+      fr: nextQuestionConfig.fr ?? buildQuestionConfig('fr'),
+      en: nextQuestionConfig.en ?? buildQuestionConfig('en'),
+    };
+  } else {
+    questionConfigByLanguage = {
+      fr: buildQuestionConfig('fr'),
+      en: buildQuestionConfig('en'),
+    };
+  }
+
+  activeLanguage = nextLanguage;
+  mapTemplates = buildMapTemplates(activeLanguage);
+  questionConfigByTemplate = questionConfigByLanguage[activeLanguage];
+
+  activeTemplateKey = mapTemplates[normalized.activeTemplateKey]
+    ? normalized.activeTemplateKey
+    : templateOrder[0];
+  columns = mapTemplates[activeTemplateKey].columns;
+
+  tagOptions = Array.isArray(normalized.tagOptions)
+    ? [...normalized.tagOptions]
+    : [...translations[activeLanguage].options.tagOptions];
+  tierCategoryOptions = Array.isArray(normalized.tierCategoryOptions)
+    ? [...normalized.tierCategoryOptions]
+    : [...translations[activeLanguage].options.tierCategoryOptions];
+  credibilityOptions = Array.isArray(normalized.credibilityOptions)
+    ? [...normalized.credibilityOptions]
+    : [...translations[activeLanguage].options.credibilityOptions];
+
+  resetTemplateStates(normalized.templateStates);
+
+  activeQuestionCategoryKey = null;
+  activeQuestionNodeId = null;
+  linkingFromId = null;
+  linkPreviewPath = null;
+  currentLinkTargetId = null;
+  editingId = null;
+  hasCenteredInitialObjective = false;
+
+  loadTemplateState(activeTemplateKey);
+
+  applyStaticTranslations();
+  updateLanguageToggle();
+  renderMapSelectorOptions();
+  if (mapSelector) {
+    mapSelector.value = activeTemplateKey;
+  }
+
+  renderLegend();
+  renderTagManager();
+  renderTierCategoryManager();
+  renderQuestionConfigManager();
+  renderQuestionPanel();
+  updateSyntheseDescription();
+  render();
+
+  if (!history.length) {
+    recordHistory();
+  }
+
+  const nextZoom = typeof normalized.zoom === 'number' ? normalized.zoom : 1.0;
+  setZoom(nextZoom);
+  ensureFirstObjectiveVisible();
+}
+
+function exportMindMapState() {
+  storeActiveTemplateState();
+  return {
+    version: 1,
+    data: {
+      activeLanguage,
+      activeTemplateKey,
+      templateStates: cloneState(templateStates),
+      tagOptions: [...tagOptions],
+      tierCategoryOptions: [...tierCategoryOptions],
+      credibilityOptions: [...credibilityOptions],
+      zoom,
+      questionConfigByLanguage: cloneState(questionConfigByLanguage),
+    },
+  };
+}
+
+function applyMindMapState(state) {
+  if (!state || typeof state !== 'object') {
+    applyMindMapPayload({});
+    return;
+  }
+  if (state.version === 1) {
+    applyMindMapPayload(state.data || {});
+    return;
+  }
+  applyMindMapPayload(state);
+}
+
+window.exportMindMapState = exportMindMapState;
+window.applyMindMapState = applyMindMapState;

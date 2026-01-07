@@ -1088,16 +1088,9 @@ class RiskManagementSystem {
     }
 
     createEmptyMindMapState() {
-        const nodes = {};
-        this.getMindMapColumns().forEach(column => {
-            nodes[column.key] = [];
-        });
-
         return {
-            zoom: 1,
-            linkStyle: this.getDefaultMindMapLinkStyle(),
-            layoutMode: 'balanced',
-            nodes
+            version: 1,
+            data: null
         };
     }
 
@@ -1152,29 +1145,36 @@ class RiskManagementSystem {
     }
 
     normalizeMindMapState(state) {
-        const base = this.createEmptyMindMapState();
         if (!state || typeof state !== 'object') {
-            return base;
+            return this.createEmptyMindMapState();
         }
 
-        const zoom = Math.min(Math.max(Number(state.zoom) || 1, 0.7), 1.5);
-        const linkStyle = this.resolveMindMapLinkStyle(state.linkStyle);
-        const layoutMode = this.resolveMindMapLayoutMode(state.layoutMode);
-        const normalizedNodes = {};
-
-        this.getMindMapColumns().forEach(column => {
-            const rawNodes = Array.isArray(state.nodes?.[column.key]) ? state.nodes[column.key] : [];
-            normalizedNodes[column.key] = rawNodes
-                .map(node => this.normalizeMindMapNode(node))
-                .filter(Boolean);
-        });
+        if (state.version !== 1) {
+            return this.createEmptyMindMapState();
+        }
 
         return {
-            zoom,
-            linkStyle,
-            layoutMode,
-            nodes: normalizedNodes
+            version: 1,
+            data: state.data && typeof state.data === 'object'
+                ? this.cloneMindMapModuleState(state.data)
+                : null
         };
+    }
+
+    cloneMindMapModuleState(state) {
+        if (typeof structuredClone === 'function') {
+            try {
+                return structuredClone(state);
+            } catch (error) {
+                // fallback to JSON cloning
+            }
+        }
+
+        try {
+            return JSON.parse(JSON.stringify(state));
+        } catch (error) {
+            return state && typeof state === 'object' ? { ...state } : state;
+        }
     }
 
     resolveMindMapLinkStyle(styleKey) {
@@ -1345,31 +1345,66 @@ class RiskManagementSystem {
         }
     }
 
+    getMindMapFrame() {
+        if (typeof document === 'undefined') {
+            return null;
+        }
+
+        return document.getElementById('mindmapFrame');
+    }
+
+    pushMindMapStateToFrame() {
+        const frame = this.getMindMapFrame();
+        const applier = frame?.contentWindow?.applyMindMapState;
+        if (typeof applier === 'function') {
+            applier(this.getCurrentMindMapState());
+        }
+    }
+
+    captureMindMapStateFromFrame() {
+        const frame = this.getMindMapFrame();
+        const exporter = frame?.contentWindow?.exportMindMapState;
+        if (typeof exporter === 'function') {
+            const state = exporter();
+            this.interviewMindMapState = this.normalizeMindMapState(state);
+            this.markUnsavedChange('interviewForm');
+        }
+    }
+
     openMindMapModal() {
         if (typeof document === 'undefined') {
             return;
         }
 
         const modal = document.getElementById('mindmapModal');
-        this.mindMapToolbarExpanded = false;
-        this.mindMapMiniMapVisible = false;
+        const frame = this.getMindMapFrame();
         this.interviewMindMapState = this.getCurrentMindMapState();
-        this.renderMindMap();
 
-        this.applyMindMapLayoutPreferences();
+        if (frame) {
+            const applyState = () => this.pushMindMapStateToFrame();
+            if (frame.contentWindow && typeof frame.contentWindow.applyMindMapState === 'function') {
+                applyState();
+            } else {
+                frame.addEventListener('load', applyState, { once: true });
+            }
+        }
 
         if (modal) {
             modal.classList.add('show');
         }
     }
 
-    closeMindMapModal() {
+    closeMindMapModal(options = {}) {
         if (typeof document === 'undefined') {
             return;
         }
 
+        const { skipCapture = false } = options;
         const modal = document.getElementById('mindmapModal');
         if (modal) {
+            if (!skipCapture) {
+                this.captureMindMapStateFromFrame();
+            }
             modal.classList.remove('show');
         }
     }
@@ -9200,7 +9235,6 @@ class RiskManagementSystem {
         notesElement.innerHTML = targetInterview?.notes || '';
 
         this.interviewMindMapState = this.normalizeMindMapState(targetInterview?.mindMap);
-        this.renderMindMap();
 
         if (modalTitle) {
             modalTitle.textContent = targetInterview ? 'Modifier le compte-rendu' : 'Nouveau compte-rendu';
@@ -9242,7 +9276,7 @@ class RiskManagementSystem {
         }
 
         this.interviewMindMapState = this.createEmptyMindMapState();
-        this.closeMindMapModal();
+        this.closeMindMapModal({ skipCapture: true });
         this.interviewEditorState = null;
     }
 
@@ -9531,6 +9565,8 @@ class RiskManagementSystem {
             }));
 
         const timestamp = new Date().toISOString();
+
+        this.captureMindMapStateFromFrame();
 
         const interviewPayload = {
             id: this.interviewEditorState.editingId != null
