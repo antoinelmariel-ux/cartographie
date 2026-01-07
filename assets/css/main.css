@@ -4254,6 +4254,20 @@ tbody tr:hover {
     gap: 10px;
 }
 
+.mindmap-module-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+}
+
+.mindmap-module-frame {
+    width: 100%;
+    min-height: 560px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: #fff;
+}
+
 .mindmap-theme-columns {
     display: flex;
     flex-direction: column;

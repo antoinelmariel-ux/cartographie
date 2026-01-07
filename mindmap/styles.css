@@ -32,6 +32,20 @@ body {
   overflow: hidden;
 }
 
+body:not(.mindmap-admin-mode) .tab-button[data-tab-target="tab-notes"],
+body:not(.mindmap-admin-mode) #tab-notes {
+  display: none;
+}
+
+body.mindmap-admin-mode .tab-button:not([data-tab-target="tab-notes"]),
+body.mindmap-admin-mode #tab-map,
+body.mindmap-admin-mode #tab-synthese,
+body.mindmap-admin-mode #tab-mentions,
+body.mindmap-admin-mode .question-panel,
+body.mindmap-admin-mode .zoom-panel {
+  display: none;
+}
+
 .topbar {
   display: flex;
   align-items: center;

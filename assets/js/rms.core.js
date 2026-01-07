@@ -1357,7 +1357,7 @@ class RiskManagementSystem {
         const frame = this.getMindMapFrame();
         const applier = frame?.contentWindow?.applyMindMapState;
         if (typeof applier === 'function') {
-            applier(this.getCurrentMindMapState());
+            applier(this.buildMindMapModuleStateForFrame());
         }
     }
 
@@ -2763,6 +2763,11 @@ class RiskManagementSystem {
                 label: 'Thèmes du mindmap',
                 renderer: (body) => this.renderMindMapThemeManager(body)
             },
+            {
+                key: 'mindMapModuleConfig',
+                label: 'Cartes du mindmap',
+                renderer: (body) => this.renderMindMapModuleConfiguration(body)
+            },
             { key: 'riskTypes', label: 'Types de corruption' },
             { key: 'countries', label: 'Pays concernés' },
             {
@@ -3772,6 +3777,165 @@ class RiskManagementSystem {
             }
         });
         addForm.appendChild(addButton);
+    }
+
+    getMindMapModuleConfig() {
+        const config = this.config?.mindMapModuleConfig;
+        if (!config || typeof config !== 'object') {
+            return null;
+        }
+
+        const normalizeList = (list) => Array.isArray(list)
+            ? list.map(entry => String(entry).trim()).filter(Boolean)
+            : null;
+
+        const questionConfig = config.questionConfigByLanguage && typeof config.questionConfigByLanguage === 'object'
+            ? config.questionConfigByLanguage
+            : null;
+
+        return {
+            activeLanguage: typeof config.activeLanguage === 'string' ? config.activeLanguage : undefined,
+            activeTemplateKey: typeof config.activeTemplateKey === 'string' ? config.activeTemplateKey : undefined,
+            tagOptions: normalizeList(config.tagOptions),
+            tierCategoryOptions: normalizeList(config.tierCategoryOptions),
+            credibilityOptions: normalizeList(config.credibilityOptions),
+            questionConfigByLanguage: questionConfig
+        };
+    }
+
+    buildMindMapModuleStateForFrame(baseState = this.getCurrentMindMapState()) {
+        const normalizedState = this.normalizeMindMapState(baseState);
+        const baseData = normalizedState.data && typeof normalizedState.data === 'object'
+            ? { ...normalizedState.data }
+            : {};
+        const config = this.getMindMapModuleConfig();
+
+        if (config) {
+            if (config.tagOptions) {
+                baseData.tagOptions = [...config.tagOptions];
+            }
+            if (config.tierCategoryOptions) {
+                baseData.tierCategoryOptions = [...config.tierCategoryOptions];
+            }
+            if (config.credibilityOptions) {
+                baseData.credibilityOptions = [...config.credibilityOptions];
+            }
+            if (config.questionConfigByLanguage) {
+                baseData.questionConfigByLanguage = this.cloneMindMapModuleState(config.questionConfigByLanguage);
+            }
+        }
+
+        return {
+            version: 1,
+            data: baseData
+        };
+    }
+
+    applyMindMapModuleConfigToFrame(frame) {
+        if (!frame?.contentWindow) {
+            return;
+        }
+        const applier = frame.contentWindow.applyMindMapState;
+        if (typeof applier !== 'function') {
+            return;
+        }
+
+        const config = this.getMindMapModuleConfig();
+        const payload = {
+            version: 1,
+            data: {}
+        };
+
+        if (config) {
+            if (config.activeLanguage) {
+                payload.data.activeLanguage = config.activeLanguage;
+            }
+            if (config.activeTemplateKey) {
+                payload.data.activeTemplateKey = config.activeTemplateKey;
+            }
+            if (config.tagOptions) {
+                payload.data.tagOptions = [...config.tagOptions];
+            }
+            if (config.tierCategoryOptions) {
+                payload.data.tierCategoryOptions = [...config.tierCategoryOptions];
+            }
+            if (config.credibilityOptions) {
+                payload.data.credibilityOptions = [...config.credibilityOptions];
+            }
+            if (config.questionConfigByLanguage) {
+                payload.data.questionConfigByLanguage = this.cloneMindMapModuleState(config.questionConfigByLanguage);
+            }
+        }
+
+        applier(payload);
+    }
+
+    saveMindMapModuleConfigFromFrame(frame) {
+        const exporter = frame?.contentWindow?.exportMindMapState;
+        if (typeof exporter !== 'function') {
+            return;
+        }
+
+        const state = exporter();
+        const data = state?.data && typeof state.data === 'object' ? state.data : {};
+
+        const normalizeList = (list) => Array.isArray(list)
+            ? list.map(entry => String(entry).trim()).filter(Boolean)
+            : [];
+
+        this.config.mindMapModuleConfig = {
+            activeLanguage: typeof data.activeLanguage === 'string' ? data.activeLanguage : 'fr',
+            activeTemplateKey: typeof data.activeTemplateKey === 'string' ? data.activeTemplateKey : '',
+            tagOptions: normalizeList(data.tagOptions),
+            tierCategoryOptions: normalizeList(data.tierCategoryOptions),
+            credibilityOptions: normalizeList(data.credibilityOptions),
+            questionConfigByLanguage: data.questionConfigByLanguage && typeof data.questionConfigByLanguage === 'object'
+                ? this.cloneMindMapModuleState(data.questionConfigByLanguage)
+                : {}
+        };
+
+        this.saveConfig();
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Configuration mindmap enregistrée.');
+        }
+    }
+
+    renderMindMapModuleConfiguration(container) {
+        if (!(container instanceof HTMLElement)) {
+            return;
+        }
+
+        container.innerHTML = '';
+
+        const helper = document.createElement('p');
+        helper.className = 'config-template-helper';
+        helper.textContent = 'Configurez ici les catégories, tags et questions du module mindmap. Ces réglages sont partagés pour toutes les cartes.';
+        container.appendChild(helper);
+
+        const actions = document.createElement('div');
+        actions.className = 'mindmap-module-actions';
+        container.appendChild(actions);
+
+        const saveButton = document.createElement('button');
+        saveButton.type = 'button';
+        saveButton.className = 'btn btn-success';
+        saveButton.textContent = 'Enregistrer la configuration mindmap';
+        actions.appendChild(saveButton);
+
+        const frame = document.createElement('iframe');
+        frame.className = 'mindmap-module-frame';
+        frame.id = 'mindmapModuleAdminFrame';
+        frame.title = 'Configuration des cartes Mindmap';
+        frame.setAttribute('loading', 'lazy');
+        frame.src = 'mindmap/index.html?admin=1&tab=tab-notes';
+        frame.addEventListener('load', () => {
+            this.applyMindMapModuleConfigToFrame(frame);
+        });
+        container.appendChild(frame);
+
+        saveButton.addEventListener('click', () => {
+            this.saveMindMapModuleConfigFromFrame(frame);
+        });
     }
 
     renderInterviewTemplateManager(container) {
