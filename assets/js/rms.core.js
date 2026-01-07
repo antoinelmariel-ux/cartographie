@@ -118,6 +118,9 @@ class RiskManagementSystem {
                 .map(entry => this.normalizeInterview(entry))
                 .filter(Boolean)
             : [];
+        this.interviewFolder = 'interviews';
+        this.interviewFileCount = 0;
+        this.interviewJsonCount = 0;
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
         this.readOnlyConfigKeys = new Set(['riskStatuses']);
@@ -1035,10 +1038,14 @@ class RiskManagementSystem {
             : createdAt;
 
         const fileIndex = this.getInterviewFileIndex(interview);
+        const fileName = typeof interview.fileName === 'string' && interview.fileName.trim()
+            ? interview.fileName.trim()
+            : undefined;
 
         return {
             id: interview.id,
             fileIndex: fileIndex || undefined,
+            fileName,
             title,
             referents: uniqueReferents,
             date: normalizedDate,
@@ -5928,6 +5935,16 @@ class RiskManagementSystem {
         }
     }
 
+    getInterviewFilePath(fileName) {
+        const base = typeof this.interviewFolder === 'string' && this.interviewFolder.trim()
+            ? this.interviewFolder.trim()
+            : '';
+        if (!base) {
+            return fileName;
+        }
+        return `${base.replace(/\/$/, '')}/${fileName}`;
+    }
+
     async loadInterviewFiles() {
         if (typeof fetch === 'undefined' || typeof document === 'undefined') {
             return false;
@@ -5937,13 +5954,21 @@ class RiskManagementSystem {
         let index = 1;
         let missingCount = 0;
         const maxMissing = 5;
+        let maxIndexFound = 0;
+        let maxJsonIndexFound = 0;
 
         while (missingCount < maxMissing) {
-            const interview = await this.fetchInterviewFile(index);
-            if (interview) {
+            const result = await this.fetchInterviewFile(index);
+            if (result && result.interview) {
+                const interview = result.interview;
+                if (result.isJson) {
+                    maxJsonIndexFound = Math.max(maxJsonIndexFound, index);
+                }
+                maxIndexFound = Math.max(maxIndexFound, index);
                 const withIndex = {
                     ...interview,
-                    fileIndex: this.getInterviewFileIndex(interview) || index
+                    fileIndex: this.getInterviewFileIndex(interview) || index,
+                    fileName: result.fileName || interview.fileName
                 };
                 const normalized = this.normalizeInterview(withIndex);
                 if (normalized) {
@@ -5961,6 +5986,8 @@ class RiskManagementSystem {
         }
 
         this.interviews = loadedInterviews;
+        this.interviewFileCount = maxIndexFound;
+        this.interviewJsonCount = maxJsonIndexFound;
         return true;
     }
 
@@ -5968,14 +5995,18 @@ class RiskManagementSystem {
         const baseName = `interview${index}`;
         const jsonInterview = await this.fetchInterviewJson(`${baseName}.json`);
         if (jsonInterview) {
-            return jsonInterview;
+            return { interview: jsonInterview, fileName: `${baseName}.json`, isJson: true };
         }
-        return this.fetchInterviewScript(baseName);
+        const scriptInterview = await this.fetchInterviewScript(baseName);
+        if (scriptInterview) {
+            return { interview: scriptInterview, fileName: `${baseName}.js`, isJson: false };
+        }
+        return null;
     }
 
     async fetchInterviewJson(path) {
         try {
-            const response = await fetch(path, { cache: 'no-store' });
+            const response = await fetch(this.getInterviewFilePath(path), { cache: 'no-store' });
             if (!response.ok) {
                 return null;
             }
@@ -6008,7 +6039,7 @@ class RiskManagementSystem {
 
         return new Promise(resolve => {
             const script = document.createElement('script');
-            script.src = `${baseName}.js`;
+            script.src = this.getInterviewFilePath(`${baseName}.js`);
             script.async = true;
 
             const cleanup = () => {
@@ -6040,20 +6071,51 @@ class RiskManagementSystem {
         if (!Number.isNaN(parsed) && parsed > 0) {
             return parsed;
         }
+        const fileName = typeof interview.fileName === 'string' ? interview.fileName : '';
+        const match = fileName.match(/interview(\d+)\./i);
+        if (match) {
+            const fileIndex = Number.parseInt(match[1], 10);
+            if (!Number.isNaN(fileIndex) && fileIndex > 0) {
+                return fileIndex;
+            }
+        }
         return null;
     }
 
     getNextInterviewFileIndex() {
-        const used = new Set(
-            (Array.isArray(this.interviews) ? this.interviews : [])
-                .map(interview => this.getInterviewFileIndex(interview))
-                .filter(index => Number.isInteger(index))
+        const usedIndexes = (Array.isArray(this.interviews) ? this.interviews : [])
+            .map(interview => this.getInterviewFileIndex(interview))
+            .filter(index => Number.isInteger(index));
+        const maxCount = Math.max(
+            ...usedIndexes,
+            this.interviewFileCount || 0,
+            this.interviewJsonCount || 0
         );
-        let candidate = 1;
-        while (used.has(candidate)) {
-            candidate += 1;
-        }
+        const candidate = Number.isInteger(maxCount) && maxCount > 0 ? maxCount + 1 : 1;
         return candidate;
+    }
+
+    getInterviewFileName(interview, format = 'json') {
+        const existingName = typeof interview?.fileName === 'string' && interview.fileName.trim()
+            ? interview.fileName.trim()
+            : '';
+        if (existingName) {
+            return existingName;
+        }
+        const fileIndex = this.getInterviewFileIndex(interview) || this.getNextInterviewFileIndex();
+        const extension = format === 'js' ? 'js' : 'json';
+        return `interview${fileIndex}.${extension}`;
+    }
+
+    getInterviewFileFormat(interview, fallback = 'json') {
+        const fileName = typeof interview?.fileName === 'string' ? interview.fileName : '';
+        if (fileName.endsWith('.js')) {
+            return 'js';
+        }
+        if (fileName.endsWith('.json')) {
+            return 'json';
+        }
+        return fallback;
     }
 
     saveInterviewFile(interview, format = 'json') {
@@ -6061,19 +6123,26 @@ class RiskManagementSystem {
             return;
         }
 
+        const resolvedFormat = this.getInterviewFileFormat(interview, format);
         const fileIndex = this.getInterviewFileIndex(interview) || this.getNextInterviewFileIndex();
+        const fileName = this.getInterviewFileName({ ...interview, fileIndex }, resolvedFormat);
         const payload = {
             ...interview,
-            fileIndex
+            fileIndex,
+            fileName
         };
+        this.interviewFileCount = Math.max(this.interviewFileCount || 0, fileIndex);
+        if (resolvedFormat === 'json') {
+            this.interviewJsonCount = Math.max(this.interviewJsonCount || 0, fileIndex);
+        }
 
-        if (format === 'js') {
+        if (resolvedFormat === 'js') {
             const json = JSON.stringify(payload);
             const fileContent = `window.RMS_INTERVIEW_FILES = window.RMS_INTERVIEW_FILES || {};\n` +
                 `window.RMS_INTERVIEW_FILES['interview${fileIndex}'] = ${json};\n`;
             const blob = new Blob([fileContent], { type: 'application/javascript;charset=utf-8' });
             if (typeof triggerBlobDownload === 'function') {
-                triggerBlobDownload(blob, `interview${fileIndex}.js`);
+                triggerBlobDownload(blob, fileName);
             }
             return;
         }
@@ -6081,7 +6150,7 @@ class RiskManagementSystem {
         const json = JSON.stringify(payload, null, 2);
         const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
         if (typeof triggerBlobDownload === 'function') {
-            triggerBlobDownload(blob, `interview${fileIndex}.json`);
+            triggerBlobDownload(blob, fileName);
         }
     }
 
@@ -9435,6 +9504,9 @@ class RiskManagementSystem {
         const fileIndex = existingInterview
             ? this.getInterviewFileIndex(existingInterview)
             : this.getNextInterviewFileIndex();
+        const baseFileName = existingInterview?.fileName
+            ? existingInterview.fileName
+            : this.getInterviewFileName({ fileIndex }, 'json');
 
         const processesMap = new Map();
         selectedScopes.forEach(scope => {
@@ -9465,6 +9537,7 @@ class RiskManagementSystem {
                 ? this.interviewEditorState.editingId
                 : getNextSequentialId(this.interviews),
             fileIndex,
+            fileName: baseFileName,
             title,
             referents,
             date: dateValue,
