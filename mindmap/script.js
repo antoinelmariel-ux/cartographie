@@ -780,6 +780,13 @@ const questionPanelTitleEl = document.getElementById('question-panel-title');
 const questionPanelBodyEl = document.getElementById('question-panel-body');
 const questionConfigListEl = document.getElementById('question-config-list');
 const syntheseDescEl = document.getElementById('synthese-desc');
+const urlParams = new URLSearchParams(window.location.search);
+const isAdminMode = urlParams.get('admin') === '1' || urlParams.get('mode') === 'admin';
+const defaultTabId = urlParams.get('tab') || (isAdminMode ? 'tab-notes' : 'tab-map');
+
+if (isAdminMode) {
+  document.body.classList.add('mindmap-admin-mode');
+}
 
 function snapshotState() {
   return {
@@ -1797,7 +1804,7 @@ exportChainsCsvBtn?.addEventListener('click', () => {
 tabButtons.forEach((btn) => {
   btn.addEventListener('click', () => switchTab(btn.dataset.tabTarget));
 });
-switchTab('tab-map');
+switchTab(defaultTabId);
 
 applyStaticTranslations();
 updateLanguageToggle();
@@ -2042,7 +2049,7 @@ function handleLinkingEnd() {
 }
 
 function renderTagManager() {
-  if (!tagListEl) return;
+  if (!isAdminMode || !tagListEl) return;
   tagListEl.innerHTML = '';
   tagOptions.forEach((tag) => {
     const item = document.createElement('div');
@@ -2069,7 +2076,7 @@ function renderTagManager() {
 }
 
 function renderTierCategoryManager() {
-  if (!tierCategoryListEl) return;
+  if (!isAdminMode || !tierCategoryListEl) return;
   tierCategoryListEl.innerHTML = '';
   tierCategoryOptions.forEach((category) => {
     const item = document.createElement('div');
@@ -2096,7 +2103,7 @@ function renderTierCategoryManager() {
 }
 
 function renderQuestionConfigManager() {
-  if (!questionConfigListEl) return;
+  if (!isAdminMode || !questionConfigListEl) return;
   questionConfigListEl.innerHTML = '';
   const config = questionConfigByTemplate[activeTemplateKey] ?? {};
   columns.forEach((column) => {
