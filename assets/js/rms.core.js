@@ -6425,22 +6425,61 @@ class RiskManagementSystem {
     }
 
     async fetchInterviewJson(path) {
+        const targetPath = this.getInterviewFilePath(path);
         try {
-            const response = await fetch(this.getInterviewFilePath(path), { cache: 'no-store' });
+            const response = await fetch(targetPath, { cache: 'no-store' });
             if (!response.ok) {
                 return null;
             }
             const data = await response.json();
-            if (!data) {
-                return null;
-            }
-            if (data && typeof data === 'object' && data.interview) {
-                return data.interview;
-            }
-            return data;
+            return this.extractInterviewPayload(data);
         } catch (error) {
+            return this.fetchInterviewJsonViaXhr(targetPath);
+        }
+    }
+
+    extractInterviewPayload(data) {
+        if (!data) {
             return null;
         }
+        if (typeof data === 'object' && data.interview) {
+            return data.interview;
+        }
+        return data;
+    }
+
+    fetchInterviewJsonViaXhr(path) {
+        if (typeof XMLHttpRequest === 'undefined') {
+            return Promise.resolve(null);
+        }
+
+        return new Promise(resolve => {
+            const request = new XMLHttpRequest();
+            request.open('GET', path, true);
+            request.overrideMimeType('application/json');
+            request.onreadystatechange = () => {
+                if (request.readyState !== 4) {
+                    return;
+                }
+                if (request.status && request.status !== 200) {
+                    resolve(null);
+                    return;
+                }
+                const text = request.responseText;
+                if (!text) {
+                    resolve(null);
+                    return;
+                }
+                try {
+                    const data = JSON.parse(text);
+                    resolve(this.extractInterviewPayload(data));
+                } catch (parseError) {
+                    resolve(null);
+                }
+            };
+            request.onerror = () => resolve(null);
+            request.send();
+        });
     }
 
     fetchInterviewScript(baseName) {
