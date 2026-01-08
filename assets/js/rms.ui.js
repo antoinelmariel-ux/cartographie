@@ -1321,7 +1321,15 @@ function bindEvents() {
     document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
             document.querySelectorAll('.modal.show').forEach(modal => {
-                modal.classList.remove('show');
+                if (modal.id === 'interviewModal' && window.rms && typeof rms.closeInterviewModal === 'function') {
+                    rms.closeInterviewModal();
+                    return;
+                }
+                if (typeof hideModal === 'function') {
+                    hideModal(modal);
+                } else {
+                    modal.classList.remove('show');
+                }
             });
         }
     });
@@ -1329,7 +1337,15 @@ function bindEvents() {
     document.querySelectorAll('.modal').forEach(modal => {
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                modal.classList.remove('show');
+                if (modal.id === 'interviewModal' && window.rms && typeof rms.closeInterviewModal === 'function') {
+                    rms.closeInterviewModal();
+                    return;
+                }
+                if (typeof hideModal === 'function') {
+                    hideModal(modal);
+                } else {
+                    modal.classList.remove('show');
+                }
             }
         });
     });
