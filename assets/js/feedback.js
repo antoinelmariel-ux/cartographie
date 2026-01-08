@@ -70,6 +70,20 @@ class FeedbackManager {
         this.updateUI();
     }
 
+    setToggleVisibility(isVisible) {
+        if (!this.toggleButton) {
+            return;
+        }
+
+        const shouldShow = Boolean(isVisible);
+        this.toggleButton.hidden = !shouldShow;
+        this.toggleButton.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+
+        if (!shouldShow && this.isActive) {
+            this.setActive(false);
+        }
+    }
+
     toggle() {
         this.setActive(!this.isActive);
     }
