@@ -782,10 +782,14 @@ const questionConfigListEl = document.getElementById('question-config-list');
 const syntheseDescEl = document.getElementById('synthese-desc');
 const urlParams = new URLSearchParams(window.location.search);
 const isAdminMode = urlParams.get('admin') === '1' || urlParams.get('mode') === 'admin';
+const isReadOnly = urlParams.get('readonly') === '1' || urlParams.get('mode') === 'readonly';
 const defaultTabId = urlParams.get('tab') || (isAdminMode ? 'tab-notes' : 'tab-map');
 
 if (isAdminMode) {
   document.body.classList.add('mindmap-admin-mode');
+}
+if (isReadOnly) {
+  document.body.classList.add('mindmap-readonly');
 }
 
 function snapshotState() {
@@ -1209,12 +1213,15 @@ function appendCategorySelect(container, node, options, key) {
     select.appendChild(option);
   });
   select.value = node[key] || '';
-  select.addEventListener('change', () => {
-    if (node[key] === select.value) return;
-    node[key] = select.value;
-    recordHistory();
-    renderSynthese();
-  });
+  select.disabled = isReadOnly;
+  if (!isReadOnly) {
+    select.addEventListener('change', () => {
+      if (node[key] === select.value) return;
+      node[key] = select.value;
+      recordHistory();
+      renderSynthese();
+    });
+  }
   tagRow.append(select);
   container.appendChild(tagRow);
 }
@@ -1227,12 +1234,15 @@ function appendObjectiveRelaunchToggle(container, node) {
   const checkbox = document.createElement('input');
   checkbox.type = 'checkbox';
   checkbox.checked = Boolean(node.objectiveRelaunch);
-  checkbox.addEventListener('change', () => {
-    node.objectiveRelaunch = checkbox.checked;
-    recordHistory();
-  });
-  checkbox.addEventListener('click', (event) => event.stopPropagation());
-  checkbox.addEventListener('mousedown', (event) => event.stopPropagation());
+  checkbox.disabled = isReadOnly;
+  if (!isReadOnly) {
+    checkbox.addEventListener('change', () => {
+      node.objectiveRelaunch = checkbox.checked;
+      recordHistory();
+    });
+    checkbox.addEventListener('click', (event) => event.stopPropagation());
+    checkbox.addEventListener('mousedown', (event) => event.stopPropagation());
+  }
   const text = document.createElement('span');
   text.textContent = translations[activeLanguage].ui.objectiveRelaunchLabel;
   flagRow.append(checkbox, text);
@@ -1287,68 +1297,73 @@ function renderNodes() {
 
     const title = document.createElement('div');
     title.className = 'node-text';
-    title.contentEditable = 'true';
+    title.contentEditable = isReadOnly ? 'false' : 'true';
+    if (isReadOnly) {
+      title.setAttribute('aria-readonly', 'true');
+    }
     title.dataset.placeholder = columns[node.column].placeholder;
     title.textContent = getNodeDisplayText(node);
-    title.addEventListener('focus', () => {
-      setEditingNode(node.id);
-      selectedId = node.id;
-      updateSelection();
-      requestAnimationFrame(() => centerOnNode(node.id));
-      title.textContent = node.text;
-    });
-    title.addEventListener('input', () => {
-      requestAnimationFrame(() => centerOnNode(node.id));
-    });
-    title.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' && (e.altKey || e.shiftKey)) {
-        e.preventDefault();
-        document.execCommand('insertLineBreak');
-        return;
-      }
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        title.blur();
-      }
-    });
-    title.addEventListener('blur', () => {
-      const sanitized = title.textContent || '';
-      updateNodeText(node.id, sanitized);
-      if (editingId === node.id) {
-        setEditingNode(null);
-      }
-      if (!sanitized.trim()) {
-        title.textContent = '';
-        expandedNodes.delete(node.id);
-        return;
-      }
-      title.textContent = getNodeDisplayText(node);
-      const nodeEl = title.closest('.node');
-      const expandBtn = nodeEl?.querySelector('.node-expand');
-      if (shouldShowExpandToggle(node)) {
-        if (!expandBtn && nodeEl) {
-          const newExpandBtn = document.createElement('button');
-          newExpandBtn.type = 'button';
-          newExpandBtn.className = 'node-expand';
-          updateExpandButton(newExpandBtn, node);
-          newExpandBtn.addEventListener('click', (event) => {
-            event.preventDefault();
-            event.stopPropagation();
-            toggleNodeExpanded(node.id);
-            updateExpandButton(newExpandBtn, node);
-            title.textContent = getNodeDisplayText(node);
-          });
-          newExpandBtn.addEventListener('mousedown', (event) => {
-            event.stopPropagation();
-          });
-          nodeEl.appendChild(newExpandBtn);
-        } else if (expandBtn) {
-          updateExpandButton(expandBtn, node);
+    if (!isReadOnly) {
+      title.addEventListener('focus', () => {
+        setEditingNode(node.id);
+        selectedId = node.id;
+        updateSelection();
+        requestAnimationFrame(() => centerOnNode(node.id));
+        title.textContent = node.text;
+      });
+      title.addEventListener('input', () => {
+        requestAnimationFrame(() => centerOnNode(node.id));
+      });
+      title.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && (e.altKey || e.shiftKey)) {
+          e.preventDefault();
+          document.execCommand('insertLineBreak');
+          return;
         }
-      } else if (expandBtn) {
-        expandBtn.remove();
-      }
-    });
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          title.blur();
+        }
+      });
+      title.addEventListener('blur', () => {
+        const sanitized = title.textContent || '';
+        updateNodeText(node.id, sanitized);
+        if (editingId === node.id) {
+          setEditingNode(null);
+        }
+        if (!sanitized.trim()) {
+          title.textContent = '';
+          expandedNodes.delete(node.id);
+          return;
+        }
+        title.textContent = getNodeDisplayText(node);
+        const nodeEl = title.closest('.node');
+        const expandBtn = nodeEl?.querySelector('.node-expand');
+        if (shouldShowExpandToggle(node)) {
+          if (!expandBtn && nodeEl) {
+            const newExpandBtn = document.createElement('button');
+            newExpandBtn.type = 'button';
+            newExpandBtn.className = 'node-expand';
+            updateExpandButton(newExpandBtn, node);
+            newExpandBtn.addEventListener('click', (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              toggleNodeExpanded(node.id);
+              updateExpandButton(newExpandBtn, node);
+              title.textContent = getNodeDisplayText(node);
+            });
+            newExpandBtn.addEventListener('mousedown', (event) => {
+              event.stopPropagation();
+            });
+            nodeEl.appendChild(newExpandBtn);
+          } else if (expandBtn) {
+            updateExpandButton(expandBtn, node);
+          }
+        } else if (expandBtn) {
+          expandBtn.remove();
+        }
+      });
+    }
 
     badge.addEventListener('click', (event) => {
       event.stopPropagation();
@@ -1543,6 +1558,9 @@ function preventNodeOverlap() {
 }
 
 function renderObjectiveAddButton() {
+  if (isReadOnly) {
+    return;
+  }
   const objectiveNodes = getVisibleNodes().filter((n) => n.column === 0);
   const referenceId = objectiveNodes[0]?.id ?? nodes.find((n) => n.column === 0)?.id ?? null;
   const referencePos = referenceId ? positions.get(referenceId) : null;
@@ -1687,12 +1705,13 @@ function updateHelperPanel() {
     ? current.text || columns[current.column].placeholder
     : translations[activeLanguage].ui.selectionNone;
   selectionLabel.textContent = `${translations[activeLanguage].ui.selectionPrefix} ${displayText}`;
-  addSiblingBtn.disabled = !hasSelection;
-  addChildBtn.disabled = !canCreateChild;
-  deleteBranchBtn.disabled = !hasSelection;
+  addSiblingBtn.disabled = isReadOnly || !hasSelection;
+  addChildBtn.disabled = isReadOnly || !canCreateChild;
+  deleteBranchBtn.disabled = isReadOnly || !hasSelection;
 }
 
 function createNode({ column, parentId, afterId }) {
+  if (isReadOnly) return;
   commitEditingNodeText();
   const newId = `n${Date.now()}`;
   const columnMeta = columns[column];
@@ -1715,6 +1734,9 @@ function createNode({ column, parentId, afterId }) {
 }
 
 function handleKeydown(e) {
+  if (isReadOnly) {
+    return;
+  }
   const active = document.activeElement;
   const isEditing = active?.isContentEditable;
   const isFormField = ['INPUT', 'TEXTAREA', 'SELECT'].includes(active?.tagName);
@@ -1748,12 +1770,14 @@ function handleKeydown(e) {
 document.addEventListener('keydown', handleKeydown);
 
 function addSiblingNode() {
+  if (isReadOnly) return;
   const current = nodes.find((n) => n.id === selectedId);
   if (!current) return;
   createNode({ column: current.column, parentId: current.parentId, afterId: current.id });
 }
 
 function addChildNode() {
+  if (isReadOnly) return;
   const current = nodes.find((n) => n.id === selectedId);
   if (!current) return;
   const nextColumn = current.column + 1;
@@ -1762,6 +1786,7 @@ function addChildNode() {
 }
 
 function deleteSelectedBranch() {
+  if (isReadOnly) return;
   const current = nodes.find((n) => n.id === selectedId);
   if (!current) return;
   deleteNodeTree(current.id);
@@ -1812,9 +1837,12 @@ renderMapSelectorOptions();
 
 if (mapSelector) {
   mapSelector.value = activeTemplateKey;
-  mapSelector.addEventListener('change', (event) => {
-    setActiveTemplate(event.target.value);
-  });
+  mapSelector.disabled = isReadOnly;
+  if (!isReadOnly) {
+    mapSelector.addEventListener('change', (event) => {
+      setActiveTemplate(event.target.value);
+    });
+  }
 }
 
 languageToggleBtn?.addEventListener('click', () => {
@@ -1858,6 +1886,7 @@ function centerOnNode(id, options = {}) {
 }
 
 function updateNodeText(id, text) {
+  if (isReadOnly) return;
   const node = nodes.find((n) => n.id === id);
   if (!node) return;
   const trimmed = text.trim();
@@ -1873,6 +1902,7 @@ function updateNodeText(id, text) {
 }
 
 function deleteNodeTree(id) {
+  if (isReadOnly) return;
   const idsToRemove = new Set();
   const targetNode = nodes.find((n) => n.id === id);
   function collect(targetId) {
@@ -1933,6 +1963,7 @@ function resetLinkingState() {
 }
 
 function startLinking(sourceId, event) {
+  if (isReadOnly) return;
   linkingFromId = sourceId;
   linkPreviewPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
   linkPreviewPath.setAttribute('class', 'path preview');
@@ -2049,7 +2080,7 @@ function handleLinkingEnd() {
 }
 
 function renderTagManager() {
-  if (!isAdminMode || !tagListEl) return;
+  if (!isAdminMode || isReadOnly || !tagListEl) return;
   tagListEl.innerHTML = '';
   tagOptions.forEach((tag) => {
     const item = document.createElement('div');
@@ -2076,7 +2107,7 @@ function renderTagManager() {
 }
 
 function renderTierCategoryManager() {
-  if (!isAdminMode || !tierCategoryListEl) return;
+  if (!isAdminMode || isReadOnly || !tierCategoryListEl) return;
   tierCategoryListEl.innerHTML = '';
   tierCategoryOptions.forEach((category) => {
     const item = document.createElement('div');
@@ -2103,7 +2134,7 @@ function renderTierCategoryManager() {
 }
 
 function renderQuestionConfigManager() {
-  if (!isAdminMode || !questionConfigListEl) return;
+  if (!isAdminMode || isReadOnly || !questionConfigListEl) return;
   questionConfigListEl.innerHTML = '';
   const config = questionConfigByTemplate[activeTemplateKey] ?? {};
   columns.forEach((column) => {
@@ -2563,6 +2594,7 @@ function renderSynthese() {
 }
 
 function addTagFromInput() {
+  if (isReadOnly) return;
   const value = newTagInput?.value.trim();
   if (!value) return;
   if (!tagOptions.includes(value)) {
@@ -2575,6 +2607,7 @@ function addTagFromInput() {
 }
 
 function addTierCategoryFromInput() {
+  if (isReadOnly) return;
   const value = newTierCategoryInput?.value.trim();
   if (!value) return;
   if (!tierCategoryOptions.includes(value)) {
