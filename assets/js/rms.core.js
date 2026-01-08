@@ -9708,6 +9708,14 @@ class RiskManagementSystem {
             return;
         }
 
+        if (this.hasUnsavedContext('interviewForm')) {
+            const confirmed = window.confirm('Vous avez des modifications non enregistrées. Fermer sans enregistrer ?');
+            if (!confirmed) {
+                return;
+            }
+            this.clearUnsavedChanges('interviewForm');
+        }
+
         modal.classList.remove('show');
 
         const form = document.getElementById('interviewForm');
