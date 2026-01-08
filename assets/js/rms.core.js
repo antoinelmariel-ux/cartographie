@@ -206,6 +206,7 @@ class RiskManagementSystem {
         this.refreshProcessColorMap();
         this.populateSelects();
         this.renderAll();
+        this.applyFeedbackButtonVisibility();
         this.renderInterviewTemplateChoices();
         if (this.needsConfigStructureRerender) {
             this.renderConfiguration();
@@ -357,6 +358,9 @@ class RiskManagementSystem {
 
         config.mindMapThemes = cloneMindMapThemes(parameterConfig.mindMapThemes);
         config.mindMapActiveThemeId = parameterConfig.mindMapActiveThemeId || (config.mindMapThemes[0]?.id ?? '');
+        config.ui = {
+            showFeedbackButton: false
+        };
 
         if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
             config.riskStatuses = [
@@ -609,7 +613,37 @@ class RiskManagementSystem {
         this.config.mindMapThemes = normalizedMindMapThemes;
         this.config.mindMapActiveThemeId = activeId;
 
+        const uiFallback = fallback.ui && typeof fallback.ui === 'object' && !Array.isArray(fallback.ui)
+            ? fallback.ui
+            : { showFeedbackButton: false };
+
+        if (!baseConfig.ui || typeof baseConfig.ui !== 'object' || Array.isArray(baseConfig.ui)) {
+            this.config.ui = { ...uiFallback };
+            if (baseConfig.ui !== undefined) {
+                updated = true;
+            }
+        } else {
+            this.config.ui = { ...uiFallback, ...baseConfig.ui };
+        }
+
+        if (typeof this.config.ui.showFeedbackButton !== 'boolean') {
+            this.config.ui.showFeedbackButton = Boolean(this.config.ui.showFeedbackButton);
+            updated = true;
+        }
+
         return updated;
+    }
+
+    applyFeedbackButtonVisibility() {
+        const shouldShow = Boolean(this.config?.ui?.showFeedbackButton);
+        const toggleButton = document.getElementById('feedbackToggleButton');
+        if (toggleButton) {
+            toggleButton.hidden = !shouldShow;
+            toggleButton.setAttribute('aria-hidden', shouldShow ? 'false' : 'true');
+        }
+        if (window.feedbackManager && typeof window.feedbackManager.setToggleVisibility === 'function') {
+            window.feedbackManager.setToggleVisibility(shouldShow);
+        }
     }
 
     normalizeCountryColumns(columnsSource, fallbackSource, availableList = []) {
@@ -2775,6 +2809,50 @@ class RiskManagementSystem {
         intro.className = 'config-section-description';
         intro.innerHTML = "<p>Gérez ici les valeurs de référence utilisées dans l'application (types de corruption, statuts, etc.). Les éléments marqués comme verrouillés ne peuvent pas être modifiés.</p>";
         container.appendChild(intro);
+
+        const uiCard = document.createElement('section');
+        uiCard.className = 'config-ui-card';
+
+        const uiTitle = document.createElement('div');
+        uiTitle.className = 'config-ui-title';
+        uiTitle.textContent = 'Interface';
+        uiCard.appendChild(uiTitle);
+
+        const toggleLabel = document.createElement('label');
+        toggleLabel.className = 'config-toggle';
+        toggleLabel.setAttribute('for', 'configFeedbackToggle');
+
+        const toggleInput = document.createElement('input');
+        toggleInput.type = 'checkbox';
+        toggleInput.id = 'configFeedbackToggle';
+        toggleInput.className = 'config-toggle-input';
+        toggleInput.checked = Boolean(this.config?.ui?.showFeedbackButton);
+
+        const toggleText = document.createElement('span');
+        toggleText.className = 'config-toggle-text';
+        toggleText.textContent = 'Afficher le bouton feed-back';
+
+        toggleLabel.appendChild(toggleInput);
+        toggleLabel.appendChild(toggleText);
+        uiCard.appendChild(toggleLabel);
+
+        const toggleHelper = document.createElement('p');
+        toggleHelper.className = 'config-toggle-helper';
+        toggleHelper.textContent = 'Activez cette option pour rendre le bouton feed-back visible dans l’en-tête.';
+        uiCard.appendChild(toggleHelper);
+
+        toggleInput.addEventListener('change', () => {
+            const isVisible = toggleInput.checked;
+            if (!this.config.ui || typeof this.config.ui !== 'object' || Array.isArray(this.config.ui)) {
+                this.config.ui = { showFeedbackButton: isVisible };
+            } else {
+                this.config.ui.showFeedbackButton = isVisible;
+            }
+            this.saveConfig();
+            this.applyFeedbackButtonVisibility();
+        });
+
+        container.appendChild(uiCard);
 
         const sections = [
             {

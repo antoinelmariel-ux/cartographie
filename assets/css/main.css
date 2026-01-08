@@ -3687,6 +3687,45 @@ tbody tr:hover {
     margin-bottom: 8px;
 }
 
+.config-ui-card {
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    box-shadow: 0 3px 10px rgba(15, 23, 42, 0.08);
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.config-ui-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-color);
+}
+
+.config-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 600;
+    color: var(--text-color);
+    cursor: pointer;
+}
+
+.config-toggle-input {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+}
+
+.config-toggle-helper {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #5d6d7e;
+}
+
 .admin-history .timeline {
     margin-top: 8px;
 }
