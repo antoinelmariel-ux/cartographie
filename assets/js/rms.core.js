@@ -478,6 +478,22 @@ class RiskManagementSystem {
             return base;
         };
 
+        const normalizeBoolean = (value) => {
+            if (typeof value === 'boolean') {
+                return value;
+            }
+            if (typeof value === 'string') {
+                const normalized = value.trim().toLowerCase();
+                if (normalized === 'true') {
+                    return true;
+                }
+                if (normalized === 'false') {
+                    return false;
+                }
+            }
+            return Boolean(value);
+        };
+
         const fallbackStatuses = (fallback && Array.isArray(fallback.actionPlanStatuses))
             ? fallback.actionPlanStatuses
             : [
@@ -631,7 +647,7 @@ class RiskManagementSystem {
         }
 
         if (typeof this.config.ui.showFeedbackButton !== 'boolean') {
-            this.config.ui.showFeedbackButton = Boolean(this.config.ui.showFeedbackButton);
+            this.config.ui.showFeedbackButton = normalizeBoolean(this.config.ui.showFeedbackButton);
             updated = true;
         }
 
