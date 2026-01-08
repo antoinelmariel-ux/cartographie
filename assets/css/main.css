@@ -2194,6 +2194,7 @@ tbody tr:hover {
     background: rgba(255, 255, 255, 0.95);
     border: 1px solid rgba(37, 99, 235, 0.18);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.12);
+    color: #1f2937;
     display: inline-flex;
     align-items: center;
     justify-content: center;
