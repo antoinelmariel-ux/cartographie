@@ -186,6 +186,9 @@ class RiskManagementSystem {
         this.mindMapLinkListenersRegistered = false;
         this.mindMapLinkUpdateHandler = null;
         this.mindMapRenderer = null;
+        this.pendingMindMapPayload = null;
+        this.pendingMindMapStateRequestId = null;
+        this.mindMapMessageHandler = null;
         this.init();
     }
 
@@ -208,6 +211,7 @@ class RiskManagementSystem {
         this.renderAll();
         this.applyFeedbackButtonVisibility();
         this.renderInterviewTemplateChoices();
+        this.registerMindMapMessageHandlers();
         if (this.needsConfigStructureRerender) {
             this.renderConfiguration();
             this.needsConfigStructureRerender = false;
@@ -1389,12 +1393,94 @@ class RiskManagementSystem {
         return document.getElementById('mindmapFrame');
     }
 
-    pushMindMapStateToFrame() {
-        const frame = this.getMindMapFrame();
-        const applier = frame?.contentWindow?.applyMindMapState;
-        if (typeof applier === 'function') {
-            applier(this.buildMindMapModuleStateForFrame());
+    registerMindMapMessageHandlers() {
+        if (typeof window === 'undefined' || this.mindMapMessageHandler) {
+            return;
         }
+
+        this.mindMapMessageHandler = (event) => {
+            const data = event?.data;
+            if (!data || data.source !== 'mindmap') {
+                return;
+            }
+
+            const frame = this.getMindMapFrame();
+            if (frame?.contentWindow && event.source !== frame.contentWindow) {
+                return;
+            }
+
+            if (data.type === 'mindmap:ready') {
+                if (this.pendingMindMapPayload && frame?.contentWindow) {
+                    frame.contentWindow.postMessage({
+                        source: 'rms',
+                        type: 'mindmap:applyState',
+                        payload: this.pendingMindMapPayload
+                    }, '*');
+                    this.pendingMindMapPayload = null;
+                }
+                return;
+            }
+
+            if (data.type === 'mindmap:state' && data.requestId) {
+                if (data.requestId !== this.pendingMindMapStateRequestId) {
+                    return;
+                }
+                this.pendingMindMapStateRequestId = null;
+                if (!this.mindMapReadOnlyMode) {
+                    this.interviewMindMapState = this.normalizeMindMapState(data.payload);
+                    this.markUnsavedChange('interviewForm');
+                }
+            }
+        };
+
+        window.addEventListener('message', this.mindMapMessageHandler);
+    }
+
+    sendMindMapStateToFrame(payload) {
+        const frame = this.getMindMapFrame();
+        if (!frame) {
+            return;
+        }
+
+        let applied = false;
+        try {
+            const applier = frame.contentWindow?.applyMindMapState;
+            if (typeof applier === 'function') {
+                applier(payload);
+                applied = true;
+            }
+        } catch (error) {
+            applied = false;
+        }
+
+        if (!applied) {
+            this.pendingMindMapPayload = payload;
+            if (frame.contentWindow) {
+                frame.contentWindow.postMessage({
+                    source: 'rms',
+                    type: 'mindmap:applyState',
+                    payload
+                }, '*');
+            }
+        }
+    }
+
+    requestMindMapStateFromFrame() {
+        const frame = this.getMindMapFrame();
+        if (!frame?.contentWindow) {
+            return;
+        }
+        const requestId = `mindmap-${Date.now()}-${Math.floor(Math.random() * 10000)}`;
+        this.pendingMindMapStateRequestId = requestId;
+        frame.contentWindow.postMessage({
+            source: 'rms',
+            type: 'mindmap:requestState',
+            requestId
+        }, '*');
+    }
+
+    pushMindMapStateToFrame() {
+        this.sendMindMapStateToFrame(this.buildMindMapModuleStateForFrame());
     }
 
     captureMindMapStateFromFrame() {
@@ -1402,11 +1488,21 @@ class RiskManagementSystem {
             return;
         }
         const frame = this.getMindMapFrame();
-        const exporter = frame?.contentWindow?.exportMindMapState;
-        if (typeof exporter === 'function') {
-            const state = exporter();
-            this.interviewMindMapState = this.normalizeMindMapState(state);
-            this.markUnsavedChange('interviewForm');
+        let exported = false;
+        try {
+            const exporter = frame?.contentWindow?.exportMindMapState;
+            if (typeof exporter === 'function') {
+                const state = exporter();
+                this.interviewMindMapState = this.normalizeMindMapState(state);
+                this.markUnsavedChange('interviewForm');
+                exported = true;
+            }
+        } catch (error) {
+            exported = false;
+        }
+
+        if (!exported) {
+            this.requestMindMapStateFromFrame();
         }
     }
 
@@ -1431,10 +1527,7 @@ class RiskManagementSystem {
                 ? 'mindmap/index.html?mode=readonly'
                 : 'mindmap/index.html';
             const applyState = () => {
-                const applier = frame.contentWindow?.applyMindMapState;
-                if (typeof applier === 'function') {
-                    applier(this.buildMindMapModuleStateForFrame(stateToApply));
-                }
+                this.sendMindMapStateToFrame(this.buildMindMapModuleStateForFrame(stateToApply));
             };
             if (frame.getAttribute('src') !== desiredSrc) {
                 frame.setAttribute('src', desiredSrc);

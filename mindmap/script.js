@@ -2814,3 +2814,31 @@ function applyMindMapState(state) {
 
 window.exportMindMapState = exportMindMapState;
 window.applyMindMapState = applyMindMapState;
+
+function notifyParentMindMapReady() {
+  if (window.parent && window.parent !== window) {
+    window.parent.postMessage({ source: 'mindmap', type: 'mindmap:ready' }, '*');
+  }
+}
+
+window.addEventListener('message', (event) => {
+  const data = event?.data;
+  if (!data || data.source !== 'rms') return;
+
+  if (data.type === 'mindmap:applyState') {
+    applyMindMapState(data.payload);
+    return;
+  }
+
+  if (data.type === 'mindmap:requestState') {
+    const payload = exportMindMapState();
+    event.source?.postMessage({
+      source: 'mindmap',
+      type: 'mindmap:state',
+      requestId: data.requestId,
+      payload
+    }, '*');
+  }
+});
+
+notifyParentMindMapReady();
