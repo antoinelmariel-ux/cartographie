@@ -1,0 +1,41 @@
+{
+  "id": 1,
+  "fileIndex": 1,
+  "fileName": "interview1.json",
+  "title": "Entretien Marketing DOF",
+  "referents": [
+    "Agnes FLORENTINO"
+  ],
+  "date": "2026-01-08",
+  "notes": "",
+  "scopes": [
+    {
+      "key": "Commercialisation des produits::Lancement de produit",
+      "processValue": "Commercialisation des produits",
+      "processLabel": "Commercialisation des produits",
+      "subProcessValue": "Lancement de produit",
+      "subProcessLabel": "Lancement de produit",
+      "type": "subProcess"
+    }
+  ],
+  "processes": [
+    {
+      "value": "Commercialisation des produits",
+      "label": "Commercialisation des produits"
+    }
+  ],
+  "subProcesses": [
+    {
+      "processValue": "Commercialisation des produits",
+      "processLabel": "Commercialisation des produits",
+      "value": "Lancement de produit",
+      "label": "Lancement de produit"
+    }
+  ],
+  "createdAt": "2026-01-08T09:58:30.552Z",
+  "updatedAt": "2026-01-08T09:58:30.552Z",
+  "mindMap": {
+    "version": 1,
+    "data": null
+  }
+}
