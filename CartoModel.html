@@ -740,7 +740,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.5</span>
+            <span class="app-version">Version 2.14.6</span>
         </footer>
     </div>
 
@@ -831,16 +831,7 @@
 
     <div id="mindmapModal" class="modal mindmap-modal">
         <div class="modal-content fullscreen mindmap-content">
-            <div class="modal-header mindmap-header">
-                <div class="mindmap-header-titles">
-                    <div class="mindmap-breadcrumb">Atelier • Carte mentale</div>
-                    <h3 class="modal-title">Mind mapping du compte-rendu</h3>
-                </div>
-                <div class="mindmap-header-actions">
-                    <button class="btn btn-secondary" type="button" onclick="rms.closeMindMapModal()">Revenir au compte-rendu</button>
-                    <button class="modal-close" type="button" aria-label="Fermer" onclick="rms.closeMindMapModal()">&times;</button>
-                </div>
-            </div>
+            <button class="mindmap-modal-close modal-close" type="button" aria-label="Fermer l'atelier mindmap" onclick="rms.closeMindMapModal()">&times;</button>
             <div class="modal-body mindmap-body">
                 <iframe id="mindmapFrame" class="mindmap-iframe" title="Atelier mind mapping" src="mindmap/index.html"></iframe>
             </div>
@@ -886,6 +877,7 @@
                 </div>
             </div>
             <div class="modal-footer">
+                <button class="btn btn-secondary" type="button" id="openInterviewMindmapButton" onclick="rms.openInterviewMindMapViewer()" disabled>Voir le mindmap</button>
                 <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewViewModal()">Fermer</button>
             </div>
         </div>

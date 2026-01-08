@@ -179,6 +179,8 @@ class RiskManagementSystem {
         this.hasUnsavedChanges = false;
         this.mindMapColumns = this.getMindMapColumns();
         this.interviewMindMapState = this.createEmptyMindMapState();
+        this.mindMapReadOnlyMode = false;
+        this.interviewViewMindMapState = null;
         this.mindMapDragContext = null;
         this.mindMapThemeDragState = null;
         this.mindMapLinkListenersRegistered = false;
@@ -1362,6 +1364,9 @@ class RiskManagementSystem {
     }
 
     captureMindMapStateFromFrame() {
+        if (this.mindMapReadOnlyMode) {
+            return;
+        }
         const frame = this.getMindMapFrame();
         const exporter = frame?.contentWindow?.exportMindMapState;
         if (typeof exporter === 'function') {
@@ -1371,18 +1376,36 @@ class RiskManagementSystem {
         }
     }
 
-    openMindMapModal() {
+    openMindMapModal(options = {}) {
         if (typeof document === 'undefined') {
             return;
         }
 
+        const { readOnly = false, state = null } = options;
         const modal = document.getElementById('mindmapModal');
         const frame = this.getMindMapFrame();
-        this.interviewMindMapState = this.getCurrentMindMapState();
+        const stateToApply = readOnly
+            ? this.normalizeMindMapState(state)
+            : this.getCurrentMindMapState();
+        this.mindMapReadOnlyMode = readOnly;
+        if (!readOnly) {
+            this.interviewMindMapState = stateToApply;
+        }
 
         if (frame) {
-            const applyState = () => this.pushMindMapStateToFrame();
-            if (frame.contentWindow && typeof frame.contentWindow.applyMindMapState === 'function') {
+            const desiredSrc = readOnly
+                ? 'mindmap/index.html?mode=readonly'
+                : 'mindmap/index.html';
+            const applyState = () => {
+                const applier = frame.contentWindow?.applyMindMapState;
+                if (typeof applier === 'function') {
+                    applier(this.buildMindMapModuleStateForFrame(stateToApply));
+                }
+            };
+            if (frame.getAttribute('src') !== desiredSrc) {
+                frame.setAttribute('src', desiredSrc);
+                frame.addEventListener('load', applyState, { once: true });
+            } else if (frame.contentWindow && typeof frame.contentWindow.applyMindMapState === 'function') {
                 applyState();
             } else {
                 frame.addEventListener('load', applyState, { once: true });
@@ -1402,11 +1425,12 @@ class RiskManagementSystem {
         const { skipCapture = false } = options;
         const modal = document.getElementById('mindmapModal');
         if (modal) {
-            if (!skipCapture) {
+            if (!skipCapture && !this.mindMapReadOnlyMode) {
                 this.captureMindMapStateFromFrame();
             }
             modal.classList.remove('show');
         }
+        this.mindMapReadOnlyMode = false;
     }
 
     renderMindMap(focusNodeId = null) {
@@ -6353,6 +6377,26 @@ class RiskManagementSystem {
         }
     }
 
+    downloadInterviewJson(interview) {
+        if (!interview) {
+            return;
+        }
+        const fileIndex = this.getInterviewFileIndex(interview) || this.getNextInterviewFileIndex();
+        const fileName = `interview${fileIndex}.json`;
+        const payload = {
+            ...interview,
+            fileIndex,
+            fileName
+        };
+        this.interviewFileCount = Math.max(this.interviewFileCount || 0, fileIndex);
+        this.interviewJsonCount = Math.max(this.interviewJsonCount || 0, fileIndex);
+        const json = JSON.stringify(payload, null, 2);
+        const blob = new Blob([json], { type: 'application/json;charset=utf-8' });
+        if (typeof triggerBlobDownload === 'function') {
+            triggerBlobDownload(blob, fileName);
+        }
+    }
+
     downloadInterviewFile(interviewId, format = 'json') {
         if (!Array.isArray(this.interviews)) {
             return;
@@ -9456,6 +9500,7 @@ class RiskManagementSystem {
         const referentsContainer = document.getElementById('interviewViewReferents');
         const tagsContainer = document.getElementById('interviewViewTags');
         const notesContainer = document.getElementById('interviewViewNotes');
+        const mindmapButton = document.getElementById('openInterviewMindmapButton');
 
         if (!modal || !titleElement || !notesContainer) {
             return;
@@ -9478,6 +9523,10 @@ class RiskManagementSystem {
                 tagsContainer.innerHTML = '';
             }
             notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu à afficher.</p>';
+            if (mindmapButton) {
+                mindmapButton.disabled = true;
+            }
+            this.interviewViewMindMapState = null;
             modal.classList.add('show');
             return;
         }
@@ -9542,7 +9591,18 @@ class RiskManagementSystem {
             notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
         }
 
+        this.interviewViewMindMapState = this.normalizeMindMapState(interview.mindMap);
+        if (mindmapButton) {
+            mindmapButton.disabled = false;
+        }
         modal.classList.add('show');
+    }
+
+    openInterviewMindMapViewer() {
+        if (!this.interviewViewMindMapState) {
+            return;
+        }
+        this.openMindMapModal({ readOnly: true, state: this.interviewViewMindMapState });
     }
 
     closeInterviewViewModal() {
@@ -9582,6 +9642,11 @@ class RiskManagementSystem {
         if (tagsContainer) {
             tagsContainer.innerHTML = '';
         }
+        const mindmapButton = document.getElementById('openInterviewMindmapButton');
+        if (mindmapButton) {
+            mindmapButton.disabled = true;
+        }
+        this.interviewViewMindMapState = null;
     }
 
     getTodayDateString() {
@@ -9769,6 +9834,9 @@ class RiskManagementSystem {
         this.interviewEditorState = null;
         this.saveData();
         this.saveInterviewFile(normalizedInterview);
+        if (this.getInterviewFileFormat(normalizedInterview, 'json') !== 'json') {
+            this.downloadInterviewJson(normalizedInterview);
+        }
         this.clearUnsavedChanges('interviewForm');
         this.updateInterviewsList();
         this.closeInterviewModal();

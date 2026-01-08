@@ -46,6 +46,20 @@ body.mindmap-admin-mode .zoom-panel {
   display: none;
 }
 
+body.mindmap-readonly .node-text {
+  cursor: default;
+}
+
+body.mindmap-readonly .objective-add {
+  display: none;
+}
+
+body.mindmap-readonly .tag-row select,
+body.mindmap-readonly .objective-flag input {
+  pointer-events: none;
+  opacity: 0.7;
+}
+
 .topbar {
   display: flex;
   align-items: center;
