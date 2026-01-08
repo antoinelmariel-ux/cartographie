@@ -1532,10 +1532,20 @@ class RiskManagementSystem {
             if (frame.getAttribute('src') !== desiredSrc) {
                 frame.setAttribute('src', desiredSrc);
                 frame.addEventListener('load', applyState, { once: true });
-            } else if (frame.contentWindow && typeof frame.contentWindow.applyMindMapState === 'function') {
-                applyState();
             } else {
-                frame.addEventListener('load', applyState, { once: true });
+                let canApplyImmediately = false;
+                try {
+                    canApplyImmediately = frame.contentWindow
+                        && typeof frame.contentWindow.applyMindMapState === 'function';
+                } catch (error) {
+                    canApplyImmediately = false;
+                }
+
+                if (canApplyImmediately) {
+                    applyState();
+                } else {
+                    frame.addEventListener('load', applyState, { once: true });
+                }
             }
         }
 
