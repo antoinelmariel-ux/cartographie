@@ -4,6 +4,10 @@
     box-sizing: border-box;
 }
 
+[hidden] {
+    display: none !important;
+}
+
 :root {
     --primary-gradient: linear-gradient(135deg, #f5f7fa 0%, #eaf1f8 100%);
     --primary-color: #0b3d60;
