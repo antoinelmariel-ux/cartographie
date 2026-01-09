@@ -61,7 +61,9 @@ const translations = {
       selectionNone: 'Aucune',
       addSibling: 'Ajouter au même niveau (Entrée)',
       addChild: 'Ajouter un enfant (Tab)',
-      deleteBranch: 'Supprimer la branche (Suppr)',
+      deleteBranch: 'Supprimer la branche',
+      deleteNode: 'Supprimer le noeud',
+      deleteNodeConfirm: 'Supprimer ce noeud et ses enfants ?',
       notesHint: 'Astuce : Alt + Entrée ou Maj + Entrée pour insérer un retour à la ligne dans une note.',
       tagAdminTitle: 'Back-office des tags "Moyen"',
       tagAdminDesc: 'Mettez à jour la liste déroulante affichée sur les noeuds de la colonne Moyen.',
@@ -324,7 +326,9 @@ Exemples:
       selectionNone: 'None',
       addSibling: 'Add at same level (Enter)',
       addChild: 'Add a child (Tab)',
-      deleteBranch: 'Delete branch (Del)',
+      deleteBranch: 'Delete branch',
+      deleteNode: 'Delete node',
+      deleteNodeConfirm: 'Delete this node and its children?',
       notesHint: 'Tip: Alt + Enter or Shift + Enter to insert a line break in a note.',
       tagAdminTitle: 'Back office for "Means" tags',
       tagAdminDesc: 'Update the dropdown list displayed on nodes in the Means column.',
@@ -1378,6 +1382,26 @@ function renderNodes() {
 
     el.appendChild(title);
 
+    if (!isReadOnly) {
+      const deleteBtn = document.createElement('button');
+      deleteBtn.type = 'button';
+      deleteBtn.className = 'node-delete';
+      deleteBtn.textContent = '×';
+      deleteBtn.title = translations[activeLanguage].ui.deleteNode;
+      deleteBtn.setAttribute('aria-label', translations[activeLanguage].ui.deleteNode);
+      deleteBtn.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const confirmed = window.confirm(translations[activeLanguage].ui.deleteNodeConfirm);
+        if (!confirmed) return;
+        deleteNodeTree(node.id);
+      });
+      deleteBtn.addEventListener('mousedown', (event) => {
+        event.stopPropagation();
+      });
+      el.appendChild(deleteBtn);
+    }
+
     if (shouldShowExpandToggle(node)) {
       const expandBtn = document.createElement('button');
       expandBtn.type = 'button';
@@ -1745,7 +1769,7 @@ function handleKeydown(e) {
     undo();
     return;
   }
-  if ((isEditing && e.key !== 'Tab' && e.key !== 'Delete') || isFormField) {
+  if ((isEditing && e.key !== 'Tab') || isFormField) {
     return;
   }
   if (!selectedId) return;
@@ -1761,9 +1785,6 @@ function handleKeydown(e) {
     if (nextColumn < columns.length) {
       createNode({ column: nextColumn, parentId: current.id });
     }
-  } else if (e.key === 'Delete') {
-    e.preventDefault();
-    deleteNodeTree(current.id);
   }
 }
 
@@ -1789,6 +1810,8 @@ function deleteSelectedBranch() {
   if (isReadOnly) return;
   const current = nodes.find((n) => n.id === selectedId);
   if (!current) return;
+  const confirmed = window.confirm(translations[activeLanguage].ui.deleteNodeConfirm);
+  if (!confirmed) return;
   deleteNodeTree(current.id);
 }
 

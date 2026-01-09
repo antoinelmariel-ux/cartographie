@@ -325,6 +325,40 @@ body.mindmap-readonly .objective-flag input {
   transform: translateY(0);
 }
 
+.node .node-delete {
+  position: absolute;
+  top: 12px;
+  right: 42px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: rgba(255, 255, 255, 0.7);
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  opacity: 0.6;
+  transition: opacity 0.2s ease, transform 0.1s ease, background 0.2s ease;
+}
+
+.node:hover .node-delete,
+.node .node-delete:focus-visible {
+  opacity: 1;
+}
+
+.node .node-delete:hover {
+  background: #ffffff;
+  transform: translateY(-1px);
+}
+
+.node .node-delete:active {
+  transform: translateY(0);
+}
+
 .node .node-text:empty:before {
   content: attr(data-placeholder);
   color: var(--muted);
