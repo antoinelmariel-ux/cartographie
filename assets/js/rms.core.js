@@ -9599,16 +9599,17 @@ class RiskManagementSystem {
             return;
         }
 
-        const existingContent = (notesElement.innerHTML || '').trim();
-        if (existingContent) {
-            const confirmed = window.confirm('Le contenu actuel sera remplacé par la trame sélectionnée. Continuer ?');
-            if (!confirmed) {
-                this.closeInterviewTemplateModal();
-                return;
-            }
+        const existingHtml = notesElement.innerHTML || '';
+        const trimmedExisting = existingHtml.trim();
+        const templateContent = template.content || '';
+        if (trimmedExisting) {
+            const separator = trimmedExisting.endsWith('</p>') || trimmedExisting.endsWith('</ul>') || trimmedExisting.endsWith('</ol>')
+                ? ''
+                : '<br>';
+            notesElement.innerHTML = `${existingHtml}${separator}${templateContent}`;
+        } else {
+            notesElement.innerHTML = templateContent;
         }
-
-        notesElement.innerHTML = template.content || '';
         this.markUnsavedChange('interviewForm');
         notesElement.focus();
         this.closeInterviewTemplateModal();
@@ -9732,6 +9733,32 @@ class RiskManagementSystem {
         this.interviewEditorState = null;
     }
 
+    extractMentionsFromText(text) {
+        if (!text) {
+            return [];
+        }
+        const mentions = [];
+        const mentionRegex = /@([A-Za-zÀ-ÖØ-öø-ÿ0-9_-]+)/g;
+        let match;
+        while ((match = mentionRegex.exec(text)) !== null) {
+            if (match[1]) {
+                mentions.push(match[1]);
+            }
+        }
+        return mentions;
+    }
+
+    extractMentionsFromNotes(notes) {
+        if (!notes) {
+            return [];
+        }
+        const container = document.createElement('div');
+        container.innerHTML = notes;
+        const textContent = container.textContent || '';
+        const mentions = this.extractMentionsFromText(textContent);
+        return Array.from(new Set(mentions));
+    }
+
     openInterviewViewer(interviewId) {
         if (typeof document === 'undefined') {
             return;
@@ -9744,6 +9771,7 @@ class RiskManagementSystem {
         const referentsContainer = document.getElementById('interviewViewReferents');
         const tagsContainer = document.getElementById('interviewViewTags');
         const notesContainer = document.getElementById('interviewViewNotes');
+        const mentionsContainer = document.getElementById('interviewViewMentions');
         const mindmapButton = document.getElementById('openInterviewMindmapButton');
 
         if (!modal || !titleElement || !notesContainer) {
@@ -9767,6 +9795,9 @@ class RiskManagementSystem {
                 tagsContainer.innerHTML = '';
             }
             notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu à afficher.</p>';
+            if (mentionsContainer) {
+                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">Aucune mention @ détectée.</span>';
+            }
             if (mindmapButton) {
                 mindmapButton.disabled = true;
             }
@@ -9835,6 +9866,17 @@ class RiskManagementSystem {
             notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
         }
 
+        if (mentionsContainer) {
+            const mentions = this.extractMentionsFromNotes(interview.notes || '');
+            if (mentions.length) {
+                mentionsContainer.innerHTML = mentions
+                    .map(mention => `<span class="interview-mention-chip">@${escapeHtml(mention)}</span>`)
+                    .join('');
+            } else {
+                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">Aucune mention @ détectée.</span>';
+            }
+        }
+
         this.interviewViewMindMapState = this.normalizeMindMapState(interview.mindMap);
         if (mindmapButton) {
             mindmapButton.disabled = false;
@@ -9861,6 +9903,7 @@ class RiskManagementSystem {
         const updatedElement = document.getElementById('interviewViewUpdated');
         const referentsContainer = document.getElementById('interviewViewReferents');
         const tagsContainer = document.getElementById('interviewViewTags');
+        const mentionsContainer = document.getElementById('interviewViewMentions');
 
         if (!modal) {
             return;
@@ -9885,6 +9928,9 @@ class RiskManagementSystem {
         }
         if (tagsContainer) {
             tagsContainer.innerHTML = '';
+        }
+        if (mentionsContainer) {
+            mentionsContainer.innerHTML = '';
         }
         const mindmapButton = document.getElementById('openInterviewMindmapButton');
         if (mindmapButton) {
