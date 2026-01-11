@@ -312,6 +312,9 @@
                         <button class="btn btn-primary" onclick="rms.openInterviewModal()">
                             + Nouveau compte-rendu
                         </button>
+                        <button class="btn btn-secondary" type="button" onclick="rms.openMentionsModal()">
+                            A éclaircir
+                        </button>
                     </div>
                 </div>
                 <div class="content-area">
@@ -341,6 +344,10 @@
                     </div>
                     <div class="interview-summary" id="interviewSummary">
                         <span id="interviewCount">0 compte-rendu</span>
+                    </div>
+                    <div id="interviewLoading" class="interview-loading" hidden>
+                        <div class="interview-spinner" aria-hidden="true"></div>
+                        <div class="interview-loading-text">Chargement des comptes-rendus...</div>
                     </div>
                     <div id="interviewList" class="interview-list"></div>
                 </div>
@@ -740,7 +747,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.15</span>
+            <span class="app-version">Version 2.14.16</span>
         </footer>
     </div>
 
@@ -883,6 +890,22 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" type="button" id="openInterviewMindmapButton" onclick="rms.openInterviewMindMapViewer()" disabled>Voir le mindmap</button>
                 <button class="btn btn-secondary" type="button" onclick="rms.closeInterviewViewModal()">Fermer</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="mentionsModal" class="modal">
+        <div class="modal-content large">
+            <div class="modal-header">
+                <h3 class="modal-title">A éclaircir</h3>
+                <button class="modal-close" type="button" onclick="rms.closeMentionsModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="mention-modal-filters">
+                    <button class="btn btn-secondary mention-filter is-active" type="button" data-mention-filter="active">À éclaircir</button>
+                    <button class="btn btn-outline mention-filter" type="button" data-mention-filter="archived">Archivées</button>
+                </div>
+                <div id="mentionsModalList" class="mention-modal-list" aria-live="polite"></div>
             </div>
         </div>
     </div>

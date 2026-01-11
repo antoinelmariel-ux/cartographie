@@ -386,8 +386,12 @@ body.mindmap-readonly .objective-flag input {
   background: currentColor;
 }
 
-.node.selected {
+.node.selected,
+.node.selected-parent {
   outline: 3px solid rgba(59, 130, 246, 0.4);
+}
+
+.node.selected {
   transform: translateY(-4px);
   box-shadow: 0 16px 40px rgba(59, 130, 246, 0.25);
 }
