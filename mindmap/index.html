@@ -27,7 +27,6 @@
     <div class="tab-bar" role="tablist" aria-label="Navigation des onglets" data-i18n-aria-label="tabBarAriaLabel">
       <button class="tab-button active" data-tab-target="tab-map" role="tab" aria-selected="true" data-i18n="tabMap">Carte</button>
       <button class="tab-button" data-tab-target="tab-synthese" role="tab" aria-selected="false" data-i18n="tabSynthese">Synthèse</button>
-      <button class="tab-button" data-tab-target="tab-mentions" role="tab" aria-selected="false" data-i18n="tabMentions">Mentions @</button>
       <button class="tab-button" data-tab-target="tab-notes" role="tab" aria-selected="false" data-i18n="tabConfiguration">Configuration</button>
     </div>
     <section class="tab-panel active" id="tab-map" role="tabpanel">
@@ -91,15 +90,6 @@
       </div>
     </section>
 
-    <section class="tab-panel" id="tab-mentions" role="tabpanel" aria-live="polite">
-      <div class="mentions-panel">
-        <div class="mention-admin">
-          <div class="mention-admin-title" data-i18n="mentionAdminTitle">Back-office des mentions @</div>
-          <div class="mention-admin-desc" data-i18n="mentionAdminDesc">Liste des bulles contenant des mentions, regroupées par personne citée.</div>
-          <div id="mention-list" class="mention-list" aria-live="polite"></div>
-        </div>
-      </div>
-    </section>
     <div class="zoom-panel" aria-label="Contrôles de zoom" data-i18n-aria-label="zoomPanelAriaLabel">
       <button id="zoom-out" aria-label="Dézoomer" data-i18n-aria-label="zoomOutAriaLabel">-</button>
       <input id="zoom-range" type="range" min="40" max="150" step="5" value="100" aria-label="Zoom" data-i18n-aria-label="zoomRangeAriaLabel" />

@@ -161,6 +161,9 @@ class RiskManagementSystem {
             referent: '',
             search: ''
         };
+        this.mentionArchive = this.loadMentionArchive();
+        this.mentionModalFilter = 'active';
+        this.mentionModalInitialized = false;
 
         this.mindMapToolbarExpanded = false;
         this.mindMapMiniMapVisible = false;
@@ -273,14 +276,7 @@ class RiskManagementSystem {
     }
 
     getDefaultInterviews() {
-        const defaults = window.RMS_DEFAULT_DATA?.interviews;
-        if (!Array.isArray(defaults)) {
-            return [];
-        }
-
-        return defaults
-            .map(entry => this.normalizeInterview(entry))
-            .filter(Boolean);
+        return [];
     }
 
     getDefaultConfig() {
@@ -6365,10 +6361,25 @@ class RiskManagementSystem {
         return `${base.replace(/\/$/, '')}/${fileName}`;
     }
 
+    setInterviewLoading(isLoading) {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const loading = document.getElementById('interviewLoading');
+        if (!loading) {
+            return;
+        }
+
+        loading.hidden = !isLoading;
+    }
+
     async loadInterviewFiles() {
         if (typeof fetch === 'undefined' || typeof document === 'undefined') {
             return false;
         }
+
+        this.setInterviewLoading(true);
 
         const loadedInterviews = [];
         let index = 1;
@@ -6377,38 +6388,42 @@ class RiskManagementSystem {
         let maxIndexFound = 0;
         let maxJsonIndexFound = 0;
 
-        while (missingCount < maxMissing) {
-            const result = await this.fetchInterviewFile(index);
-            if (result && result.interview) {
-                const interview = result.interview;
-                if (result.isJson) {
-                    maxJsonIndexFound = Math.max(maxJsonIndexFound, index);
+        try {
+            while (missingCount < maxMissing) {
+                const result = await this.fetchInterviewFile(index);
+                if (result && result.interview) {
+                    const interview = result.interview;
+                    if (result.isJson) {
+                        maxJsonIndexFound = Math.max(maxJsonIndexFound, index);
+                    }
+                    maxIndexFound = Math.max(maxIndexFound, index);
+                    const withIndex = {
+                        ...interview,
+                        fileIndex: this.getInterviewFileIndex(interview) || index,
+                        fileName: result.fileName || interview.fileName
+                    };
+                    const normalized = this.normalizeInterview(withIndex);
+                    if (normalized) {
+                        loadedInterviews.push(normalized);
+                    }
+                    missingCount = 0;
+                } else {
+                    missingCount += 1;
                 }
-                maxIndexFound = Math.max(maxIndexFound, index);
-                const withIndex = {
-                    ...interview,
-                    fileIndex: this.getInterviewFileIndex(interview) || index,
-                    fileName: result.fileName || interview.fileName
-                };
-                const normalized = this.normalizeInterview(withIndex);
-                if (normalized) {
-                    loadedInterviews.push(normalized);
-                }
-                missingCount = 0;
-            } else {
-                missingCount += 1;
+                index += 1;
             }
-            index += 1;
-        }
 
-        if (!loadedInterviews.length) {
-            return false;
-        }
+            if (!loadedInterviews.length) {
+                return false;
+            }
 
-        this.interviews = loadedInterviews;
-        this.interviewFileCount = maxIndexFound;
-        this.interviewJsonCount = maxJsonIndexFound;
-        return true;
+            this.interviews = loadedInterviews;
+            this.interviewFileCount = maxIndexFound;
+            this.interviewJsonCount = maxJsonIndexFound;
+            return true;
+        } finally {
+            this.setInterviewLoading(false);
+        }
     }
 
     async fetchInterviewFile(index) {
@@ -6416,10 +6431,6 @@ class RiskManagementSystem {
         const jsonInterview = await this.fetchInterviewJson(`${baseName}.json`);
         if (jsonInterview) {
             return { interview: jsonInterview, fileName: `${baseName}.json`, isJson: true };
-        }
-        const scriptInterview = await this.fetchInterviewScript(baseName);
-        if (scriptInterview) {
-            return { interview: scriptInterview, fileName: `${baseName}.js`, isJson: false };
         }
         return null;
     }
@@ -9757,6 +9768,317 @@ class RiskManagementSystem {
         const textContent = container.textContent || '';
         const mentions = this.extractMentionsFromText(textContent);
         return Array.from(new Set(mentions));
+    }
+
+    getMentionArchiveStorageKey() {
+        return 'rms_mentions_archive';
+    }
+
+    loadMentionArchive() {
+        if (typeof localStorage === 'undefined') {
+            return new Set();
+        }
+
+        const storageKey = this.getMentionArchiveStorageKey();
+        const data = localStorage.getItem(storageKey);
+        if (!data) {
+            return new Set();
+        }
+
+        try {
+            const parsed = JSON.parse(data);
+            if (Array.isArray(parsed)) {
+                return new Set(parsed.filter(Boolean));
+            }
+        } catch (error) {
+            console.warn('Archive des mentions invalides, réinitialisation', error);
+            try {
+                localStorage.removeItem(storageKey);
+            } catch (cleanupError) {
+                console.warn('Impossible de supprimer l’archive des mentions corrompue', cleanupError);
+            }
+        }
+
+        return new Set();
+    }
+
+    saveMentionArchive() {
+        if (typeof localStorage === 'undefined') {
+            return;
+        }
+
+        const storageKey = this.getMentionArchiveStorageKey();
+        const payload = Array.from(this.mentionArchive instanceof Set ? this.mentionArchive : []);
+        localStorage.setItem(storageKey, JSON.stringify(payload));
+    }
+
+    setMentionArchived(mentionKey, shouldArchive) {
+        if (!mentionKey) {
+            return;
+        }
+
+        if (!(this.mentionArchive instanceof Set)) {
+            this.mentionArchive = new Set();
+        }
+
+        if (shouldArchive) {
+            this.mentionArchive.add(mentionKey);
+        } else {
+            this.mentionArchive.delete(mentionKey);
+        }
+
+        this.saveMentionArchive();
+    }
+
+    buildMentionKey({ sourceType, interviewId, mention, templateKey = '', nodeId = '' }) {
+        const safeSource = sourceType || 'source';
+        const safeInterview = interviewId != null ? String(interviewId) : 'unknown';
+        const safeMention = mention ? String(mention).toLowerCase() : '';
+        return [safeSource, safeInterview, templateKey, nodeId, safeMention].filter(Boolean).join(':');
+    }
+
+    extractMentionsFromMindMapState(state) {
+        const normalized = this.normalizeMindMapState(state);
+        const data = normalized?.data && typeof normalized.data === 'object' ? normalized.data : null;
+        if (!data) {
+            return [];
+        }
+
+        const templateStates = data.templateStates && typeof data.templateStates === 'object'
+            ? data.templateStates
+            : {};
+
+        const mentions = [];
+        const collectFromNodes = (nodes, templateKey) => {
+            if (!Array.isArray(nodes)) {
+                return;
+            }
+
+            nodes.forEach(node => {
+                if (!node || typeof node !== 'object') {
+                    return;
+                }
+
+                const text = typeof node.text === 'string' ? node.text : '';
+                const nodeMentions = Array.from(new Set(this.extractMentionsFromText(text)));
+                nodeMentions.forEach(mention => {
+                    mentions.push({
+                        mention,
+                        nodeText: text,
+                        nodeId: node.id || '',
+                        templateKey
+                    });
+                });
+
+                if (Array.isArray(node.children) && node.children.length) {
+                    collectFromNodes(node.children, templateKey);
+                }
+            });
+        };
+
+        Object.entries(templateStates).forEach(([templateKey, templateState]) => {
+            const nodes = Array.isArray(templateState?.nodes) ? templateState.nodes : [];
+            collectFromNodes(nodes, templateKey);
+        });
+
+        return mentions;
+    }
+
+    collectMentionsForModal() {
+        const entries = [];
+        const seen = new Set();
+        const interviews = Array.isArray(this.interviews) ? this.interviews : [];
+
+        interviews.forEach(interview => {
+            if (!interview) {
+                return;
+            }
+
+            const interviewId = interview.id ?? interview.fileName ?? interview.fileIndex ?? 'inconnu';
+            const interviewTitle = interview.title?.trim() || `Compte-rendu ${interviewId}`;
+
+            const noteMentions = this.extractMentionsFromNotes(interview.notes || '');
+            noteMentions.forEach(mention => {
+                const key = this.buildMentionKey({ sourceType: 'interview', interviewId, mention });
+                if (seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                entries.push({
+                    key,
+                    mention,
+                    sourceType: 'interview',
+                    sourceLabel: interviewTitle,
+                    context: 'Notes d’entretien'
+                });
+            });
+
+            const mindMapMentions = this.extractMentionsFromMindMapState(interview.mindMap);
+            mindMapMentions.forEach(entry => {
+                const key = this.buildMentionKey({
+                    sourceType: 'mindmap',
+                    interviewId,
+                    mention: entry.mention,
+                    templateKey: entry.templateKey || '',
+                    nodeId: entry.nodeId || ''
+                });
+                if (seen.has(key)) {
+                    return;
+                }
+                seen.add(key);
+                entries.push({
+                    key,
+                    mention: entry.mention,
+                    sourceType: 'mindmap',
+                    sourceLabel: interviewTitle,
+                    context: entry.nodeText || 'Idée mindmap',
+                    templateKey: entry.templateKey || ''
+                });
+            });
+        });
+
+        return entries.sort((a, b) => {
+            const mentionDiff = a.mention.localeCompare(b.mention, 'fr', { sensitivity: 'base' });
+            if (mentionDiff !== 0) {
+                return mentionDiff;
+            }
+            return a.sourceLabel.localeCompare(b.sourceLabel, 'fr', { sensitivity: 'base' });
+        });
+    }
+
+    updateMentionFilterButtons() {
+        const modal = document.getElementById('mentionsModal');
+        if (!modal) {
+            return;
+        }
+        const buttons = modal.querySelectorAll('.mention-filter');
+        buttons.forEach(button => {
+            const filter = button.dataset?.mentionFilter;
+            if (filter === this.mentionModalFilter) {
+                button.classList.add('is-active');
+            } else {
+                button.classList.remove('is-active');
+            }
+        });
+    }
+
+    renderMentionsModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const list = document.getElementById('mentionsModalList');
+        if (!list) {
+            return;
+        }
+
+        list.innerHTML = '';
+        const entries = this.collectMentionsForModal();
+        const isArchivedView = this.mentionModalFilter === 'archived';
+        const archivedSet = this.mentionArchive instanceof Set ? this.mentionArchive : new Set();
+        const filtered = entries.filter(entry => archivedSet.has(entry.key) === isArchivedView);
+
+        if (!filtered.length) {
+            const empty = document.createElement('div');
+            empty.className = 'mention-modal-empty';
+            empty.textContent = isArchivedView
+                ? 'Aucune mention archivée pour le moment.'
+                : 'Aucune mention @ à éclaircir.';
+            list.appendChild(empty);
+            return;
+        }
+
+        filtered.forEach(entry => {
+            const item = document.createElement('div');
+            item.className = 'mention-modal-item';
+
+            const main = document.createElement('div');
+            main.className = 'mention-modal-main';
+
+            const mention = document.createElement('div');
+            mention.className = 'mention-modal-mention';
+            mention.textContent = `@${entry.mention}`;
+
+            const meta = document.createElement('div');
+            meta.className = 'mention-modal-meta';
+            const sourceLabel = entry.sourceType === 'mindmap'
+                ? `Atelier mindmap • ${entry.sourceLabel}`
+                : `Compte-rendu • ${entry.sourceLabel}`;
+            const templateSuffix = entry.sourceType === 'mindmap' && entry.templateKey
+                ? ` • Carte ${entry.templateKey}`
+                : '';
+            meta.textContent = `${sourceLabel}${templateSuffix}`;
+
+            const context = document.createElement('div');
+            context.className = 'mention-modal-context';
+            context.textContent = entry.context;
+
+            main.append(mention, meta, context);
+
+            const action = document.createElement('button');
+            action.type = 'button';
+            action.className = isArchivedView ? 'btn btn-secondary' : 'btn btn-outline';
+            action.textContent = isArchivedView ? 'Désarchiver' : 'Archiver';
+            action.addEventListener('click', () => {
+                this.setMentionArchived(entry.key, !isArchivedView);
+                this.renderMentionsModal();
+            });
+
+            item.append(main, action);
+            list.appendChild(item);
+        });
+    }
+
+    registerMentionsModalHandlers() {
+        if (typeof document === 'undefined' || this.mentionModalInitialized) {
+            return;
+        }
+
+        const modal = document.getElementById('mentionsModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.querySelectorAll('.mention-filter').forEach(button => {
+            button.addEventListener('click', () => {
+                const filter = button.dataset?.mentionFilter || 'active';
+                this.mentionModalFilter = filter;
+                this.updateMentionFilterButtons();
+                this.renderMentionsModal();
+            });
+        });
+
+        this.mentionModalInitialized = true;
+    }
+
+    openMentionsModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('mentionsModal');
+        if (!modal) {
+            return;
+        }
+
+        this.registerMentionsModalHandlers();
+        this.mentionModalFilter = 'active';
+        this.updateMentionFilterButtons();
+        this.renderMentionsModal();
+        modal.classList.add('show');
+    }
+
+    closeMentionsModal() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        const modal = document.getElementById('mentionsModal');
+        if (!modal) {
+            return;
+        }
+
+        modal.classList.remove('show');
     }
 
     openInterviewViewer(interviewId) {

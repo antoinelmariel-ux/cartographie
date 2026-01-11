@@ -3296,6 +3296,95 @@ tbody tr:hover {
     font-size: 0.85em;
 }
 
+.interview-loading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #ffffff;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 6px 16px rgba(31, 47, 71, 0.06);
+    color: #3c5163;
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.interview-spinner {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    border: 3px solid rgba(37, 99, 235, 0.2);
+    border-top-color: #2563eb;
+    animation: interviewSpin 0.9s linear infinite;
+}
+
+@keyframes interviewSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.mention-modal-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+}
+
+.mention-filter.is-active {
+    box-shadow: 0 8px 18px rgba(30, 64, 175, 0.2);
+}
+
+.mention-modal-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.mention-modal-item {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 14px 16px;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    background: #ffffff;
+    box-shadow: 0 6px 16px rgba(31, 47, 71, 0.05);
+}
+
+.mention-modal-main {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    flex: 1;
+}
+
+.mention-modal-mention {
+    font-weight: 700;
+    color: #1d4ed8;
+}
+
+.mention-modal-meta {
+    font-size: 0.85em;
+    color: #607080;
+}
+
+.mention-modal-context {
+    font-size: 0.9em;
+    color: #1f2937;
+}
+
+.mention-modal-empty {
+    padding: 16px;
+    border-radius: 12px;
+    border: 1px dashed #c7d0d9;
+    background: #f8fafc;
+    color: #607080;
+    font-weight: 600;
+}
+
 .interview-scope-helper {
     background: var(--surface-alt-color);
     border: 1px dashed #c7d0d9;

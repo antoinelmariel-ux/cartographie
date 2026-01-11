@@ -1078,6 +1078,26 @@ function getMentionGroups() {
   return groups;
 }
 
+function getAncestorIds(nodeId) {
+  const ancestorIds = new Set();
+  if (!nodeId) return ancestorIds;
+  const startNode = nodes.find((n) => n.id === nodeId);
+  if (!startNode) return ancestorIds;
+  const queue = [startNode.parentId, ...(startNode.extraParentIds ?? [])].filter(Boolean);
+  while (queue.length) {
+    const currentId = queue.shift();
+    if (!currentId || ancestorIds.has(currentId)) continue;
+    ancestorIds.add(currentId);
+    const ancestor = nodes.find((n) => n.id === currentId);
+    if (!ancestor) continue;
+    const parentIds = [ancestor.parentId, ...(ancestor.extraParentIds ?? [])].filter(Boolean);
+    parentIds.forEach((parentId) => {
+      if (!ancestorIds.has(parentId)) queue.push(parentId);
+    });
+  }
+  return ancestorIds;
+}
+
 function computeInsertionOrder(column, parentId, afterId) {
   const siblings = nodes
     .filter((n) => n.column === column && n.parentId === parentId)
@@ -1279,12 +1299,16 @@ function handleBadgeClick(node, titleEl) {
 function renderNodes() {
   nodesContainer.innerHTML = '';
   const visibleNodes = getVisibleNodes();
+  const selectedAncestorIds = getAncestorIds(selectedId);
   visibleNodes.forEach((node) => {
     const position = positions.get(node.id);
     if (!position) return;
     const { x, y } = position;
     const el = document.createElement('div');
     el.className = `node ${node.color} ${selectedId === node.id ? 'selected' : ''}`;
+    if (selectedAncestorIds.has(node.id)) {
+      el.classList.add('selected-parent');
+    }
     if (editingId === node.id) {
       el.classList.add('editing');
     }
@@ -1610,12 +1634,17 @@ function renderObjectiveAddButton() {
 }
 
 function updateSelection() {
-  document.querySelectorAll('.node').forEach((n) => n.classList.remove('selected'));
+  document.querySelectorAll('.node').forEach((n) => n.classList.remove('selected', 'selected-parent'));
   const selectedEl = document.querySelector(`.node[data-id="${selectedId}"]`);
   if (selectedEl) {
     selectedEl.classList.add('selected');
     requestAnimationFrame(() => centerOnNode(selectedId));
   }
+  const ancestorIds = getAncestorIds(selectedId);
+  ancestorIds.forEach((ancestorId) => {
+    const ancestorEl = document.querySelector(`.node[data-id="${ancestorId}"]`);
+    ancestorEl?.classList.add('selected-parent');
+  });
   syncQuestionPanelToSelection();
   updateHelperPanel();
 }
