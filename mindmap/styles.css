@@ -131,6 +131,7 @@ body.mindmap-readonly .objective-flag input {
   display: flex;
   gap: 8px;
   align-items: center;
+  margin-right:30px
 }
 
 .legend-item {
@@ -328,7 +329,7 @@ body.mindmap-readonly .objective-flag input {
 .node .node-delete {
   position: absolute;
   top: 12px;
-  right: 42px;
+  right: 12px;
   width: 20px;
   height: 20px;
   border-radius: 50%;
