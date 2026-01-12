@@ -824,6 +824,7 @@ body {
     background: white;
     border-radius: 8px;
     flex-wrap: wrap;
+    margin-right:30px
 }
 
 .legend-item {
