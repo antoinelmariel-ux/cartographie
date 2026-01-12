@@ -2919,6 +2919,7 @@ tbody tr:hover {
     display: flex;
     justify-content: flex-end;
     margin-bottom: 12px;
+    column-gap:10px;
 }
 
 .template-select-bar .btn {
