@@ -129,7 +129,7 @@ const translations = {
     },
     mapTemplates: {
       'lfb-fournisseur': {
-        name: 'LFB Fournisseur',
+        name: 'LFB acteur',
         columns: {
           objective: { label: 'Objectif', placeholder: 'Nouvel objectif' },
           tier: { label: 'Tiers', placeholder: 'Nouveau tiers' },
@@ -142,7 +142,7 @@ const translations = {
         synthese: { tierConnector: 'de' },
       },
       'lfb-client': {
-        name: 'LFB Client',
+        name: 'LFB victime',
         columns: {
           tier: { label: 'Tiers', placeholder: 'Nouveau tiers' },
           objective: { label: 'Objectif', placeholder: 'Nouvel objectif' },
@@ -155,7 +155,7 @@ const translations = {
         synthese: { tierConnector: 'par' },
       },
       'lfb-controleur': {
-        name: 'LFB contrôleur',
+        name: 'Contrôles',
         columns: {
           controle: { label: 'Contrôle', placeholder: 'Nouveau contrôle' },
           description: { label: 'Description', placeholder: 'Nouvelle description' },

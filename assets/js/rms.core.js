@@ -9759,6 +9759,22 @@ class RiskManagementSystem {
         return mentions;
     }
 
+    extractMentionsWithContext(text) {
+        if (!text) {
+            return [];
+        }
+        const mentions = [];
+        const mentionRegex = /@([A-Za-zÀ-ÖØ-öø-ÿ0-9_-]+)/g;
+        let match;
+        while ((match = mentionRegex.exec(text)) !== null) {
+            if (match[1]) {
+                const afterMention = text.slice(match.index + match[0].length).trim();
+                mentions.push({ mention: match[1], context: afterMention });
+            }
+        }
+        return mentions;
+    }
+
     extractMentionsFromNotes(notes) {
         if (!notes) {
             return [];
@@ -9768,6 +9784,25 @@ class RiskManagementSystem {
         const textContent = container.textContent || '';
         const mentions = this.extractMentionsFromText(textContent);
         return Array.from(new Set(mentions));
+    }
+
+    extractMentionContextsFromNotes(notes) {
+        if (!notes) {
+            return [];
+        }
+        const container = document.createElement('div');
+        container.innerHTML = notes;
+        const textContent = container.textContent || '';
+        const mentions = this.extractMentionsWithContext(textContent);
+        const seen = new Set();
+        return mentions.filter(entry => {
+            const key = entry.mention.toLowerCase();
+            if (seen.has(key)) {
+                return false;
+            }
+            seen.add(key);
+            return true;
+        });
     }
 
     getMentionArchiveStorageKey() {
@@ -9860,13 +9895,20 @@ class RiskManagementSystem {
                 }
 
                 const text = typeof node.text === 'string' ? node.text : '';
-                const nodeMentions = Array.from(new Set(this.extractMentionsFromText(text)));
-                nodeMentions.forEach(mention => {
+                const nodeMentions = this.extractMentionsWithContext(text);
+                const seenMentions = new Set();
+                nodeMentions.forEach(entry => {
+                    const mentionKey = entry.mention.toLowerCase();
+                    if (seenMentions.has(mentionKey)) {
+                        return;
+                    }
+                    seenMentions.add(mentionKey);
                     mentions.push({
-                        mention,
+                        mention: entry.mention,
                         nodeText: text,
                         nodeId: node.id || '',
-                        templateKey
+                        templateKey,
+                        context: entry.context
                     });
                 });
 
@@ -9897,19 +9939,19 @@ class RiskManagementSystem {
             const interviewId = interview.id ?? interview.fileName ?? interview.fileIndex ?? 'inconnu';
             const interviewTitle = interview.title?.trim() || `Compte-rendu ${interviewId}`;
 
-            const noteMentions = this.extractMentionsFromNotes(interview.notes || '');
-            noteMentions.forEach(mention => {
-                const key = this.buildMentionKey({ sourceType: 'interview', interviewId, mention });
+            const noteMentions = this.extractMentionContextsFromNotes(interview.notes || '');
+            noteMentions.forEach(entry => {
+                const key = this.buildMentionKey({ sourceType: 'interview', interviewId, mention: entry.mention });
                 if (seen.has(key)) {
                     return;
                 }
                 seen.add(key);
                 entries.push({
                     key,
-                    mention,
+                    mention: entry.mention,
                     sourceType: 'interview',
                     sourceLabel: interviewTitle,
-                    context: 'Notes d’entretien'
+                    context: entry.context
                 });
             });
 
@@ -9931,7 +9973,7 @@ class RiskManagementSystem {
                     mention: entry.mention,
                     sourceType: 'mindmap',
                     sourceLabel: interviewTitle,
-                    context: entry.nodeText || 'Idée mindmap',
+                    context: entry.context || '',
                     templateKey: entry.templateKey || ''
                 });
             });
