@@ -171,7 +171,7 @@ const translations = {
   - A quelle fréquence ?
 - Objectifs relationnels (maintenir une relation clé)
 - Objectifs temps (accélérer, sécuriser, débloquer)
-- Avez vous des objectifs portés par des tiers (distributeurs, prestataires, intermédiaires, ...) ?
+- Certains de vos objectifs sont-ils portés par des tiers (distributeurs, prestataires, intermédiaires, ...) ?
 - Pensez-vous à d’autres activités où vous êtes en contact avec des tiers ? (directement ou indirectement)`,
         tier: `**Qui sont les tiers qui ont un impact sur ces objectifs ?**
 - Administration / Client / Prestataires / …
