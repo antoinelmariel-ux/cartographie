@@ -3098,6 +3098,10 @@ tbody tr:hover {
     font-size: 0.95em;
 }
 
+.interview-empty .btn {
+    margin-top: 1rem;
+}
+
 .interview-card {
     background: #ffffff;
     border: 1px solid var(--border-color);
