@@ -276,7 +276,11 @@ class RiskManagementSystem {
     }
 
     getDefaultInterviews() {
-        return [];
+        const defaults = window.RMS_DEFAULT_DATA?.interviews;
+        if (!Array.isArray(defaults)) {
+            return [];
+        }
+        return defaults.map(item => cloneDefaultEntry(item));
     }
 
     getDefaultConfig() {
