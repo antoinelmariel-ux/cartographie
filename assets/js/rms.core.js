@@ -6440,7 +6440,7 @@ class RiskManagementSystem {
         try {
             const response = await fetch(targetPath, { cache: 'no-store' });
             if (!response.ok) {
-                return null;
+                return this.fetchInterviewJsonViaXhr(targetPath);
             }
             const data = await response.json();
             return this.extractInterviewPayload(data);
