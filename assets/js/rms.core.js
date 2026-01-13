@@ -121,6 +121,8 @@ class RiskManagementSystem {
         this.interviewFolder = 'interviews';
         this.interviewFileCount = 0;
         this.interviewJsonCount = 0;
+        this.interviewLoadFailed = false;
+        this.interviewFolderPicker = null;
         const defaultConfig = this.getDefaultConfig();
         this.config = this.loadConfig() || defaultConfig;
         this.readOnlyConfigKeys = new Set(['riskStatuses']);
@@ -6384,6 +6386,7 @@ class RiskManagementSystem {
         }
 
         this.setInterviewLoading(true);
+        this.interviewLoadFailed = false;
 
         const loadedInterviews = [];
         let maxIndexFound = 0;
@@ -6449,6 +6452,7 @@ class RiskManagementSystem {
             }
 
             if (!loadedInterviews.length) {
+                this.interviewLoadFailed = true;
                 return false;
             }
 
@@ -6458,6 +6462,125 @@ class RiskManagementSystem {
             return true;
         } finally {
             this.setInterviewLoading(false);
+        }
+    }
+
+    supportsInterviewFolderPicker() {
+        if (typeof document === 'undefined') {
+            return false;
+        }
+        const input = document.createElement('input');
+        return 'webkitdirectory' in input;
+    }
+
+    openInterviewFolderPicker() {
+        if (typeof document === 'undefined') {
+            return;
+        }
+
+        if (!this.supportsInterviewFolderPicker()) {
+            alert('Votre navigateur ne permet pas de sélectionner un dossier complet. Merci d’utiliser un navigateur compatible.');
+            return;
+        }
+
+        if (!this.interviewFolderPicker) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.multiple = true;
+            input.setAttribute('webkitdirectory', '');
+            input.setAttribute('directory', '');
+            input.style.display = 'none';
+            input.addEventListener('change', () => {
+                this.handleInterviewFolderSelection(input.files);
+            });
+            document.body.appendChild(input);
+            this.interviewFolderPicker = input;
+        }
+
+        this.interviewFolderPicker.value = '';
+        this.interviewFolderPicker.click();
+    }
+
+    async readInterviewFile(file) {
+        if (!file) {
+            return null;
+        }
+        if (typeof file.text === 'function') {
+            return file.text();
+        }
+        if (typeof FileReader === 'undefined') {
+            return null;
+        }
+
+        return new Promise(resolve => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result || '');
+            reader.onerror = () => resolve('');
+            reader.readAsText(file);
+        });
+    }
+
+    async handleInterviewFolderSelection(fileList) {
+        if (!fileList || !fileList.length) {
+            return;
+        }
+
+        const files = Array.from(fileList)
+            .filter(file => file && typeof file.name === 'string' && /interview\d+\.json$/i.test(file.name));
+
+        if (!files.length) {
+            alert('Aucun fichier interviewX.json trouvé dans le dossier sélectionné.');
+            return;
+        }
+
+        const loadedInterviews = [];
+        let maxIndexFound = 0;
+        let maxJsonIndexFound = 0;
+
+        for (const file of files) {
+            const content = await this.readInterviewFile(file);
+            if (!content) {
+                continue;
+            }
+            try {
+                const data = JSON.parse(content);
+                const interview = this.extractInterviewPayload(data);
+                if (!interview) {
+                    continue;
+                }
+                const fileIndex = this.getInterviewFileIndex({ fileName: file.name });
+                const withIndex = {
+                    ...interview,
+                    fileIndex: this.getInterviewFileIndex(interview) || fileIndex,
+                    fileName: interview.fileName || file.name
+                };
+                const normalized = this.normalizeInterview(withIndex);
+                if (normalized) {
+                    loadedInterviews.push(normalized);
+                    if (fileIndex) {
+                        maxIndexFound = Math.max(maxIndexFound, fileIndex);
+                        maxJsonIndexFound = Math.max(maxJsonIndexFound, fileIndex);
+                    }
+                }
+            } catch (error) {
+                // Ignore malformed files
+            }
+        }
+
+        if (!loadedInterviews.length) {
+            alert('Les fichiers détectés ne contiennent pas de comptes-rendus valides.');
+            return;
+        }
+
+        this.interviews = loadedInterviews;
+        this.interviewFileCount = maxIndexFound;
+        this.interviewJsonCount = maxJsonIndexFound;
+        this.interviewLoadFailed = false;
+        this.updateInterviewsList();
+
+        if (typeof showNotification === 'function') {
+            showNotification('success', 'Interviews chargées depuis le dossier sélectionné.');
         }
     }
 
@@ -10663,6 +10786,20 @@ class RiskManagementSystem {
             search: '',
             ...(this.interviewFilters || {})
         };
+
+        if (!interviews.length) {
+            if (countElement) {
+                countElement.textContent = '0 compte-rendu';
+            }
+            const button = this.supportsInterviewFolderPicker()
+                ? '<button class="btn btn-outline" type="button" onclick="rms.openInterviewFolderPicker()">📂 Charger un dossier d\'interviews</button>'
+                : '';
+            const message = this.supportsInterviewFolderPicker()
+                ? 'Aucun compte-rendu chargé. Sélectionnez le dossier contenant vos fichiers interviewX.json.'
+                : 'Aucun compte-rendu chargé.';
+            container.innerHTML = `<div class="interview-empty">${message}${button}</div>`;
+            return;
+        }
 
         const processFilter = filters.process || '';
         const subProcessFilter = filters.subProcess || '';
