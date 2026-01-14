@@ -247,10 +247,11 @@ Exemples:
 - Avez-vous déjà été victime ou témoin d’une tentative de fraude ?`,
       },
       'lfb-controleur': {
-        controle: `**Quels sont les principaux mécanismes de contrôle que vous avez mis en place pour prévenir et détecter les risques de corruption sur les opérations ?**
+        controle: `**Quels sont les principaux mécanismes de prévention ou de contrôle que vous avez mis en place pour prévenir et détecter les risques de corruption sur les opérations ?**
 - Quelles validations existent avant un engagement ?
 - Quels contrôles existent sur les flux financiers ?
-- Y-a-t-il des séparations de tâches prévues pour éviter les prises de décisions isolées ?`,
+- Y-a-t-il des séparations de tâches prévues pour éviter les prises de décisions isolées ?
+- Formation ?`,
         description: `**Pouvez-vous me décrire ce contrôle et la façon dont il est mis en œuvre ?**
 - Qui est responsable du contrôle ?
 - À quel moment intervient-il dans le processus ?
@@ -288,7 +289,7 @@ Exemples:
       tier: 'Tiers principal',
       comportement: 'Comportement principal',
       moyen: 'Moyen principal',
-      controle: 'Contrôle principal',
+      controle: 'Dispositif de prévention ou contrôle',
       limite: 'Limite principale',
       proba: 'Crédibilité principale',
       contournement: 'Contournement principal',
@@ -512,10 +513,11 @@ Examples:
 - Have you ever been a victim or witness of an attempted fraud?`,
       },
       'lfb-controleur': {
-        controle: `**What are the main control mechanisms you have put in place to prevent and detect corruption risks in operations?**
+        controle: `**What are the main prevention or control mechanisms you have put in place to prevent and detect corruption risks in operations?**
 - What validations exist before a commitment?
 - What controls exist on financial flows?
-- Are there segregation-of-duties arrangements to avoid isolated decision-making?`,
+- Are there segregation-of-duties arrangements to avoid isolated decision-making?
+- Trainings?`,
         description: `**Can you describe this control and how it is implemented?**
 - Who is responsible for the control?
 - When does it take place in the process?
