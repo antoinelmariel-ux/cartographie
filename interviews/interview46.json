@@ -8,9 +8,16 @@
   ],
   "date": "2026-01-09",
   "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "Affaires médicales"
+  ],
+  "subProcesses": [
+    "Hospitalité congrès scientifiques"
+  ],
   "createdAt": "2026-01-09T16:20:44Z",
   "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
