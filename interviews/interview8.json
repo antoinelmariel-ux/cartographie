@@ -2,17 +2,24 @@
   "id": 8,
   "fileIndex": 8,
   "fileName": "interview8.json",
-  "title": "Entretien Bruno DE MIRIBEL",
+  "title": "Entretien Thomas Lemoine",
   "referents": [
-    "Bruno DE MIRIBEL"
+    "Thomas Lemoine"
   ],
   "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "R&D Clinique"
+  ],
+  "subProcesses": [
+    "Gestion CRO internationales"
+  ],
+  "createdAt": "2026-01-09T09:00:00Z",
+  "updatedAt": "2026-01-09T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

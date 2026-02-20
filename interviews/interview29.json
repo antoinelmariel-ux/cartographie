@@ -2,17 +2,23 @@
   "id": 29,
   "fileIndex": 29,
   "fileName": "interview29.json",
-  "title": "Entretien Jessica TAEUFER",
+  "title": "Entretien Anaïs Meunier",
   "referents": [
-    "Jessica TAEUFER"
+    "Anaïs Meunier"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-03-02",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "Supply Chain"
+  ],
+  "subProcesses": [
+    "Dédouanement lots biologiques"
+  ],
+  "createdAt": "2026-01-02T09:00:00Z",
+  "updatedAt": "2026-01-02T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

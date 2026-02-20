@@ -2,17 +2,23 @@
   "id": 3,
   "fileIndex": 3,
   "fileName": "interview3.json",
-  "title": "Entretien Anke BALCAEN",
+  "title": "Entretien Sarah El Idrissi",
   "referents": [
-    "Anke BALCAEN"
+    "Sarah El Idrissi"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-01-04",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "Ventes & Accès marché"
+  ],
+  "subProcesses": [
+    "Appels d'offres hôpitaux publics"
+  ],
+  "createdAt": "2026-01-04T09:00:00Z",
+  "updatedAt": "2026-01-04T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

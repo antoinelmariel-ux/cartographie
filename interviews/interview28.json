@@ -2,17 +2,24 @@
   "id": 28,
   "fileIndex": 28,
   "fileName": "interview28.json",
-  "title": "Entretien Jean-Yves LAMIRAULT",
+  "title": "Entretien Grégory Simon",
   "referents": [
-    "Jean-Yves LAMIRAULT"
+    "Grégory Simon"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-03-01",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "R&D Clinique"
+  ],
+  "subProcesses": [
+    "Gestion CRO internationales"
+  ],
+  "createdAt": "2026-01-01T09:00:00Z",
+  "updatedAt": "2026-01-01T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

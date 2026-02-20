@@ -2,17 +2,23 @@
   "id": 9,
   "fileIndex": 9,
   "fileName": "interview9.json",
-  "title": "Entretien Catherine BURNOUF",
+  "title": "Entretien Lucie Marchand",
   "referents": [
-    "Catherine BURNOUF"
+    "Lucie Marchand"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-01-10",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "Supply Chain"
+  ],
+  "subProcesses": [
+    "Dédouanement lots biologiques"
+  ],
+  "createdAt": "2026-01-10T09:00:00Z",
+  "updatedAt": "2026-01-10T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

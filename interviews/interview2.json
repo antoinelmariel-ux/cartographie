@@ -2,17 +2,24 @@
   "id": 2,
   "fileIndex": 2,
   "fileName": "interview2.json",
-  "title": "Entretien Anja VANDENPLAS",
+  "title": "Entretien Nicolas Renaud",
   "referents": [
-    "Anja VANDENPLAS"
+    "Nicolas Renaud"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-01-03",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "Achats"
+  ],
+  "subProcesses": [
+    "Qualification fournisseurs critiques"
+  ],
+  "createdAt": "2026-01-03T09:00:00Z",
+  "updatedAt": "2026-01-03T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null
