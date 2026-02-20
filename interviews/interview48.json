@@ -8,9 +8,16 @@
   ],
   "date": "2026-01-09",
   "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "R&D Clinique"
+  ],
+  "subProcesses": [
+    "Gestion CRO internationales"
+  ],
   "createdAt": "2026-01-09T16:20:44Z",
   "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
