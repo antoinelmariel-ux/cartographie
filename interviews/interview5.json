@@ -2,17 +2,23 @@
   "id": 5,
   "fileIndex": 5,
   "fileName": "interview5.json",
-  "title": "Entretien Baptiste JARRASSIER",
+  "title": "Entretien Julie Vasseur",
   "referents": [
-    "Baptiste JARRASSIER"
+    "Julie Vasseur"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-01-06",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "Affaires médicales"
+  ],
+  "subProcesses": [
+    "Contrats de conseil avec KOL"
+  ],
+  "createdAt": "2026-01-06T09:00:00Z",
+  "updatedAt": "2026-01-06T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

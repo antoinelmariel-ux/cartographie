@@ -2,17 +2,24 @@
   "id": 14,
   "fileIndex": 14,
   "fileName": "interview14.json",
-  "title": "Entretien Céline DOSBAA",
+  "title": "Entretien Hugo Delmas",
   "referents": [
-    "Céline DOSBAA"
+    "Hugo Delmas"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-02-15",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "IT & Digital"
+  ],
+  "subProcesses": [
+    "Attribution licences logicielles"
+  ],
+  "createdAt": "2026-01-15T09:00:00Z",
+  "updatedAt": "2026-01-15T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

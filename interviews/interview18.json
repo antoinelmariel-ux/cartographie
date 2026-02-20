@@ -2,17 +2,24 @@
   "id": 18,
   "fileIndex": 18,
   "fileName": "interview18.json",
-  "title": "Entretien Emilien DUBOZ",
+  "title": "Entretien Victor Nguyen",
   "referents": [
-    "Emilien DUBOZ"
+    "Victor Nguyen"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-02-19",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "Juridique & Compliance"
+  ],
+  "subProcesses": [
+    "Due diligence tiers"
+  ],
+  "createdAt": "2026-01-19T09:00:00Z",
+  "updatedAt": "2026-01-19T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

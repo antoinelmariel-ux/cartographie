@@ -2,17 +2,24 @@
   "id": 24,
   "fileIndex": 24,
   "fileName": "interview24.json",
-  "title": "Entretien Hanna LEPERS",
+  "title": "Entretien Maxime Rolland",
   "referents": [
-    "Hanna LEPERS"
+    "Maxime Rolland"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-03-25",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "Groupe",
+    "International"
+  ],
+  "processes": [
+    "Ventes & Accès marché"
+  ],
+  "subProcesses": [
+    "Remises commerciales distributeurs"
+  ],
+  "createdAt": "2026-01-25T09:00:00Z",
+  "updatedAt": "2026-01-25T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

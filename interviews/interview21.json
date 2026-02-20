@@ -2,17 +2,23 @@
   "id": 21,
   "fileIndex": 21,
   "fileName": "interview21.json",
-  "title": "Entretien Estella OZINO TELMON",
+  "title": "Entretien Nadia Bensalem",
   "referents": [
-    "Estella OZINO TELMON"
+    "Nadia Bensalem"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-03-22",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "Achats"
+  ],
+  "subProcesses": [
+    "Sourcing matières plasmatiques"
+  ],
+  "createdAt": "2026-01-22T09:00:00Z",
+  "updatedAt": "2026-01-22T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null

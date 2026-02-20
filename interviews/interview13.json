@@ -2,17 +2,23 @@
   "id": 13,
   "fileIndex": 13,
   "fileName": "interview13.json",
-  "title": "Entretien Cédric DEPRE",
+  "title": "Entretien Sophie Lambert",
   "referents": [
-    "Cédric DEPRE"
+    "Sophie Lambert"
   ],
-  "date": "2026-01-09",
-  "notes": "",
-  "scopes": [],
-  "processes": [],
-  "subProcesses": [],
-  "createdAt": "2026-01-09T16:20:44Z",
-  "updatedAt": "2026-01-09T16:20:44Z",
+  "date": "2026-02-14",
+  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
+  "scopes": [
+    "France"
+  ],
+  "processes": [
+    "IT & Digital"
+  ],
+  "subProcesses": [
+    "Prestataires cybersécurité"
+  ],
+  "createdAt": "2026-01-14T09:00:00Z",
+  "updatedAt": "2026-01-14T09:00:00Z",
   "mindMap": {
     "version": 1,
     "data": null
