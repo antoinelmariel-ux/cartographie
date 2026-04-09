@@ -1,16 +1,17 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.10',
+        version: '2.1.11',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
-    const AGGRAVATING_FACTORS = [
-        { id: 'tiers_sensible', label: 'Recours à un tiers/intermédiaire sensible' },
-        { id: 'multi_pays', label: 'Contexte multi-pays à risque élevé' },
-        { id: 'pression_delai', label: 'Pression forte sur les délais/résultats' },
-        { id: 'faible_tracabilite', label: 'Traçabilité documentaire insuffisante' }
+    const DEFAULT_AGGRAVATING_FACTORS = [
+        { id: 'Professionnels de santé', label: 'Professionnels de santé' },
+        { id: 'Institutionnels', label: 'Institutionnels' },
+        { id: 'Acheteurs', label: 'Acheteurs' },
+        { id: 'Politiques', label: 'Politiques' },
+        { id: 'Collaborateurs', label: 'Collaborateurs' }
     ];
     const MAX_SCENARIO_LENGTH = 500;
     const EFFECTIVENESS_LEVELS = [
@@ -90,6 +91,29 @@
         return EFFECTIVENESS_LEVELS.reduce((closest, level) => (
             Math.abs(level.value - numeric) < Math.abs(closest.value - numeric) ? level : closest
         ), EFFECTIVENESS_LEVELS[0]).value;
+    }
+
+    function getAggravatingFactors() {
+        const configuredTiers = Array.isArray(window.rms?.config?.tiers)
+            ? window.rms.config.tiers
+            : [];
+
+        const factors = configuredTiers
+            .map((tier) => {
+                if (tier && typeof tier === 'object') {
+                    const id = String(tier.value || tier.label || '').trim();
+                    const label = String(tier.label || tier.value || '').trim();
+                    if (!id || !label) return null;
+                    return { id, label };
+                }
+
+                const value = String(tier || '').trim();
+                if (!value) return null;
+                return { id: value, label: value };
+            })
+            .filter(Boolean);
+
+        return factors.length ? factors : DEFAULT_AGGRAVATING_FACTORS;
     }
 
     function scoreToLevel(score) {
@@ -191,7 +215,7 @@
 
     function normalizeAggravatingFactors(value) {
         if (!Array.isArray(value)) return [];
-        const allowed = new Set(AGGRAVATING_FACTORS.map((factor) => factor.id));
+        const allowed = new Set(getAggravatingFactors().map((factor) => factor.id));
         return [...new Set(value.map((item) => String(item)).filter((id) => allowed.has(id)))];
     }
 
@@ -319,7 +343,7 @@
         dom.aggravatingFactorsList.innerHTML = '';
         const selectedFactors = new Set(scenario?.aggravatingFactors || []);
 
-        AGGRAVATING_FACTORS.forEach((factor) => {
+        getAggravatingFactors().forEach((factor) => {
             const label = document.createElement('label');
             label.className = 'simple-aggravating-item';
 
