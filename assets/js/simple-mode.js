@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.11',
+        version: '2.1.12',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -94,11 +94,20 @@
     }
 
     function getAggravatingFactors() {
+        const configuredFactors = Array.isArray(window.rms?.config?.aggravatingFactors)
+            ? window.rms.config.aggravatingFactors
+            : [];
         const configuredTiers = Array.isArray(window.rms?.config?.tiers)
             ? window.rms.config.tiers
             : [];
+        const formTiers = Array.from(document.querySelectorAll('#tiers option'))
+            .map((option) => ({
+                id: String(option.value || '').trim(),
+                label: String(option.textContent || option.value || '').trim()
+            }))
+            .filter((factor) => factor.id && factor.label);
 
-        const factors = configuredTiers
+        const factors = [...configuredFactors, ...configuredTiers, ...formTiers]
             .map((tier) => {
                 if (tier && typeof tier === 'object') {
                     const id = String(tier.value || tier.label || '').trim();
@@ -113,7 +122,11 @@
             })
             .filter(Boolean);
 
-        return factors.length ? factors : DEFAULT_AGGRAVATING_FACTORS;
+        const uniqueFactors = Array.from(
+            new Map(factors.map((factor) => [factor.id, factor])).values()
+        );
+
+        return uniqueFactors.length ? uniqueFactors : DEFAULT_AGGRAVATING_FACTORS;
     }
 
     function scoreToLevel(score) {
@@ -282,13 +295,16 @@
         marker.className = 'simple-marker risk-point brut';
         marker.draggable = true;
         marker.title = 'Glissez-déposez ce marqueur dans une autre case';
-        marker.textContent = '●';
+        marker.innerHTML = '<span aria-hidden="true"></span>';
         marker.setAttribute('aria-label', 'Puce de position du risque');
         marker.addEventListener('dragstart', (evt) => {
             evt.dataTransfer.setData('text/plain', 'marker');
         });
 
-        dom.matrix.appendChild(marker);
+        const firstCell = dom.matrix.querySelector('.simple-matrix-cell');
+        if (firstCell) {
+            firstCell.appendChild(marker);
+        }
     }
 
     function renderAssessment() {

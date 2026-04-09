@@ -2519,6 +2519,8 @@ tbody tr:hover {
     grid-template-columns: repeat(4, 1fr);
     grid-template-rows: repeat(4, 1fr);
     gap: 0;
+    width: 100%;
+    height: 100%;
 }
 
 .simple-matrix-cell {
@@ -2596,6 +2598,7 @@ tbody tr:hover {
 
 .simple-edit-matrix {
     width: min(500px, 100%);
+    max-width: 100%;
     height: auto;
     aspect-ratio: 1 / 1;
     border: 1px solid #8ea8c5;
@@ -2629,12 +2632,22 @@ tbody tr:hover {
 }
 
 .simple-edit-matrix .simple-marker {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 2px solid #ffffff;
     box-shadow: 0 0 0 5px rgba(29, 78, 216, 0.35), 0 4px 12px rgba(0, 0, 0, 0.28);
-    color: #ffffff;
-    font-size: 1.8rem;
-    font-weight: 700;
-    line-height: 1;
+    color: transparent;
+    font-size: 0;
+    line-height: 0;
+}
+
+.simple-edit-matrix .simple-marker span {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2);
 }
 
 .simple-edit-matrix .axis-label {
