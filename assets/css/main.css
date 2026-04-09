@@ -2596,6 +2596,8 @@ tbody tr:hover {
 
 .simple-edit-matrix {
     width: min(500px, 100%);
+    height: auto;
+    aspect-ratio: 1 / 1;
     border: 1px solid #8ea8c5;
     background: #ffffff;
     border-radius: 10px;
@@ -2630,7 +2632,8 @@ tbody tr:hover {
     border: 2px solid #ffffff;
     box-shadow: 0 0 0 5px rgba(29, 78, 216, 0.35), 0 4px 12px rgba(0, 0, 0, 0.28);
     color: #ffffff;
-    font-size: 1.5rem;
+    font-size: 1.8rem;
+    font-weight: 700;
     line-height: 1;
 }
 
