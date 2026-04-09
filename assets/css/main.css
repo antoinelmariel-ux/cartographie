@@ -2554,6 +2554,35 @@ tbody tr:hover {
     color: #64748b;
 }
 
+.simple-aggravating-factors {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #d8e0e8;
+}
+
+.simple-aggravating-factors h4 {
+    margin: 0 0 8px;
+    color: #27313d;
+    font-size: 1rem;
+}
+
+.simple-aggravating-list {
+    display: grid;
+    gap: 8px;
+}
+
+.simple-aggravating-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    color: #4b5b6a;
+    font-size: 0.95rem;
+}
+
+.simple-aggravating-item input {
+    margin-top: 2px;
+}
+
 .simple-nav-actions {
     margin-top: 16px;
     display: flex;
