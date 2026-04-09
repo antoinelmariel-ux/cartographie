@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.18',
+        version: '2.1.20',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -428,6 +428,19 @@
         });
         dom.scenariosPanel.classList.toggle('active', viewName === 'scenarios');
         dom.assessmentPanel.classList.toggle('active', viewName === 'assessment');
+
+        if (viewName === 'assessment') {
+            if (!state.data.selectedId && state.data.scenarios.length) {
+                state.data.selectedId = state.data.scenarios[0].id;
+            }
+            renderAssessment();
+            const scenario = getSelectedScenario();
+            if (scenario) {
+                requestAnimationFrame(() => {
+                    positionSimpleMarker(scenario.raw.prob, scenario.raw.impact);
+                });
+            }
+        }
     }
 
     function exportData() {
