@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.23',
+        version: '2.1.24',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -65,6 +65,11 @@
     };
 
     const dom = {};
+    const dragState = {
+        active: false,
+        pointerId: null,
+        pendingCell: null
+    };
 
     function cloneData(data) {
         if (typeof structuredClone === 'function') {
@@ -319,25 +324,93 @@
                 dom.matrix.appendChild(cell);
             }
         }
-
+        ensureSimpleMarker();
     }
 
-    function styleSimpleMarkerFallback(marker) {
-        marker.style.display = 'flex';
-        marker.style.alignItems = 'center';
-        marker.style.justifyContent = 'center';
-        marker.style.width = '34px';
-        marker.style.height = '34px';
-        marker.style.borderRadius = '50%';
-        marker.style.border = '2px solid #ffffff';
-        marker.style.boxShadow = '0 0 0 5px rgba(29, 78, 216, 0.35), 0 4px 12px rgba(0, 0, 0, 0.28)';
-        marker.style.background = 'linear-gradient(135deg, #4b91c5, #0061af)';
-        marker.style.color = '#ffffff';
-        marker.style.fontSize = '1.05rem';
-        marker.style.fontWeight = '700';
-        marker.style.lineHeight = '1';
-        marker.style.pointerEvents = 'none';
-        marker.style.zIndex = '5';
+    function getCellByCoordinates(clientX, clientY) {
+        if (!dom.matrix) return null;
+        const rect = dom.matrix.getBoundingClientRect();
+        if (!rect.width || !rect.height) return null;
+        if (clientX < rect.left || clientX > rect.right || clientY < rect.top || clientY > rect.bottom) return null;
+        const x = clientX - rect.left;
+        const y = clientY - rect.top;
+        const prob = Math.min(4, Math.max(1, Math.floor((x / rect.width) * 4) + 1));
+        const impact = Math.min(4, Math.max(1, 4 - Math.floor((y / rect.height) * 4)));
+        return { prob, impact };
+    }
+
+    function findSimpleCell(prob, impact) {
+        return dom.matrix?.querySelector(`.simple-matrix-cell[data-prob="${prob}"][data-impact="${impact}"]`) || null;
+    }
+
+    function setDragHoverCell(prob, impact) {
+        dom.matrix?.querySelectorAll('.simple-matrix-cell.drag-hover').forEach((cell) => cell.classList.remove('drag-hover'));
+        if (!prob || !impact) return;
+        findSimpleCell(prob, impact)?.classList.add('drag-hover');
+    }
+
+    function ensureSimpleMarker() {
+        if (!dom.matrixWrapper || dom.marker) return;
+        const marker = document.createElement('button');
+        marker.type = 'button';
+        marker.className = 'simple-cell-marker simple-cell-marker-floating';
+        marker.textContent = 'B';
+        marker.setAttribute('aria-label', 'Puce de position du risque');
+        marker.addEventListener('pointerdown', onMarkerPointerDown);
+        dom.matrixWrapper.appendChild(marker);
+        dom.marker = marker;
+    }
+
+    function placeMarker(prob, impact, animate = true) {
+        if (!dom.matrixWrapper || !dom.marker) return;
+        const cell = findSimpleCell(prob, impact);
+        if (!cell) return;
+        const cellRect = cell.getBoundingClientRect();
+        const wrapperRect = dom.matrixWrapper.getBoundingClientRect();
+        const x = cellRect.left - wrapperRect.left + (cellRect.width / 2);
+        const y = cellRect.top - wrapperRect.top + (cellRect.height / 2);
+        dom.marker.classList.toggle('no-transition', !animate);
+        dom.marker.style.transform = `translate(${Math.round(x)}px, ${Math.round(y)}px) translate(-50%, -50%)`;
+    }
+
+    function onMarkerPointerDown(event) {
+        const scenario = getSelectedScenario();
+        if (!scenario || !dom.marker) return;
+        dragState.active = true;
+        dragState.pointerId = event.pointerId;
+        dragState.pendingCell = { ...scenario.raw };
+        dom.marker.classList.add('is-dragging');
+        dom.marker.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    }
+
+    function onGlobalPointerMove(event) {
+        if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+        const cell = getCellByCoordinates(event.clientX, event.clientY);
+        if (!cell) return;
+        dragState.pendingCell = cell;
+        placeMarker(cell.prob, cell.impact, false);
+        setDragHoverCell(cell.prob, cell.impact);
+    }
+
+    function onGlobalPointerUp(event) {
+        if (!dragState.active || dragState.pointerId !== event.pointerId) return;
+        if (dom.marker?.hasPointerCapture(event.pointerId)) {
+            dom.marker.releasePointerCapture(event.pointerId);
+        }
+        dragState.active = false;
+        dragState.pointerId = null;
+        dom.marker?.classList.remove('is-dragging');
+        const cell = getCellByCoordinates(event.clientX, event.clientY) || dragState.pendingCell;
+        setDragHoverCell(null, null);
+
+        if (cell) {
+            updateCurrentScenario({ raw: { prob: cell.prob, impact: cell.impact } });
+        } else {
+            const scenario = getSelectedScenario();
+            if (scenario) placeMarker(scenario.raw.prob, scenario.raw.impact);
+        }
+        dragState.pendingCell = null;
     }
 
     function renderAssessment() {
@@ -353,6 +426,7 @@
         renderAggravatingFactors(scenario);
 
         if (!scenario) {
+            if (dom.marker) dom.marker.classList.add('is-hidden');
             dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
             dom.rawLegendDetail.textContent = 'Chargez des scénarios pour commencer la cotation.';
             renderLegendDescription(1, 1);
@@ -363,6 +437,7 @@
         }
 
         const { prob, impact } = scenario.raw;
+        if (dom.marker) dom.marker.classList.remove('is-hidden');
         const score = prob * impact;
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
         dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
@@ -370,17 +445,8 @@
         dom.matrix.querySelectorAll('.simple-matrix-cell').forEach((cell) => {
             const isActive = Number(cell.dataset.prob) === prob && Number(cell.dataset.impact) === impact;
             cell.classList.toggle('active-cell', isActive);
-            cell.innerHTML = '';
-
-            if (isActive) {
-                const marker = document.createElement('span');
-                marker.className = 'simple-cell-marker';
-                marker.textContent = 'B';
-                marker.setAttribute('aria-label', 'Puce de position du risque');
-                styleSimpleMarkerFallback(marker);
-                cell.appendChild(marker);
-            }
         });
+        placeMarker(prob, impact, !dragState.active);
 
         const snappedEffectiveness = nearestEffectivenessLevel(scenario.effectiveness);
         if (snappedEffectiveness !== scenario.effectiveness) {
@@ -593,6 +659,9 @@
             syncSimpleMatrixSquare();
             renderAssessment();
         });
+        window.addEventListener('pointermove', onGlobalPointerMove);
+        window.addEventListener('pointerup', onGlobalPointerUp);
+        window.addEventListener('pointercancel', onGlobalPointerUp);
 
         document.addEventListener('rms:tab-changed', (event) => {
             if (event?.detail?.tabName !== 'simple') return;

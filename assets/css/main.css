@@ -2510,7 +2510,7 @@ tbody tr:hover {
 
 .simple-matrix-layout {
     display: grid;
-    grid-template-columns: minmax(280px, 550px) minmax(240px, 1fr);
+    grid-template-columns: minmax(280px, 550px) minmax(255px, 1fr);
     gap: 16px;
     align-items: flex-start;
 }
@@ -2635,6 +2635,9 @@ tbody tr:hover {
 }
 
 .simple-edit-matrix .simple-cell-marker {
+    position: absolute;
+    top: 0;
+    left: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2651,7 +2654,30 @@ tbody tr:hover {
     letter-spacing: 0;
     text-shadow: 0 1px 2px rgba(0, 0, 0, 0.28);
     z-index: 5;
+    pointer-events: auto;
+    cursor: grab;
+    transition: transform 0.25s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.simple-edit-matrix .simple-cell-marker.no-transition {
+    transition: none;
+}
+
+.simple-edit-matrix .simple-cell-marker.is-dragging {
+    cursor: grabbing;
+    box-shadow: 0 0 0 7px rgba(29, 78, 216, 0.3), 0 7px 18px rgba(0, 0, 0, 0.32);
+    filter: saturate(1.05);
+}
+
+.simple-edit-matrix .simple-cell-marker.is-hidden {
+    opacity: 0;
     pointer-events: none;
+}
+
+.simple-edit-matrix .simple-matrix-cell.drag-hover {
+    border: 3px solid #0a3f74;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+    z-index: 2;
 }
 
 .simple-edit-matrix .axis-label {
