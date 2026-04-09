@@ -1,16 +1,16 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.14',
+        version: '2.1.15',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
     const DEFAULT_AGGRAVATING_FACTORS = [
         { id: 'Pays à risque de corruption élevé (CPI < 40)', label: 'Pays à risque de corruption élevé (CPI < 40)' },
-        { id: 'Zones géographiques instables', label: 'Zones géographiques instables' },
-        { id: 'Intermédiaires difficiles à contrôler', label: 'Intermédiaires difficiles à contrôler' },
         { id: 'Pays à risque de corruption modéré (40 ≤ CPI < 60)', label: 'Pays à risque de corruption modéré (40 ≤ CPI < 60)' },
+        { id: 'Intermédiaires difficiles à contrôler', label: 'Intermédiaires difficiles à contrôler' },
+        { id: 'Zones géographiques instables', label: 'Zones géographiques instables' },
         { id: 'Secteurs d’activité exposés (BTP, énergie, défense)', label: 'Secteurs d’activité exposés (BTP, énergie, défense)' },
         { id: 'Culture tolérante aux cadeaux', label: 'Culture tolérante aux cadeaux' },
         { id: 'Turn-over élevé', label: 'Turn-over élevé' }
