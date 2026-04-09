@@ -2558,16 +2558,87 @@ tbody tr:hover {
 
 .simple-edit-matrix {
     width: min(500px, 100%);
+    border: 1px solid #8ea8c5;
+    background: #ffffff;
+    border-radius: 10px;
+    box-shadow: 0 8px 22px rgba(25, 54, 88, 0.08);
+}
+
+.simple-edit-matrix .matrix-grid {
+    border: 1px solid #f0b74f;
+}
+
+.simple-edit-matrix .simple-matrix-cell {
+    border: 1px solid #c6d7ea;
+}
+
+.simple-edit-matrix .simple-matrix-cell.level-1 {
+    background: #a6d8bc;
+}
+
+.simple-edit-matrix .simple-matrix-cell.level-2 {
+    background: #e8dba3;
+}
+
+.simple-edit-matrix .simple-matrix-cell.level-3 {
+    background: #e7ccad;
+}
+
+.simple-edit-matrix .simple-matrix-cell.level-4 {
+    background: #e4aca6;
+}
+
+.simple-edit-matrix .simple-marker {
+    border: 2px solid #dbe9f5;
+    box-shadow: 0 0 0 4px rgba(53, 138, 199, 0.18), 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.simple-edit-matrix .axis-label {
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #1f2b3a;
+    font-weight: 700;
 }
 
 .simple-matrix-description {
-    background: #f7f9fb;
+    background: #f6f7f9;
+    border: 1px solid #d8e0e8;
+}
+
+.simple-legend-description {
+    margin-top: 10px;
+    color: #5a6c80;
+}
+
+.simple-legend-block + .simple-legend-block {
+    margin-top: 14px;
+}
+
+.simple-legend-block h4 {
+    margin: 0 0 10px;
+    color: #27313d;
+    font-size: 1.1rem;
+}
+
+.simple-legend-block p {
+    margin: 0 0 6px;
+}
+
+.simple-legend-bullets {
+    margin: 0;
+    padding-left: 18px;
+}
+
+.simple-legend-bullets li {
+    margin-bottom: 8px;
 }
 
 .simple-effectiveness-block {
-    border-top: 1px solid #dde5ec;
-    padding-top: 12px;
-    margin-top: 4px;
+    border: 1px solid #ecf0f1;
+    border-radius: 12px;
+    padding: 14px;
+    margin-top: 10px;
+    background: #fff;
 }
 
 .simple-score-cards {

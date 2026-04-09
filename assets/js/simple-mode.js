@@ -1,10 +1,46 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.6',
+        version: '2.1.7',
         scenarios: [],
         selectedId: null,
         updatedAt: null
+    };
+    const PROBABILITY_LEGEND = {
+        1: {
+            title: 'Probabilité 1 – Peu probable',
+            details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
+        },
+        2: {
+            title: 'Probabilité 2 – Possible',
+            details: ['Événement déjà observé ponctuellement.', 'Peut survenir dans des circonstances spécifiques.']
+        },
+        3: {
+            title: 'Probabilité 3 – Probable',
+            details: ['Événement observé régulièrement.', 'Survenue plausible à moyen terme sans action de maîtrise renforcée.']
+        },
+        4: {
+            title: 'Probabilité 4 – Très probable',
+            details: ['Événement fréquent ou attendu.', 'Survenue probable à court terme sans mesures correctives.']
+        }
+    };
+    const IMPACT_LEGEND = {
+        1: {
+            title: 'Impact 1 – Faible',
+            bullets: ['Financier: < 500 K€', 'Juridique/réglementaire: écart mineur', 'Réputationnel: impact local limité', 'Opérationnel: perturbation mineure']
+        },
+        2: {
+            title: 'Impact 2 – Significatif',
+            bullets: ['Financier: 500 K€ à 5 M€', 'Juridique/réglementaire: injonction ou sanction modérée', 'Réputationnel: exposition nationale ponctuelle', 'Opérationnel: ralentissement notable']
+        },
+        3: {
+            title: 'Impact 3 – Majeur',
+            bullets: ['Financier: 5 M€ à 30 M€', 'Juridique/réglementaire: sanctions importantes', 'Réputationnel: crise médiatique nationale', 'Opérationnel: interruption partielle d’activité']
+        },
+        4: {
+            title: 'Impact 4 – Critique',
+            bullets: ['Financier: ≥ 30 M€', 'Juridique/réglementaire: sanctions Groupe / condamnation pénale', 'Réputationnel: crise médiatique internationale', 'Opérationnel: arrêt d’activités']
+        }
     };
 
     const state = {
@@ -213,6 +249,7 @@
         if (!scenario) {
             dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
             dom.rawLegendDetail.textContent = 'Chargez des scénarios pour commencer la cotation.';
+            renderLegendDescription(1, 1);
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Non évaluée';
             dom.rawScoreValue.textContent = 'Score: 1';
@@ -227,6 +264,7 @@
         const score = prob * impact;
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
         dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
+        renderLegendDescription(prob, impact);
         dom.rawScoreValue.textContent = `Score: ${score}`;
         dom.rawCoordValue.textContent = `P${prob} × I${impact}`;
 
@@ -246,6 +284,25 @@
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
         dom.prevBtn.disabled = idx <= 0;
         dom.nextBtn.disabled = idx >= state.data.scenarios.length - 1;
+    }
+
+    function renderLegendDescription(probability, impact) {
+        const probabilityLegend = PROBABILITY_LEGEND[probability] || PROBABILITY_LEGEND[1];
+        const impactLegend = IMPACT_LEGEND[impact] || IMPACT_LEGEND[1];
+
+        if (dom.legendProbabilityTitle) dom.legendProbabilityTitle.textContent = probabilityLegend.title;
+        if (dom.legendProbabilityDetail1) dom.legendProbabilityDetail1.textContent = probabilityLegend.details[0];
+        if (dom.legendProbabilityDetail2) dom.legendProbabilityDetail2.textContent = probabilityLegend.details[1];
+        if (dom.legendImpactTitle) dom.legendImpactTitle.textContent = impactLegend.title;
+
+        if (dom.legendImpactBullets) {
+            dom.legendImpactBullets.innerHTML = '';
+            impactLegend.bullets.forEach((item) => {
+                const li = document.createElement('li');
+                li.textContent = item;
+                dom.legendImpactBullets.appendChild(li);
+            });
+        }
     }
 
     function setView(viewName) {
@@ -344,6 +401,11 @@
         dom.matrix = document.getElementById('simpleMatrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');
         dom.rawLegendDetail = document.getElementById('simpleRawLegendDetail');
+        dom.legendProbabilityTitle = document.getElementById('simpleLegendProbabilityTitle');
+        dom.legendProbabilityDetail1 = document.getElementById('simpleLegendProbabilityDetail1');
+        dom.legendProbabilityDetail2 = document.getElementById('simpleLegendProbabilityDetail2');
+        dom.legendImpactTitle = document.getElementById('simpleLegendImpactTitle');
+        dom.legendImpactBullets = document.getElementById('simpleLegendImpactBullets');
         dom.effectiveness = document.getElementById('simpleEffectiveness');
         dom.effectivenessLegend = document.getElementById('simpleEffectivenessLegend');
         dom.rawScoreValue = document.getElementById('simpleRawScoreValue');
