@@ -1,18 +1,25 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.4',
+        version: '2.1.5',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
 
     const state = {
-        data: structuredClone(DEFAULT_DATA),
+        data: cloneData(DEFAULT_DATA),
         view: 'scenarios'
     };
 
     const dom = {};
+
+    function cloneData(data) {
+        if (typeof structuredClone === 'function') {
+            return structuredClone(data);
+        }
+        return JSON.parse(JSON.stringify(data));
+    }
 
     function uid() {
         return `sc_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -40,7 +47,7 @@
             const parsed = JSON.parse(raw);
             if (parsed && Array.isArray(parsed.scenarios)) {
                 state.data = {
-                    ...structuredClone(DEFAULT_DATA),
+                    ...cloneData(DEFAULT_DATA),
                     ...parsed,
                     scenarios: parsed.scenarios.map((s) => ({
                         id: s.id || uid(),
@@ -255,7 +262,7 @@
                 if (!parsed || !Array.isArray(parsed.scenarios)) {
                     throw new Error('Format JSON invalide');
                 }
-                state.data = structuredClone(DEFAULT_DATA);
+                state.data = cloneData(DEFAULT_DATA);
                 state.data.version = parsed.version || DEFAULT_DATA.version;
                 state.data.scenarios = parsed.scenarios.map((s) => ({
                     id: s.id || uid(),
