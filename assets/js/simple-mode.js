@@ -1,25 +1,26 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.12',
+        version: '2.1.13',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
     const DEFAULT_AGGRAVATING_FACTORS = [
-        { id: 'Professionnels de santé', label: 'Professionnels de santé' },
-        { id: 'Institutionnels', label: 'Institutionnels' },
-        { id: 'Acheteurs', label: 'Acheteurs' },
-        { id: 'Politiques', label: 'Politiques' },
-        { id: 'Collaborateurs', label: 'Collaborateurs' }
+        { id: 'Pays à risque de corruption élevé (CPI < 40)', label: 'Pays à risque de corruption élevé (CPI < 40)' },
+        { id: 'Zones géographiques instables', label: 'Zones géographiques instables' },
+        { id: 'Intermédiaires difficiles à contrôler', label: 'Intermédiaires difficiles à contrôler' },
+        { id: 'Pays à risque de corruption modéré (40 ≤ CPI < 60)', label: 'Pays à risque de corruption modéré (40 ≤ CPI < 60)' },
+        { id: 'Secteurs d’activité exposés (BTP, énergie, défense)', label: 'Secteurs d’activité exposés (BTP, énergie, défense)' },
+        { id: 'Culture tolérante aux cadeaux', label: 'Culture tolérante aux cadeaux' },
+        { id: 'Turn-over élevé', label: 'Turn-over élevé' }
     ];
     const MAX_SCENARIO_LENGTH = 500;
     const EFFECTIVENESS_LEVELS = [
-        { value: 0, label: 'Non évaluée' },
-        { value: 25, label: 'Faible' },
-        { value: 50, label: 'Partielle' },
-        { value: 75, label: 'Efficace' },
-        { value: 100, label: 'Très efficace' }
+        { value: 0, label: 'Inefficace' },
+        { value: 25, label: 'Insuffisant' },
+        { value: 50, label: 'Améliorable' },
+        { value: 75, label: 'Efficace' }
     ];
     const PROBABILITY_LEGEND = {
         1: {
@@ -250,7 +251,7 @@
     }
 
     function effectivenessLabel(value) {
-        return EFFECTIVENESS_LEVELS.find((level) => level.value === nearestEffectivenessLevel(value))?.label || 'Non évaluée';
+        return EFFECTIVENESS_LEVELS.find((level) => level.value === nearestEffectivenessLevel(value))?.label || 'Inefficace';
     }
 
     function renderScenarioList() {
@@ -324,7 +325,7 @@
             dom.rawLegendDetail.textContent = 'Chargez des scénarios pour commencer la cotation.';
             renderLegendDescription(1, 1);
             dom.effectiveness.value = 0;
-            dom.effectivenessLegend.textContent = '0% - Non évaluée';
+            dom.effectivenessLegend.textContent = '0% - Inefficace';
             dom.comment.value = '';
             return;
         }
