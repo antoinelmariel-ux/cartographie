@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.18',
+        version: '2.1.19',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -428,6 +428,12 @@
         });
         dom.scenariosPanel.classList.toggle('active', viewName === 'scenarios');
         dom.assessmentPanel.classList.toggle('active', viewName === 'assessment');
+
+        if (viewName === 'assessment') {
+            requestAnimationFrame(() => {
+                renderAssessment();
+            });
+        }
     }
 
     function exportData() {
