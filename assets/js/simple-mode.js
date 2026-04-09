@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.15',
+        version: '2.1.16',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -99,17 +99,7 @@
         const configuredFactors = Array.isArray(window.rms?.config?.aggravatingFactors)
             ? window.rms.config.aggravatingFactors
             : [];
-        const configuredTiers = Array.isArray(window.rms?.config?.tiers)
-            ? window.rms.config.tiers
-            : [];
-        const formTiers = Array.from(document.querySelectorAll('#tiers option'))
-            .map((option) => ({
-                id: String(option.value || '').trim(),
-                label: String(option.textContent || option.value || '').trim()
-            }))
-            .filter((factor) => factor.id && factor.label);
-
-        const factors = [...configuredFactors, ...configuredTiers, ...formTiers]
+        const factors = [...configuredFactors]
             .map((tier) => {
                 if (tier && typeof tier === 'object') {
                     const id = String(tier.value || tier.label || '').trim();
@@ -516,6 +506,15 @@
             const scenario = getSelectedScenario();
             if (!scenario) return;
             positionSimpleMarker(scenario.raw.prob, scenario.raw.impact);
+        });
+
+        document.addEventListener('rms:tab-changed', (event) => {
+            if (event?.detail?.tabName !== 'simple') return;
+            requestAnimationFrame(() => {
+                const scenario = getSelectedScenario();
+                if (!scenario) return;
+                positionSimpleMarker(scenario.raw.prob, scenario.raw.impact);
+            });
         });
     }
 
