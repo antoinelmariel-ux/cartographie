@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.21',
+        version: '2.1.22',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -87,6 +87,17 @@
         return String(value || '').trim().slice(0, MAX_SCENARIO_LENGTH);
     }
 
+    function isValidSimpleScenario(candidate) {
+        if (!candidate || typeof candidate !== 'object') return false;
+        const text = normalizeScenarioText(candidate.text);
+        return Boolean(text);
+    }
+
+    function resetSimpleModeData() {
+        state.data = cloneData(DEFAULT_DATA);
+        localStorage.removeItem(STORAGE_KEY);
+    }
+
     function nearestEffectivenessLevel(value) {
         const numeric = Math.min(100, Math.max(0, Number(value) || 0));
         return EFFECTIVENESS_LEVELS.reduce((closest, level) => (
@@ -139,27 +150,41 @@
     function loadLocal() {
         const raw = localStorage.getItem(STORAGE_KEY);
         if (!raw) return;
+
         try {
             const parsed = JSON.parse(raw);
-            if (parsed && Array.isArray(parsed.scenarios)) {
-                state.data = {
-                    ...cloneData(DEFAULT_DATA),
-                    ...parsed,
-                    scenarios: parsed.scenarios.map((s) => ({
-                        id: s.id || uid(),
-                        text: normalizeScenarioText(s.text),
-                        raw: {
-                            prob: clampMatrixValue(s.raw?.prob),
-                            impact: clampMatrixValue(s.raw?.impact)
-                        },
-                        aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
-                        effectiveness: nearestEffectivenessLevel(s.effectiveness),
-                        comment: s.comment || ''
-                    }))
-                };
+            if (!parsed || !Array.isArray(parsed.scenarios)) {
+                throw new Error('Structure invalide');
+            }
+
+            const normalizedScenarios = parsed.scenarios
+                .filter(isValidSimpleScenario)
+                .map((s) => ({
+                    id: s.id || uid(),
+                    text: normalizeScenarioText(s.text),
+                    raw: {
+                        prob: clampMatrixValue(s.raw?.prob),
+                        impact: clampMatrixValue(s.raw?.impact)
+                    },
+                    aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
+                    effectiveness: nearestEffectivenessLevel(s.effectiveness),
+                    comment: s.comment || ''
+                }));
+
+            state.data = {
+                ...cloneData(DEFAULT_DATA),
+                ...parsed,
+                version: DEFAULT_DATA.version,
+                scenarios: normalizedScenarios
+            };
+
+            const hasSelectedScenario = state.data.scenarios.some((s) => s.id === state.data.selectedId);
+            if (!hasSelectedScenario) {
+                state.data.selectedId = state.data.scenarios[0]?.id || null;
             }
         } catch (err) {
             console.warn('Impossible de charger la version simplifiée', err);
+            resetSimpleModeData();
         }
     }
 
@@ -297,6 +322,24 @@
 
     }
 
+    function styleSimpleMarkerFallback(marker) {
+        marker.style.display = 'flex';
+        marker.style.alignItems = 'center';
+        marker.style.justifyContent = 'center';
+        marker.style.width = '34px';
+        marker.style.height = '34px';
+        marker.style.borderRadius = '50%';
+        marker.style.border = '2px solid #ffffff';
+        marker.style.boxShadow = '0 0 0 5px rgba(29, 78, 216, 0.35), 0 4px 12px rgba(0, 0, 0, 0.28)';
+        marker.style.background = 'linear-gradient(135deg, #4b91c5, #0061af)';
+        marker.style.color = '#ffffff';
+        marker.style.fontSize = '1.05rem';
+        marker.style.fontWeight = '700';
+        marker.style.lineHeight = '1';
+        marker.style.pointerEvents = 'none';
+        marker.style.zIndex = '5';
+    }
+
     function renderAssessment() {
         const scenario = getSelectedScenario();
         const disabled = !scenario;
@@ -334,6 +377,7 @@
                 marker.className = 'simple-cell-marker';
                 marker.textContent = 'B';
                 marker.setAttribute('aria-label', 'Puce de position du risque');
+                styleSimpleMarkerFallback(marker);
                 cell.appendChild(marker);
             }
         });
