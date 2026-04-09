@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.19',
+        version: '2.1.20',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -166,6 +166,20 @@
 
     function getSelectedScenario() {
         return state.data.scenarios.find((s) => s.id === state.data.selectedId) || null;
+    }
+
+    function ensureSelectedScenario() {
+        if (!state.data.scenarios.length) {
+            state.data.selectedId = null;
+            return null;
+        }
+
+        const hasSelectedScenario = state.data.scenarios.some((scenario) => scenario.id === state.data.selectedId);
+        if (!hasSelectedScenario) {
+            state.data.selectedId = state.data.scenarios[0].id;
+        }
+
+        return state.data.selectedId;
     }
 
     function selectScenario(id) {
@@ -525,6 +539,7 @@
     }
 
     function render() {
+        ensureSelectedScenario();
         renderScenarioList();
         renderAssessment();
     }
@@ -563,10 +578,7 @@
         }
 
         loadLocal();
-
-        if (!state.data.selectedId && state.data.scenarios.length) {
-            state.data.selectedId = state.data.scenarios[0].id;
-        }
+        ensureSelectedScenario();
 
         renderMatrix();
         bindEvents();

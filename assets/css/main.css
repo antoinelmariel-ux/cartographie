@@ -2659,6 +2659,7 @@ tbody tr:hover {
     transform: translate(-50%, -50%);
     transition: left 220ms ease, top 220ms ease, box-shadow 220ms ease;
     z-index: 5;
+    pointer-events: none;
 }
 
 .simple-edit-matrix .axis-label {
