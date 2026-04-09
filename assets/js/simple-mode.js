@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.22',
+        version: '2.1.23',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -448,6 +448,13 @@
         }
     }
 
+    function syncSimpleMatrixSquare() {
+        if (!dom.matrixWrapper) return;
+        const width = dom.matrixWrapper.getBoundingClientRect().width;
+        if (!Number.isFinite(width) || width <= 0) return;
+        dom.matrixWrapper.style.height = `${Math.round(width)}px`;
+    }
+
     function setView(viewName) {
         state.view = viewName;
         document.querySelectorAll('.simple-subtab').forEach((btn) => {
@@ -458,6 +465,7 @@
 
         if (viewName === 'assessment') {
             requestAnimationFrame(() => {
+                syncSimpleMatrixSquare();
                 renderAssessment();
             });
         }
@@ -470,6 +478,51 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = `cartographie-simplifiee-${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    }
+
+    function csvEscape(value) {
+        const stringValue = String(value ?? '');
+        const escaped = stringValue.replace(/"/g, '""');
+        if (/[",\n]/.test(escaped)) {
+            return `"${escaped}"`;
+        }
+        return escaped;
+    }
+
+    function exportCsvData() {
+        const header = [
+            'Risque',
+            'Probabilité',
+            'Impact',
+            'Facteurs aggravants',
+            'Efficacité des mesures',
+            'Commentaire'
+        ];
+        const factorsLabelById = new Map(getAggravatingFactors().map((factor) => [factor.id, factor.label]));
+        const rows = state.data.scenarios.map((scenario) => {
+            const risk = scenario.text || '';
+            const probability = clampMatrixValue(scenario.raw?.prob);
+            const impact = clampMatrixValue(scenario.raw?.impact);
+            const aggravatingFactors = (scenario.aggravatingFactors || [])
+                .map((id) => factorsLabelById.get(id) || id)
+                .join(' | ');
+            const effectiveness = `${nearestEffectivenessLevel(scenario.effectiveness)}% - ${effectivenessLabel(scenario.effectiveness)}`;
+            const comment = scenario.comment || '';
+
+            return [risk, probability, impact, aggravatingFactors, effectiveness, comment];
+        });
+
+        const csvContent = [header, ...rows]
+            .map((row) => row.map(csvEscape).join(','))
+            .join('\n');
+
+        const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `cartographie-simplifiee-risques-${new Date().toISOString().slice(0, 10)}.csv`;
         a.click();
         URL.revokeObjectURL(url);
     }
@@ -529,6 +582,7 @@
         });
 
         dom.exportBtn.addEventListener('click', exportData);
+        dom.exportCsvBtn.addEventListener('click', exportCsvData);
         dom.importBtn.addEventListener('click', () => dom.importFile.click());
         dom.importFile.addEventListener('change', (evt) => {
             importDataFromFile(evt.target.files[0]);
@@ -536,12 +590,14 @@
         });
 
         window.addEventListener('resize', () => {
+            syncSimpleMatrixSquare();
             renderAssessment();
         });
 
         document.addEventListener('rms:tab-changed', (event) => {
             if (event?.detail?.tabName !== 'simple') return;
             requestAnimationFrame(() => {
+                syncSimpleMatrixSquare();
                 renderAssessment();
             });
         });
@@ -562,6 +618,7 @@
         dom.currentScenario = document.getElementById('simpleCurrentScenario');
         dom.duplicateBtn = document.getElementById('simpleDuplicateBtn');
         dom.matrix = document.getElementById('simpleMatrix');
+        dom.matrixWrapper = document.querySelector('.simple-edit-matrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');
         dom.rawLegendDetail = document.getElementById('simpleRawLegendDetail');
         dom.legendProbabilityTitle = document.getElementById('simpleLegendProbabilityTitle');
@@ -579,6 +636,7 @@
         dom.prevBtn = document.getElementById('simplePrevBtn');
         dom.nextBtn = document.getElementById('simpleNextBtn');
         dom.exportBtn = document.getElementById('simpleExportBtn');
+        dom.exportCsvBtn = document.getElementById('simpleExportCsvBtn');
         dom.importBtn = document.getElementById('simpleImportBtn');
         dom.importFile = document.getElementById('simpleImportFile');
 
@@ -590,6 +648,7 @@
         ensureSelectedScenario();
 
         renderMatrix();
+        syncSimpleMatrixSquare();
         bindEvents();
         setView('scenarios');
         render();
