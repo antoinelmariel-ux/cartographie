@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.16',
+        version: '2.1.17',
         scenarios: [],
         selectedId: null,
         updatedAt: null
