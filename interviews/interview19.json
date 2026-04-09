@@ -2,23 +2,17 @@
   "id": 19,
   "fileIndex": 19,
   "fileName": "interview19.json",
-  "title": "Entretien Amandine Faure",
+  "title": "Entretien Eric LE FAOU",
   "referents": [
-    "Amandine Faure"
+    "Eric LE FAOU"
   ],
-  "date": "2026-02-20",
-  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
-  "scopes": [
-    "France"
-  ],
-  "processes": [
-    "Market Access"
-  ],
-  "subProcesses": [
-    "Subventions associations patients"
-  ],
-  "createdAt": "2026-01-20T09:00:00Z",
-  "updatedAt": "2026-01-20T09:00:00Z",
+  "date": "2026-01-09",
+  "notes": "",
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
+  "createdAt": "2026-01-09T16:20:44Z",
+  "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
     "version": 1,
     "data": null

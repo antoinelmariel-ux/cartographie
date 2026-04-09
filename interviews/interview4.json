@@ -2,24 +2,17 @@
   "id": 4,
   "fileIndex": 4,
   "fileName": "interview4.json",
-  "title": "Entretien Antoine Perrin",
+  "title": "Entretien Anne Laurence SABATINI",
   "referents": [
-    "Antoine Perrin"
+    "Anne Laurence SABATINI"
   ],
-  "date": "2026-01-05",
-  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
-  "scopes": [
-    "Groupe",
-    "International"
-  ],
-  "processes": [
-    "Ventes & Accès marché"
-  ],
-  "subProcesses": [
-    "Remises commerciales distributeurs"
-  ],
-  "createdAt": "2026-01-05T09:00:00Z",
-  "updatedAt": "2026-01-05T09:00:00Z",
+  "date": "2026-01-09",
+  "notes": "",
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
+  "createdAt": "2026-01-09T16:20:44Z",
+  "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
     "version": 1,
     "data": null
