@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.7</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.8</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -228,7 +228,7 @@
                     </div>
 
                     <section class="simple-panel active" id="simple-scenarios-panel">
-                        <label class="form-label" for="simpleScenariosInput">Collez vos scénarios (1 ligne = 1 scénario)</label>
+                        <label class="form-label" for="simpleScenariosInput">Collez vos scénarios (1 ligne = 1 scénario, max. 500 caractères)</label>
                         <textarea id="simpleScenariosInput" class="form-input simple-textarea" rows="7" placeholder="Exemple :
 Paiement indu via intermédiaire
 Conflit d'intérêt dans la sélection fournisseur
@@ -244,7 +244,7 @@ Cadeau inapproprié à un agent public"></textarea>
                         <div class="simple-sticky-header">
                             <div>
                                 <div class="simple-caption">Scénario sélectionné</div>
-                                <h3 id="simpleCurrentScenario">Aucun scénario sélectionné</h3>
+                                <h3 id="simpleCurrentScenario" class="simple-current-scenario">Aucun scénario sélectionné</h3>
                             </div>
                             <button class="btn btn-secondary" id="simpleDuplicateBtn">Dupliquer ce scénario</button>
                         </div>
@@ -262,7 +262,7 @@ Cadeau inapproprié à un agent public"></textarea>
                                     </div>
                                 </div>
                                 <div class="matrix-description simple-matrix-description">
-                                    <div class="matrix-description-header">Risque Brut aggravé</div>
+                                    <div class="matrix-description-header">Risque brut</div>
                                     <div id="simpleRawLegend" class="simple-legend-main">P1 × I1 = 1 (Faible)</div>
                                     <div class="simple-legend-sub" id="simpleRawLegendDetail">Sélectionnez une case pour afficher la cotation détaillée.</div>
                                     <div class="simple-legend-description">
@@ -282,18 +282,6 @@ Cadeau inapproprié à un agent public"></textarea>
                                 <label class="form-label" for="simpleEffectiveness">Efficacité des mesures de maîtrise</label>
                                 <input type="range" id="simpleEffectiveness" min="0" max="100" step="5" value="0">
                                 <div id="simpleEffectivenessLegend" class="simple-legend-sub">0% - Non évaluée</div>
-                            </div>
-                            <div class="risk-score-cards simple-score-cards">
-                                <div class="risk-score-card brut active">
-                                    <div class="risk-score-title">Risque Brut</div>
-                                    <div class="risk-score-value" id="simpleRawScoreValue">Score: 1</div>
-                                    <div class="risk-score-meta" id="simpleRawCoordValue">P1 × I1</div>
-                                </div>
-                                <div class="risk-score-card net">
-                                    <div class="risk-score-title">Mesures de maîtrise</div>
-                                    <div class="risk-score-value" id="simpleEffectivenessValue">0%</div>
-                                    <div class="risk-score-meta" id="simpleEffectivenessMeta">Non évaluée</div>
-                                </div>
                             </div>
                         </div>
 
@@ -395,19 +383,19 @@ Cadeau inapproprié à un agent public"></textarea>
 
                         <div class="legend">
                             <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(46, 204, 113, 0.4), rgba(46, 204, 113, 0.6));"></div>
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(0, 255, 163, 0.55), rgba(0, 196, 133, 0.85));"></div>
                                 <span>Acceptable (1-4)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(241, 196, 15, 0.4), rgba(241, 196, 15, 0.6));"></div>
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(255, 236, 69, 0.6), rgba(255, 184, 0, 0.88));"></div>
                                 <span>Modéré (5-8)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(230, 126, 34, 0.4), rgba(230, 126, 34, 0.6));"></div>
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(255, 165, 77, 0.62), rgba(255, 107, 0, 0.9));"></div>
                                 <span>Élevé (9-12)</span>
                             </div>
                             <div class="legend-item">
-                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(231, 76, 60, 0.5), rgba(231, 76, 60, 0.7));"></div>
+                                <div class="legend-color" style="background: linear-gradient(135deg, rgba(255, 102, 132, 0.68), rgba(255, 0, 72, 0.92));"></div>
                                 <span>Critique (13-16)</span>
                             </div>
                         </div>
@@ -692,7 +680,7 @@ Cadeau inapproprié à un agent public"></textarea>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.7</span>
+            <span class="app-version">Version 2.1.8</span>
         </footer>
     </div>
 
