@@ -8,15 +8,9 @@
   ],
   "date": "2026-01-09",
   "notes": "",
-  "scopes": [
-    "France"
-  ],
-  "processes": [
-    "R&D Clinique"
-  ],
-  "subProcesses": [
-    "Sélection des centres investigateurs"
-  ],
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
   "createdAt": "2026-01-09T16:20:44Z",
   "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
