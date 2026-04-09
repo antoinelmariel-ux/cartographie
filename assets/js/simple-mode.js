@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.9',
+        version: '2.1.10',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -258,7 +258,8 @@
         marker.className = 'simple-marker risk-point brut';
         marker.draggable = true;
         marker.title = 'Glissez-déposez ce marqueur dans une autre case';
-        marker.textContent = '•';
+        marker.textContent = '●';
+        marker.setAttribute('aria-label', 'Puce de position du risque');
         marker.addEventListener('dragstart', (evt) => {
             evt.dataTransfer.setData('text/plain', 'marker');
         });
