@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.3</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.4</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
@@ -43,6 +43,9 @@
                 <button class="tab active" onclick="switchTab('dashboard')">
                     📊 Tableau de Bord
                     <span class="tab-badge">0</span>
+                </button>
+                <button class="tab" onclick="switchTab('simple')">
+                    🧭 Version simplifiée
                 </button>
                 <button class="tab" onclick="switchTab('matrix')">
                     📈 Matrice des Risques
@@ -203,6 +206,77 @@
                             </section>
                         </div>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="simple-tab" class="tab-content">
+            <div class="main-content simple-mode">
+                <div class="toolbar">
+                    <div class="toolbar-title">Version simplifiée - Cotation des risques bruts</div>
+                    <div class="toolbar-actions">
+                        <button class="btn btn-outline" id="simpleExportBtn">📤 Export JSON</button>
+                        <button class="btn btn-secondary" id="simpleImportBtn">📥 Import JSON</button>
+                        <input type="file" id="simpleImportFile" accept="application/json" hidden>
+                    </div>
+                </div>
+
+                <div class="content-area simple-mode-content">
+                    <div class="simple-subtabs">
+                        <button class="simple-subtab active" data-simple-view="scenarios">1. Chargement des scénarios</button>
+                        <button class="simple-subtab" data-simple-view="assessment">2. Cotation</button>
+                    </div>
+
+                    <section class="simple-panel active" id="simple-scenarios-panel">
+                        <label class="form-label" for="simpleScenariosInput">Collez vos scénarios (1 ligne = 1 scénario)</label>
+                        <textarea id="simpleScenariosInput" class="form-input simple-textarea" rows="7" placeholder="Exemple :
+Paiement indu via intermédiaire
+Conflit d'intérêt dans la sélection fournisseur
+Cadeau inapproprié à un agent public"></textarea>
+                        <div class="simple-actions-row">
+                            <button class="btn btn-primary" id="simpleLoadScenariosBtn">Charger les scénarios</button>
+                            <span class="simple-helper">Les scénarios remplacent la liste actuelle.</span>
+                        </div>
+                        <div id="simpleScenarioList" class="simple-scenario-list"></div>
+                    </section>
+
+                    <section class="simple-panel" id="simple-assessment-panel">
+                        <div class="simple-sticky-header">
+                            <div>
+                                <div class="simple-caption">Scénario sélectionné</div>
+                                <h3 id="simpleCurrentScenario">Aucun scénario sélectionné</h3>
+                            </div>
+                            <button class="btn btn-secondary" id="simpleDuplicateBtn">Dupliquer ce scénario</button>
+                        </div>
+
+                        <div class="simple-matrix-layout">
+                            <div>
+                                <div class="simple-caption">Matrice de cotation du risque brut</div>
+                                <div class="simple-matrix" id="simpleMatrix"></div>
+                            </div>
+                            <div class="simple-legend-card">
+                                <div class="simple-caption">Légende cotation brute</div>
+                                <div id="simpleRawLegend" class="simple-legend-main">P1 × I1 = 1 (Faible)</div>
+                                <div class="simple-legend-sub" id="simpleRawLegendDetail">Déplacez le marqueur pour coter le risque brut.</div>
+                            </div>
+                        </div>
+
+                        <div class="simple-slider-card">
+                            <label class="form-label" for="simpleEffectiveness">Efficacité des mesures de maîtrise</label>
+                            <input type="range" id="simpleEffectiveness" min="0" max="100" value="0">
+                            <div id="simpleEffectivenessLegend" class="simple-legend-sub">0% - Non évalué</div>
+                        </div>
+
+                        <div class="simple-comment-card">
+                            <label class="form-label" for="simpleComment">Commentaires</label>
+                            <textarea id="simpleComment" class="form-input simple-textarea" rows="4" placeholder="Ajoutez vos observations..."></textarea>
+                        </div>
+
+                        <div class="simple-nav-actions">
+                            <button class="btn btn-secondary" id="simplePrevBtn">← Scénario précédent</button>
+                            <button class="btn btn-primary" id="simpleNextBtn">Scénario suivant →</button>
+                        </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -588,7 +662,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.3</span>
+            <span class="app-version">Version 2.1.4</span>
         </footer>
     </div>
 
@@ -992,5 +1066,6 @@
     <script defer src="assets/js/rms.core.js"></script>
     <script defer src="assets/js/rms.integrations.js"></script>
     <script defer src="assets/js/main.js"></script>
+    <script defer src="assets/js/simple-mode.js"></script>
 </body>
 </html>
