@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.24',
+        version: '2.1.25',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -551,7 +551,7 @@
     function csvEscape(value) {
         const stringValue = String(value ?? '');
         const escaped = stringValue.replace(/"/g, '""');
-        if (/[",\n]/.test(escaped)) {
+        if (/[";\n]/.test(escaped)) {
             return `"${escaped}"`;
         }
         return escaped;
@@ -581,7 +581,7 @@
         });
 
         const csvContent = [header, ...rows]
-            .map((row) => row.map(csvEscape).join(','))
+            .map((row) => row.map(csvEscape).join(';'))
             .join('\n');
 
         const blob = new Blob([`\uFEFF${csvContent}`], { type: 'text/csv;charset=utf-8;' });
