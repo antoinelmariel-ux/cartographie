@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.5',
+        version: '2.1.6',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -28,7 +28,14 @@
     function clampMatrixValue(value) {
         const num = Number(value);
         if (!Number.isFinite(num)) return 1;
-        return Math.min(5, Math.max(1, Math.round(num)));
+        return Math.min(4, Math.max(1, Math.round(num)));
+    }
+
+    function scoreToLevel(score) {
+        if (score >= 13) return 4;
+        if (score >= 9) return 3;
+        if (score >= 5) return 2;
+        return 1;
     }
 
     function saveLocal() {
@@ -162,13 +169,13 @@
 
     function renderMatrix() {
         dom.matrix.innerHTML = '';
-        for (let impact = 5; impact >= 1; impact -= 1) {
-            for (let prob = 1; prob <= 5; prob += 1) {
+        for (let impact = 4; impact >= 1; impact -= 1) {
+            for (let prob = 1; prob <= 4; prob += 1) {
                 const cell = document.createElement('div');
-                cell.className = 'simple-matrix-cell';
+                const score = prob * impact;
+                cell.className = `matrix-cell simple-matrix-cell level-${scoreToLevel(score)}`;
                 cell.dataset.prob = String(prob);
                 cell.dataset.impact = String(impact);
-                cell.innerHTML = `<span>P${prob}×I${impact}</span>`;
                 cell.addEventListener('dragover', (evt) => evt.preventDefault());
                 cell.addEventListener('drop', (evt) => {
                     evt.preventDefault();
@@ -181,10 +188,10 @@
 
         const marker = document.createElement('div');
         marker.id = 'simpleMatrixMarker';
-        marker.className = 'simple-marker';
+        marker.className = 'simple-marker risk-point brut';
         marker.draggable = true;
         marker.title = 'Glissez-déposez ce marqueur dans une autre case';
-        marker.textContent = '⬤';
+        marker.textContent = 'B';
         marker.addEventListener('dragstart', (evt) => {
             evt.dataTransfer.setData('text/plain', 'marker');
         });
@@ -208,6 +215,10 @@
             dom.rawLegendDetail.textContent = 'Chargez des scénarios pour commencer la cotation.';
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Non évaluée';
+            dom.rawScoreValue.textContent = 'Score: 1';
+            dom.rawCoordValue.textContent = 'P1 × I1';
+            dom.effectivenessValue.textContent = '0%';
+            dom.effectivenessMeta.textContent = 'Non évaluée';
             dom.comment.value = '';
             return;
         }
@@ -215,10 +226,12 @@
         const { prob, impact } = scenario.raw;
         const score = prob * impact;
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
-        dom.rawLegendDetail.textContent = `Probabilité: ${prob}/5 • Impact: ${impact}/5`;
+        dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
+        dom.rawScoreValue.textContent = `Score: ${score}`;
+        dom.rawCoordValue.textContent = `P${prob} × I${impact}`;
 
         const marker = document.getElementById('simpleMatrixMarker');
-        const cellIndex = (5 - impact) * 5 + (prob - 1);
+        const cellIndex = (4 - impact) * 4 + (prob - 1);
         const targetCell = dom.matrix.children[cellIndex];
         if (marker && targetCell) {
             targetCell.appendChild(marker);
@@ -226,6 +239,8 @@
 
         dom.effectiveness.value = scenario.effectiveness;
         dom.effectivenessLegend.textContent = `${scenario.effectiveness}% - ${effectivenessLabel(scenario.effectiveness)}`;
+        dom.effectivenessValue.textContent = `${scenario.effectiveness}%`;
+        dom.effectivenessMeta.textContent = effectivenessLabel(scenario.effectiveness);
         dom.comment.value = scenario.comment;
 
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
@@ -331,6 +346,10 @@
         dom.rawLegendDetail = document.getElementById('simpleRawLegendDetail');
         dom.effectiveness = document.getElementById('simpleEffectiveness');
         dom.effectivenessLegend = document.getElementById('simpleEffectivenessLegend');
+        dom.rawScoreValue = document.getElementById('simpleRawScoreValue');
+        dom.rawCoordValue = document.getElementById('simpleRawCoordValue');
+        dom.effectivenessValue = document.getElementById('simpleEffectivenessValue');
+        dom.effectivenessMeta = document.getElementById('simpleEffectivenessMeta');
         dom.comment = document.getElementById('simpleComment');
         dom.prevBtn = document.getElementById('simplePrevBtn');
         dom.nextBtn = document.getElementById('simpleNextBtn');
