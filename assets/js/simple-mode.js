@@ -1,11 +1,19 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.7',
+        version: '2.1.8',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
+    const MAX_SCENARIO_LENGTH = 500;
+    const EFFECTIVENESS_LEVELS = [
+        { value: 0, label: 'Non évaluée' },
+        { value: 25, label: 'Faible' },
+        { value: 50, label: 'Partielle' },
+        { value: 75, label: 'Efficace' },
+        { value: 100, label: 'Très efficace' }
+    ];
     const PROBABILITY_LEGEND = {
         1: {
             title: 'Probabilité 1 – Peu probable',
@@ -67,6 +75,17 @@
         return Math.min(4, Math.max(1, Math.round(num)));
     }
 
+    function normalizeScenarioText(value) {
+        return String(value || '').trim().slice(0, MAX_SCENARIO_LENGTH);
+    }
+
+    function nearestEffectivenessLevel(value) {
+        const numeric = Math.min(100, Math.max(0, Number(value) || 0));
+        return EFFECTIVENESS_LEVELS.reduce((closest, level) => (
+            Math.abs(level.value - numeric) < Math.abs(closest.value - numeric) ? level : closest
+        ), EFFECTIVENESS_LEVELS[0]).value;
+    }
+
     function scoreToLevel(score) {
         if (score >= 13) return 4;
         if (score >= 9) return 3;
@@ -94,12 +113,12 @@
                     ...parsed,
                     scenarios: parsed.scenarios.map((s) => ({
                         id: s.id || uid(),
-                        text: (s.text || '').trim(),
+                        text: normalizeScenarioText(s.text),
                         raw: {
                             prob: clampMatrixValue(s.raw?.prob),
                             impact: clampMatrixValue(s.raw?.impact)
                         },
-                        effectiveness: Math.min(100, Math.max(0, Number(s.effectiveness) || 0)),
+                        effectiveness: nearestEffectivenessLevel(s.effectiveness),
                         comment: s.comment || ''
                     }))
                 };
@@ -122,14 +141,14 @@
     function replaceScenariosFromText(inputText) {
         const lines = String(inputText || '')
             .split(/\r?\n/)
-            .map((line) => line.trim())
+            .map((line) => normalizeScenarioText(line))
             .filter(Boolean);
 
         state.data.scenarios = lines.map((text) => ({
             id: uid(),
             text,
             raw: { prob: 1, impact: 1 },
-            effectiveness: 0,
+            effectiveness: EFFECTIVENESS_LEVELS[0].value,
             comment: ''
         }));
         state.data.selectedId = state.data.scenarios[0]?.id || null;
@@ -178,11 +197,7 @@
     }
 
     function effectivenessLabel(value) {
-        if (value >= 80) return 'Très efficace';
-        if (value >= 60) return 'Efficace';
-        if (value >= 40) return 'Partielle';
-        if (value > 0) return 'Faible';
-        return 'Non évaluée';
+        return EFFECTIVENESS_LEVELS.find((level) => level.value === nearestEffectivenessLevel(value))?.label || 'Non évaluée';
     }
 
     function renderScenarioList() {
@@ -227,7 +242,7 @@
         marker.className = 'simple-marker risk-point brut';
         marker.draggable = true;
         marker.title = 'Glissez-déposez ce marqueur dans une autre case';
-        marker.textContent = 'B';
+        marker.textContent = '•';
         marker.addEventListener('dragstart', (evt) => {
             evt.dataTransfer.setData('text/plain', 'marker');
         });
@@ -252,10 +267,6 @@
             renderLegendDescription(1, 1);
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Non évaluée';
-            dom.rawScoreValue.textContent = 'Score: 1';
-            dom.rawCoordValue.textContent = 'P1 × I1';
-            dom.effectivenessValue.textContent = '0%';
-            dom.effectivenessMeta.textContent = 'Non évaluée';
             dom.comment.value = '';
             return;
         }
@@ -265,9 +276,6 @@
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
         dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
         renderLegendDescription(prob, impact);
-        dom.rawScoreValue.textContent = `Score: ${score}`;
-        dom.rawCoordValue.textContent = `P${prob} × I${impact}`;
-
         const marker = document.getElementById('simpleMatrixMarker');
         const cellIndex = (4 - impact) * 4 + (prob - 1);
         const targetCell = dom.matrix.children[cellIndex];
@@ -275,10 +283,12 @@
             targetCell.appendChild(marker);
         }
 
-        dom.effectiveness.value = scenario.effectiveness;
-        dom.effectivenessLegend.textContent = `${scenario.effectiveness}% - ${effectivenessLabel(scenario.effectiveness)}`;
-        dom.effectivenessValue.textContent = `${scenario.effectiveness}%`;
-        dom.effectivenessMeta.textContent = effectivenessLabel(scenario.effectiveness);
+        const snappedEffectiveness = nearestEffectivenessLevel(scenario.effectiveness);
+        if (snappedEffectiveness !== scenario.effectiveness) {
+            scenario.effectiveness = snappedEffectiveness;
+        }
+        dom.effectiveness.value = snappedEffectiveness;
+        dom.effectivenessLegend.textContent = `${snappedEffectiveness}% - ${effectivenessLabel(snappedEffectiveness)}`;
         dom.comment.value = scenario.comment;
 
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
@@ -338,12 +348,12 @@
                 state.data.version = parsed.version || DEFAULT_DATA.version;
                 state.data.scenarios = parsed.scenarios.map((s) => ({
                     id: s.id || uid(),
-                    text: (s.text || '').trim(),
+                    text: normalizeScenarioText(s.text),
                     raw: {
                         prob: clampMatrixValue(s.raw?.prob),
                         impact: clampMatrixValue(s.raw?.impact)
                     },
-                    effectiveness: Math.min(100, Math.max(0, Number(s.effectiveness) || 0)),
+                    effectiveness: nearestEffectivenessLevel(s.effectiveness),
                     comment: s.comment || ''
                 })).filter((s) => s.text);
                 state.data.selectedId = parsed.selectedId && state.data.scenarios.some((s) => s.id === parsed.selectedId)
@@ -369,7 +379,8 @@
         dom.nextBtn.addEventListener('click', () => goToScenario(1));
 
         dom.effectiveness.addEventListener('input', (evt) => {
-            const value = Number(evt.target.value) || 0;
+            const value = nearestEffectivenessLevel(evt.target.value);
+            evt.target.value = value;
             updateCurrentScenario({ effectiveness: value });
         });
 
@@ -407,11 +418,10 @@
         dom.legendImpactTitle = document.getElementById('simpleLegendImpactTitle');
         dom.legendImpactBullets = document.getElementById('simpleLegendImpactBullets');
         dom.effectiveness = document.getElementById('simpleEffectiveness');
+        dom.effectiveness.min = String(EFFECTIVENESS_LEVELS[0].value);
+        dom.effectiveness.max = String(EFFECTIVENESS_LEVELS[EFFECTIVENESS_LEVELS.length - 1].value);
+        dom.effectiveness.step = '1';
         dom.effectivenessLegend = document.getElementById('simpleEffectivenessLegend');
-        dom.rawScoreValue = document.getElementById('simpleRawScoreValue');
-        dom.rawCoordValue = document.getElementById('simpleRawCoordValue');
-        dom.effectivenessValue = document.getElementById('simpleEffectivenessValue');
-        dom.effectivenessMeta = document.getElementById('simpleEffectivenessMeta');
         dom.comment = document.getElementById('simpleComment');
         dom.prevBtn = document.getElementById('simplePrevBtn');
         dom.nextBtn = document.getElementById('simpleNextBtn');
