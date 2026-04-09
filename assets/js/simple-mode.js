@@ -1,11 +1,17 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.8',
+        version: '2.1.9',
         scenarios: [],
         selectedId: null,
         updatedAt: null
     };
+    const AGGRAVATING_FACTORS = [
+        { id: 'tiers_sensible', label: 'Recours à un tiers/intermédiaire sensible' },
+        { id: 'multi_pays', label: 'Contexte multi-pays à risque élevé' },
+        { id: 'pression_delai', label: 'Pression forte sur les délais/résultats' },
+        { id: 'faible_tracabilite', label: 'Traçabilité documentaire insuffisante' }
+    ];
     const MAX_SCENARIO_LENGTH = 500;
     const EFFECTIVENESS_LEVELS = [
         { value: 0, label: 'Non évaluée' },
@@ -118,6 +124,7 @@
                             prob: clampMatrixValue(s.raw?.prob),
                             impact: clampMatrixValue(s.raw?.impact)
                         },
+                        aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
                         effectiveness: nearestEffectivenessLevel(s.effectiveness),
                         comment: s.comment || ''
                     }))
@@ -148,6 +155,7 @@
             id: uid(),
             text,
             raw: { prob: 1, impact: 1 },
+            aggravatingFactors: [],
             effectiveness: EFFECTIVENESS_LEVELS[0].value,
             comment: ''
         }));
@@ -162,7 +170,9 @@
         const cloned = {
             ...current,
             id: uid(),
-            text: `${current.text} (copie)`
+            text: `${current.text} (copie)`,
+            raw: { ...current.raw },
+            aggravatingFactors: [...(current.aggravatingFactors || [])]
         };
         const index = state.data.scenarios.findIndex((s) => s.id === current.id);
         state.data.scenarios.splice(index + 1, 0, cloned);
@@ -177,6 +187,12 @@
         Object.assign(current, patch);
         saveLocal();
         renderAssessment();
+    }
+
+    function normalizeAggravatingFactors(value) {
+        if (!Array.isArray(value)) return [];
+        const allowed = new Set(AGGRAVATING_FACTORS.map((factor) => factor.id));
+        return [...new Set(value.map((item) => String(item)).filter((id) => allowed.has(id)))];
     }
 
     function goToScenario(step) {
@@ -260,6 +276,7 @@
         dom.nextBtn.disabled = disabled;
         dom.effectiveness.disabled = disabled;
         dom.comment.disabled = disabled;
+        renderAggravatingFactors(scenario);
 
         if (!scenario) {
             dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
@@ -294,6 +311,40 @@
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
         dom.prevBtn.disabled = idx <= 0;
         dom.nextBtn.disabled = idx >= state.data.scenarios.length - 1;
+    }
+
+    function renderAggravatingFactors(scenario) {
+        if (!dom.aggravatingFactorsList) return;
+        dom.aggravatingFactorsList.innerHTML = '';
+        const selectedFactors = new Set(scenario?.aggravatingFactors || []);
+
+        AGGRAVATING_FACTORS.forEach((factor) => {
+            const label = document.createElement('label');
+            label.className = 'simple-aggravating-item';
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.value = factor.id;
+            checkbox.checked = selectedFactors.has(factor.id);
+            checkbox.disabled = !scenario;
+            checkbox.addEventListener('change', () => {
+                if (!scenario) return;
+                const factorSet = new Set(scenario.aggravatingFactors || []);
+                if (checkbox.checked) {
+                    factorSet.add(factor.id);
+                } else {
+                    factorSet.delete(factor.id);
+                }
+                updateCurrentScenario({ aggravatingFactors: [...factorSet] });
+            });
+
+            const text = document.createElement('span');
+            text.textContent = factor.label;
+
+            label.appendChild(checkbox);
+            label.appendChild(text);
+            dom.aggravatingFactorsList.appendChild(label);
+        });
     }
 
     function renderLegendDescription(probability, impact) {
@@ -353,6 +404,7 @@
                         prob: clampMatrixValue(s.raw?.prob),
                         impact: clampMatrixValue(s.raw?.impact)
                     },
+                    aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
                     effectiveness: nearestEffectivenessLevel(s.effectiveness),
                     comment: s.comment || ''
                 })).filter((s) => s.text);
@@ -417,6 +469,7 @@
         dom.legendProbabilityDetail2 = document.getElementById('simpleLegendProbabilityDetail2');
         dom.legendImpactTitle = document.getElementById('simpleLegendImpactTitle');
         dom.legendImpactBullets = document.getElementById('simpleLegendImpactBullets');
+        dom.aggravatingFactorsList = document.getElementById('simpleAggravatingFactors');
         dom.effectiveness = document.getElementById('simpleEffectiveness');
         dom.effectiveness.min = String(EFFECTIVENESS_LEVELS[0].value);
         dom.effectiveness.max = String(EFFECTIVENESS_LEVELS[EFFECTIVENESS_LEVELS.length - 1].value);
