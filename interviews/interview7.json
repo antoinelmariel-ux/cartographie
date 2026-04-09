@@ -2,23 +2,17 @@
   "id": 7,
   "fileIndex": 7,
   "fileName": "interview7.json",
-  "title": "Entretien Mathilde Giraud",
+  "title": "Entretien Benjamin MÉRY",
   "referents": [
-    "Mathilde Giraud"
+    "Benjamin MÉRY"
   ],
-  "date": "2026-01-08",
-  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
-  "scopes": [
-    "France"
-  ],
-  "processes": [
-    "R&D Clinique"
-  ],
-  "subProcesses": [
-    "Sélection des centres investigateurs"
-  ],
-  "createdAt": "2026-01-08T09:00:00Z",
-  "updatedAt": "2026-01-08T09:00:00Z",
+  "date": "2026-01-09",
+  "notes": "",
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
+  "createdAt": "2026-01-09T16:20:44Z",
+  "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
     "version": 1,
     "data": null

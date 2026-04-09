@@ -2,23 +2,17 @@
   "id": 23,
   "fileIndex": 23,
   "fileName": "interview23.json",
-  "title": "Entretien Élodie Petit",
+  "title": "Entretien Florence POBEAU",
   "referents": [
-    "Élodie Petit"
+    "Florence POBEAU"
   ],
-  "date": "2026-03-24",
-  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
-  "scopes": [
-    "France"
-  ],
-  "processes": [
-    "Ventes & Accès marché"
-  ],
-  "subProcesses": [
-    "Appels d'offres hôpitaux publics"
-  ],
-  "createdAt": "2026-01-24T09:00:00Z",
-  "updatedAt": "2026-01-24T09:00:00Z",
+  "date": "2026-01-09",
+  "notes": "",
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
+  "createdAt": "2026-01-09T16:20:44Z",
+  "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
     "version": 1,
     "data": null

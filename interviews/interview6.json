@@ -2,24 +2,17 @@
   "id": 6,
   "fileIndex": 6,
   "fileName": "interview6.json",
-  "title": "Entretien Karim Benali",
+  "title": "Entretien Ben SAMARRIPAS",
   "referents": [
-    "Karim Benali"
+    "Ben SAMARRIPAS"
   ],
-  "date": "2026-01-07",
-  "notes": "Entretien de cartographie : exposition corruption, contrôles existants et zones de vulnérabilité.",
-  "scopes": [
-    "Groupe",
-    "International"
-  ],
-  "processes": [
-    "Affaires médicales"
-  ],
-  "subProcesses": [
-    "Hospitalité congrès scientifiques"
-  ],
-  "createdAt": "2026-01-07T09:00:00Z",
-  "updatedAt": "2026-01-07T09:00:00Z",
+  "date": "2026-01-09",
+  "notes": "",
+  "scopes": [],
+  "processes": [],
+  "subProcesses": [],
+  "createdAt": "2026-01-09T16:20:44Z",
+  "updatedAt": "2026-01-09T16:20:44Z",
   "mindMap": {
     "version": 1,
     "data": null
