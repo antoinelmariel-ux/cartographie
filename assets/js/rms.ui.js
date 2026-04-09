@@ -43,6 +43,10 @@ function switchTab(tabNameOrEvent, maybeTabName) {
         rms.currentTab = tabName;
         rms.renderAll();
     }
+
+    document.dispatchEvent(new CustomEvent('rms:tab-changed', {
+        detail: { tabName }
+    }));
 }
 window.switchTab = switchTab;
 
