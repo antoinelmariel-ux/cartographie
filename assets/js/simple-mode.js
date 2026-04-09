@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.13',
+        version: '2.1.14',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -65,6 +65,7 @@
     };
 
     const dom = {};
+    let simpleMarkerInitialized = false;
 
     function cloneData(data) {
         if (typeof structuredClone === 'function') {
@@ -302,9 +303,32 @@
             evt.dataTransfer.setData('text/plain', 'marker');
         });
 
-        const firstCell = dom.matrix.querySelector('.simple-matrix-cell');
-        if (firstCell) {
-            firstCell.appendChild(marker);
+        dom.matrix.appendChild(marker);
+        simpleMarkerInitialized = false;
+    }
+
+    function positionSimpleMarker(prob, impact) {
+        const marker = document.getElementById('simpleMatrixMarker');
+        if (!marker || !dom.matrix) return;
+        const matrixRect = dom.matrix.getBoundingClientRect();
+        if (!matrixRect.width || !matrixRect.height) return;
+
+        const cellWidth = matrixRect.width / 4;
+        const cellHeight = matrixRect.height / 4;
+        const left = (prob - 0.5) * cellWidth;
+        const top = (4 - impact + 0.5) * cellHeight;
+
+        marker.style.transition = simpleMarkerInitialized
+            ? ''
+            : 'none';
+        marker.style.left = `${left}px`;
+        marker.style.top = `${top}px`;
+
+        if (!simpleMarkerInitialized) {
+            requestAnimationFrame(() => {
+                marker.style.transition = '';
+            });
+            simpleMarkerInitialized = true;
         }
     }
 
@@ -335,12 +359,11 @@
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
         dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
         renderLegendDescription(prob, impact);
-        const marker = document.getElementById('simpleMatrixMarker');
-        const cellIndex = (4 - impact) * 4 + (prob - 1);
-        const targetCell = dom.matrix.children[cellIndex];
-        if (marker && targetCell) {
-            targetCell.appendChild(marker);
-        }
+        dom.matrix.querySelectorAll('.simple-matrix-cell').forEach((cell) => {
+            const isActive = Number(cell.dataset.prob) === prob && Number(cell.dataset.impact) === impact;
+            cell.classList.toggle('active-cell', isActive);
+        });
+        positionSimpleMarker(prob, impact);
 
         const snappedEffectiveness = nearestEffectivenessLevel(scenario.effectiveness);
         if (snappedEffectiveness !== scenario.effectiveness) {
@@ -487,6 +510,12 @@
         dom.importFile.addEventListener('change', (evt) => {
             importDataFromFile(evt.target.files[0]);
             evt.target.value = '';
+        });
+
+        window.addEventListener('resize', () => {
+            const scenario = getSelectedScenario();
+            if (!scenario) return;
+            positionSimpleMarker(scenario.raw.prob, scenario.raw.impact);
         });
     }
 

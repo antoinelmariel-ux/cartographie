@@ -404,8 +404,9 @@ body {
 
 .matrix {
     position: relative;
-    width: 600px;
-    height: 600px;
+    width: min(600px, 100%);
+    height: auto;
+    aspect-ratio: 1 / 1;
     border: 2px solid var(--secondary-color);
     background: white;
     box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -2615,6 +2616,12 @@ tbody tr:hover {
     border: 1px solid #c6d7ea;
 }
 
+.simple-edit-matrix .simple-matrix-cell.active-cell {
+    border: 3px solid #0a3f74;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.9);
+    z-index: 2;
+}
+
 .simple-edit-matrix .simple-matrix-cell.level-1 {
     background: linear-gradient(135deg, #4dffc1, #08d191);
 }
@@ -2632,6 +2639,8 @@ tbody tr:hover {
 }
 
 .simple-edit-matrix .simple-marker {
+    position: absolute;
+    margin: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -2640,6 +2649,9 @@ tbody tr:hover {
     color: transparent;
     font-size: 0;
     line-height: 0;
+    transform: translate(-50%, -50%);
+    transition: left 220ms ease, top 220ms ease, box-shadow 220ms ease;
+    z-index: 5;
 }
 
 .simple-edit-matrix .simple-marker span {
