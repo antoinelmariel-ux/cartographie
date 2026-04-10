@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.29',
+        version: '2.1.30',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -552,7 +552,7 @@
             impactLevels.forEach((impact) => {
                 const label = document.createElement('div');
                 label.className = 'simple-overview-axis-level y-level';
-                label.textContent = IMPACT_LEGEND[impact]?.title || `Impact ${impact}`;
+                label.textContent = ['Impact critique', 'Impact fort', 'Impact modéré', 'Impact faible'][4 - impact] || `Impact ${impact}`;
                 dom.overviewImpactLabels.appendChild(label);
             });
         }
@@ -561,7 +561,7 @@
             probabilityLevels.forEach((probability) => {
                 const label = document.createElement('div');
                 label.className = 'simple-overview-axis-level x-level';
-                label.textContent = PROBABILITY_LEGEND[probability]?.title || `Probabilité ${probability}`;
+                label.textContent = ['Peu probable', 'Moyennement probable', 'Probable', 'Très probable'][probability - 1] || `Probabilité ${probability}`;
                 dom.overviewProbabilityLabels.appendChild(label);
             });
         }
