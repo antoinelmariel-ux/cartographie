@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.30',
+        version: '2.1.31',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -561,7 +561,7 @@
             probabilityLevels.forEach((probability) => {
                 const label = document.createElement('div');
                 label.className = 'simple-overview-axis-level x-level';
-                label.textContent = ['Peu probable', 'Moyennement probable', 'Probable', 'Très probable'][probability - 1] || `Probabilité ${probability}`;
+                label.textContent = ['Peu probable', 'Moyennement\nprobable', 'Probable', 'Très\nprobable'][probability - 1] || `Probabilité ${probability}`;
                 dom.overviewProbabilityLabels.appendChild(label);
             });
         }
