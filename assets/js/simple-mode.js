@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.28',
+        version: '2.1.29',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -540,9 +540,31 @@
     function renderOverview() {
         if (!dom.overviewRiskList || !dom.overviewMatrix) return;
         const scenarios = getSortedScenariosByRawRisk();
+        const impactLevels = [4, 3, 2, 1];
+        const probabilityLevels = [1, 2, 3, 4];
 
         dom.overviewRiskList.innerHTML = '';
         dom.overviewMatrix.innerHTML = '';
+        if (dom.overviewImpactLabels) dom.overviewImpactLabels.innerHTML = '';
+        if (dom.overviewProbabilityLabels) dom.overviewProbabilityLabels.innerHTML = '';
+
+        if (dom.overviewImpactLabels) {
+            impactLevels.forEach((impact) => {
+                const label = document.createElement('div');
+                label.className = 'simple-overview-axis-level y-level';
+                label.textContent = IMPACT_LEGEND[impact]?.title || `Impact ${impact}`;
+                dom.overviewImpactLabels.appendChild(label);
+            });
+        }
+
+        if (dom.overviewProbabilityLabels) {
+            probabilityLevels.forEach((probability) => {
+                const label = document.createElement('div');
+                label.className = 'simple-overview-axis-level x-level';
+                label.textContent = PROBABILITY_LEGEND[probability]?.title || `Probabilité ${probability}`;
+                dom.overviewProbabilityLabels.appendChild(label);
+            });
+        }
 
         if (!scenarios.length) {
             dom.overviewRiskList.innerHTML = '<div class="simple-overview-empty">Aucun risque coté pour le moment.</div>';
@@ -863,6 +885,8 @@
         dom.importFile = document.getElementById('simpleImportFile');
         dom.overviewRiskList = document.getElementById('simpleOverviewRiskList');
         dom.overviewMatrix = document.getElementById('simpleOverviewMatrix');
+        dom.overviewImpactLabels = document.getElementById('simpleOverviewImpactLabels');
+        dom.overviewProbabilityLabels = document.getElementById('simpleOverviewProbabilityLabels');
 
         if (!dom.scenariosInput || !dom.matrix) {
             return;
