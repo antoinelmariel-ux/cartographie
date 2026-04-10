@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.26',
+        version: '2.1.27',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -28,34 +28,34 @@
             details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
         },
         2: {
-            title: 'Probabilité 2 – Possible',
-            details: ['Événement déjà observé ponctuellement.', 'Peut survenir dans des circonstances spécifiques.']
+            title: 'Probabilité 2 – Moyennement probable',
+            details: ['Événement survenu 1 fois au cours des 5 dernières années.', 'Événement pouvant survenir 1 fois au cours des 5 prochaines années.']
         },
         3: {
             title: 'Probabilité 3 – Probable',
-            details: ['Événement observé régulièrement.', 'Survenue plausible à moyen terme sans action de maîtrise renforcée.']
+            details: ['Événement survenu 1 fois au cours de l’année passée.', 'Événement pouvant survenir 1 fois au cours de l’année à venir.']
         },
         4: {
             title: 'Probabilité 4 – Très probable',
-            details: ['Événement fréquent ou attendu.', 'Survenue probable à court terme sans mesures correctives.']
+            details: ['Événement survenu plusieurs fois au cours de l’année passée.', 'Événement attendu 1 ou plusieurs fois au cours de l’année à venir.']
         }
     };
     const IMPACT_LEGEND = {
         1: {
             title: 'Impact 1 – Faible',
-            bullets: ['Financier: < 500 K€', 'Juridique/réglementaire: écart mineur', 'Réputationnel: impact local limité', 'Opérationnel: perturbation mineure']
+            bullets: ['Financier (assiette): < 300 K€', 'Juridique: sanction interne disciplinaire envers un collaborateur', 'Réputationnel: impact nul, interne ou externe local ; atteinte limitée à quelques jours', 'Opérationnel: peu ou pas de perturbations ; ralentissement des activités']
         },
         2: {
-            title: 'Impact 2 – Significatif',
-            bullets: ['Financier: 500 K€ à 5 M€', 'Juridique/réglementaire: injonction ou sanction modérée', 'Réputationnel: exposition nationale ponctuelle', 'Opérationnel: ralentissement notable']
+            title: 'Impact 2 – Modéré',
+            bullets: ['Financier (assiette): < 3 M€', 'Juridique: procédure judiciaire ou administrative à l’échelle d’un collaborateur', 'Réputationnel: impact externe régional (ex. : ARS) ; atteinte limitée à quelques semaines', 'Opérationnel: perturbations légères ; perte temporaire d’activités ou de marchés']
         },
         3: {
-            title: 'Impact 3 – Majeur',
-            bullets: ['Financier: 5 M€ à 30 M€', 'Juridique/réglementaire: sanctions importantes', 'Réputationnel: crise médiatique nationale', 'Opérationnel: interruption partielle d’activité']
+            title: 'Impact 3 – Fort',
+            bullets: ['Financier (assiette): < 30 M€', 'Juridique: sanctions à l’échelle d’une filiale ; convention judiciaire d’intérêt public (CJIP)', 'Réputationnel: impact externe national (ex. : ministère de la Santé) ; crise médiatique nationale ; atteinte prolongée sur plusieurs mois', 'Opérationnel: perturbations importantes ; perte définitive d’activités ou de marchés']
         },
         4: {
             title: 'Impact 4 – Critique',
-            bullets: ['Financier: ≥ 30 M€', 'Juridique/réglementaire: sanctions Groupe / condamnation pénale', 'Réputationnel: crise médiatique internationale', 'Opérationnel: arrêt d’activités']
+            bullets: ['Financier (assiette): ≥ 30 M€', 'Juridique: sanctions à l’échelle du Groupe ; condamnation pénale', 'Réputationnel: impact externe international (ex. : EMA, FDA, etc.) ; crise médiatique internationale ; atteinte durable sur plusieurs années', 'Opérationnel: arrêt des activités']
         }
     };
 
