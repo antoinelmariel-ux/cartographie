@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.25',
+        version: '2.1.26',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -253,6 +253,24 @@
         saveLocal();
     }
 
+    function deleteScenario(id) {
+        const index = state.data.scenarios.findIndex((scenario) => scenario.id === id);
+        if (index === -1) return;
+
+        const wasSelected = state.data.selectedId === id;
+        state.data.scenarios.splice(index, 1);
+
+        if (wasSelected) {
+            const fallback = state.data.scenarios[index] || state.data.scenarios[index - 1] || null;
+            state.data.selectedId = fallback?.id || null;
+        } else {
+            ensureSelectedScenario();
+        }
+
+        render();
+        saveLocal();
+    }
+
     function updateCurrentScenario(patch) {
         const current = getSelectedScenario();
         if (!current) return;
@@ -297,12 +315,26 @@
         }
 
         state.data.scenarios.forEach((scenario, index) => {
+            const row = document.createElement('div');
+            row.className = `simple-scenario-row ${scenario.id === state.data.selectedId ? 'active' : ''}`;
+
             const button = document.createElement('button');
             button.type = 'button';
             button.className = `simple-scenario-item ${scenario.id === state.data.selectedId ? 'active' : ''}`;
             button.innerHTML = `<span>${index + 1}. ${scenario.text}</span>`;
             button.addEventListener('click', () => selectScenario(scenario.id));
-            dom.scenarioList.appendChild(button);
+
+            const deleteButton = document.createElement('button');
+            deleteButton.type = 'button';
+            deleteButton.className = 'simple-scenario-delete';
+            deleteButton.setAttribute('aria-label', `Supprimer le scénario ${index + 1}`);
+            deleteButton.title = 'Supprimer ce scénario';
+            deleteButton.textContent = '🗑️';
+            deleteButton.addEventListener('click', () => deleteScenario(scenario.id));
+
+            row.appendChild(button);
+            row.appendChild(deleteButton);
+            dom.scenarioList.appendChild(row);
         });
     }
 
