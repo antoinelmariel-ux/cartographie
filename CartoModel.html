@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.27</title>
-    <link rel="stylesheet" href="assets/css/main.css?v=2.1.27">
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.28</title>
+    <link rel="stylesheet" href="assets/css/main.css?v=2.1.28">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
     <script src="assets/libs/html2canvas.min.js"></script>
@@ -226,6 +226,7 @@
                     <div class="simple-subtabs">
                         <button class="simple-subtab active" data-simple-view="scenarios">1. Chargement des scénarios</button>
                         <button class="simple-subtab" data-simple-view="assessment">2. Cotation</button>
+                        <button class="simple-subtab" data-simple-view="overview">3. Vue consolidée</button>
                     </div>
 
                     <section class="simple-panel active" id="simple-scenarios-panel">
@@ -298,6 +299,26 @@ Cadeau inapproprié à un agent public"></textarea>
                         <div class="simple-nav-actions">
                             <button class="btn btn-secondary" id="simplePrevBtn">← Scénario précédent</button>
                             <button class="btn btn-primary" id="simpleNextBtn">Scénario suivant →</button>
+                        </div>
+                    </section>
+
+                    <section class="simple-panel" id="simple-overview-panel">
+                        <div class="simple-overview-layout">
+                            <div class="simple-overview-list-card">
+                                <h3>Risques bruts triés (P × I décroissant)</h3>
+                                <div id="simpleOverviewRiskList" class="simple-overview-risk-list"></div>
+                            </div>
+                            <div class="simple-overview-matrix-card">
+                                <h3>Matrice des risques bruts</h3>
+                                <div class="matrix simple-overview-matrix-wrapper">
+                                    <div class="matrix-grid simple-overview-matrix" id="simpleOverviewMatrix"></div>
+                                    <div class="axis-label x-axis">Probabilité →</div>
+                                    <div class="axis-label y-axis">
+                                        <span class="axis-text">Impact</span>
+                                        <span class="axis-arrow" aria-hidden="true">↑</span>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </section>
                 </div>
@@ -685,7 +706,7 @@ Cadeau inapproprié à un agent public"></textarea>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.27</span>
+            <span class="app-version">Version 2.1.28</span>
         </footer>
     </div>
 
@@ -1082,13 +1103,13 @@ Cadeau inapproprié à un agent public"></textarea>
         </div>
     </div>
 
-    <script defer src="assets/js/rms.utils.js?v=2.1.27"></script>
-    <script defer src="assets/js/rms.constants.js?v=2.1.27"></script>
-    <script defer src="assets/js/rms.matrix.js?v=2.1.27"></script>
-    <script defer src="assets/js/rms.ui.js?v=2.1.27"></script>
-    <script defer src="assets/js/rms.core.js?v=2.1.27"></script>
-    <script defer src="assets/js/rms.integrations.js?v=2.1.27"></script>
-    <script defer src="assets/js/main.js?v=2.1.27"></script>
-    <script defer src="assets/js/simple-mode.js?v=2.1.27"></script>
+    <script defer src="assets/js/rms.utils.js?v=2.1.28"></script>
+    <script defer src="assets/js/rms.constants.js?v=2.1.28"></script>
+    <script defer src="assets/js/rms.matrix.js?v=2.1.28"></script>
+    <script defer src="assets/js/rms.ui.js?v=2.1.28"></script>
+    <script defer src="assets/js/rms.core.js?v=2.1.28"></script>
+    <script defer src="assets/js/rms.integrations.js?v=2.1.28"></script>
+    <script defer src="assets/js/main.js?v=2.1.28"></script>
+    <script defer src="assets/js/simple-mode.js?v=2.1.28"></script>
 </body>
 </html>

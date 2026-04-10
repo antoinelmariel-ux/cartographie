@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.27',
+        version: '2.1.28',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -61,7 +61,8 @@
 
     const state = {
         data: cloneData(DEFAULT_DATA),
-        view: 'scenarios'
+        view: 'scenarios',
+        highlightedScenarioId: null
     };
 
     const dom = {};
@@ -200,6 +201,7 @@
     function ensureSelectedScenario() {
         if (!state.data.scenarios.length) {
             state.data.selectedId = null;
+            state.highlightedScenarioId = null;
             return null;
         }
 
@@ -207,12 +209,16 @@
         if (!hasSelectedScenario) {
             state.data.selectedId = state.data.scenarios[0].id;
         }
+        if (!state.data.scenarios.some((scenario) => scenario.id === state.highlightedScenarioId)) {
+            state.highlightedScenarioId = state.data.selectedId;
+        }
 
         return state.data.selectedId;
     }
 
     function selectScenario(id) {
         state.data.selectedId = id;
+        state.highlightedScenarioId = id;
         render();
         saveLocal();
     }
@@ -232,6 +238,7 @@
             comment: ''
         }));
         state.data.selectedId = state.data.scenarios[0]?.id || null;
+        state.highlightedScenarioId = state.data.selectedId;
         render();
         saveLocal();
     }
@@ -249,6 +256,7 @@
         const index = state.data.scenarios.findIndex((s) => s.id === current.id);
         state.data.scenarios.splice(index + 1, 0, cloned);
         state.data.selectedId = cloned.id;
+        state.highlightedScenarioId = cloned.id;
         render();
         saveLocal();
     }
@@ -263,6 +271,7 @@
         if (wasSelected) {
             const fallback = state.data.scenarios[index] || state.data.scenarios[index - 1] || null;
             state.data.selectedId = fallback?.id || null;
+            state.highlightedScenarioId = state.data.selectedId;
         } else {
             ensureSelectedScenario();
         }
@@ -291,8 +300,24 @@
         const index = scenarios.findIndex((s) => s.id === state.data.selectedId);
         const nextIndex = Math.min(scenarios.length - 1, Math.max(0, index + step));
         state.data.selectedId = scenarios[nextIndex].id;
+        state.highlightedScenarioId = state.data.selectedId;
         render();
         saveLocal();
+    }
+
+    function getSortedScenariosByRawRisk() {
+        return [...state.data.scenarios].sort((left, right) => {
+            const leftProb = clampMatrixValue(left.raw?.prob);
+            const leftImpact = clampMatrixValue(left.raw?.impact);
+            const rightProb = clampMatrixValue(right.raw?.prob);
+            const rightImpact = clampMatrixValue(right.raw?.impact);
+            const leftScore = leftProb * leftImpact;
+            const rightScore = rightProb * rightImpact;
+            if (rightScore !== leftScore) return rightScore - leftScore;
+            if (rightImpact !== leftImpact) return rightImpact - leftImpact;
+            if (rightProb !== leftProb) return rightProb - leftProb;
+            return left.text.localeCompare(right.text, 'fr');
+        });
     }
 
     function scoreLabel(score) {
@@ -493,6 +518,92 @@
         dom.nextBtn.disabled = idx >= state.data.scenarios.length - 1;
     }
 
+    function setHighlightedScenario(id, options = {}) {
+        const { syncSelection = true, persist = false } = options;
+        if (!id || !state.data.scenarios.some((scenario) => scenario.id === id)) return;
+        state.highlightedScenarioId = id;
+        if (syncSelection) {
+            state.data.selectedId = id;
+        }
+        renderOverview();
+        if (syncSelection) {
+            renderScenarioList();
+            if (state.view === 'assessment') {
+                renderAssessment();
+            }
+        }
+        if (persist) {
+            saveLocal();
+        }
+    }
+
+    function renderOverview() {
+        if (!dom.overviewRiskList || !dom.overviewMatrix) return;
+        const scenarios = getSortedScenariosByRawRisk();
+
+        dom.overviewRiskList.innerHTML = '';
+        dom.overviewMatrix.innerHTML = '';
+
+        if (!scenarios.length) {
+            dom.overviewRiskList.innerHTML = '<div class="simple-overview-empty">Aucun risque coté pour le moment.</div>';
+            dom.overviewMatrix.innerHTML = '<div class="simple-overview-empty">Chargez des scénarios pour afficher la matrice consolidée.</div>';
+            return;
+        }
+
+        const indexByScenarioId = new Map(scenarios.map((scenario, index) => [scenario.id, index + 1]));
+        const highlightedId = state.highlightedScenarioId || state.data.selectedId || scenarios[0].id;
+
+        scenarios.forEach((scenario, index) => {
+            const score = scenario.raw.prob * scenario.raw.impact;
+            const button = document.createElement('button');
+            button.type = 'button';
+            button.className = `simple-overview-item ${scenario.id === highlightedId ? 'active' : ''}`;
+            button.innerHTML = `
+                <span class="simple-overview-item-title">${index + 1}. ${scenario.text}</span>
+                <span class="simple-overview-item-meta">Score ${score} • P${scenario.raw.prob} × I${scenario.raw.impact}</span>
+            `;
+            button.addEventListener('click', () => setHighlightedScenario(scenario.id, { syncSelection: true, persist: true }));
+            dom.overviewRiskList.appendChild(button);
+        });
+
+        for (let impact = 4; impact >= 1; impact -= 1) {
+            for (let prob = 1; prob <= 4; prob += 1) {
+                const cell = document.createElement('div');
+                const score = prob * impact;
+                cell.className = `matrix-cell simple-overview-cell level-${scoreToLevel(score)}`;
+                const risksInCell = scenarios.filter((scenario) => scenario.raw.prob === prob && scenario.raw.impact === impact);
+
+                const spacing = 23;
+                const perRow = 4;
+                risksInCell.forEach((scenario, riskIndex) => {
+                    const bullet = document.createElement('button');
+                    bullet.type = 'button';
+                    bullet.className = `simple-overview-bullet ${scenario.id === highlightedId ? 'active' : ''}`;
+                    bullet.title = scenario.text;
+                    bullet.setAttribute('aria-label', `Risque ${indexByScenarioId.get(scenario.id)}: ${scenario.text}`);
+                    bullet.textContent = String(indexByScenarioId.get(scenario.id));
+                    const row = Math.floor(riskIndex / perRow);
+                    const col = riskIndex % perRow;
+                    bullet.style.top = `${8 + (row * spacing)}px`;
+                    bullet.style.left = `${8 + (col * spacing)}px`;
+                    bullet.addEventListener('click', (event) => {
+                        event.stopPropagation();
+                        setHighlightedScenario(scenario.id, { syncSelection: true, persist: true });
+                    });
+                    cell.appendChild(bullet);
+                });
+
+                cell.addEventListener('click', () => {
+                    const firstRisk = risksInCell[0];
+                    if (firstRisk) {
+                        setHighlightedScenario(firstRisk.id, { syncSelection: true, persist: true });
+                    }
+                });
+                dom.overviewMatrix.appendChild(cell);
+            }
+        }
+    }
+
     function renderAggravatingFactors(scenario) {
         if (!dom.aggravatingFactorsList) return;
         dom.aggravatingFactorsList.innerHTML = '';
@@ -560,11 +671,18 @@
         });
         dom.scenariosPanel.classList.toggle('active', viewName === 'scenarios');
         dom.assessmentPanel.classList.toggle('active', viewName === 'assessment');
+        dom.overviewPanel.classList.toggle('active', viewName === 'overview');
 
         if (viewName === 'assessment') {
             requestAnimationFrame(() => {
                 syncSimpleMatrixSquare();
                 renderAssessment();
+            });
+            return;
+        }
+        if (viewName === 'overview') {
+            requestAnimationFrame(() => {
+                renderOverview();
             });
         }
     }
@@ -650,6 +768,7 @@
                 state.data.selectedId = parsed.selectedId && state.data.scenarios.some((s) => s.id === parsed.selectedId)
                     ? parsed.selectedId
                     : state.data.scenarios[0]?.id || null;
+                state.highlightedScenarioId = state.data.selectedId;
                 render();
                 saveLocal();
             } catch (error) {
@@ -708,6 +827,7 @@
         ensureSelectedScenario();
         renderScenarioList();
         renderAssessment();
+        renderOverview();
     }
 
     function init() {
@@ -716,6 +836,7 @@
         dom.scenarioList = document.getElementById('simpleScenarioList');
         dom.scenariosPanel = document.getElementById('simple-scenarios-panel');
         dom.assessmentPanel = document.getElementById('simple-assessment-panel');
+        dom.overviewPanel = document.getElementById('simple-overview-panel');
         dom.currentScenario = document.getElementById('simpleCurrentScenario');
         dom.duplicateBtn = document.getElementById('simpleDuplicateBtn');
         dom.matrix = document.getElementById('simpleMatrix');
@@ -740,6 +861,8 @@
         dom.exportCsvBtn = document.getElementById('simpleExportCsvBtn');
         dom.importBtn = document.getElementById('simpleImportBtn');
         dom.importFile = document.getElementById('simpleImportFile');
+        dom.overviewRiskList = document.getElementById('simpleOverviewRiskList');
+        dom.overviewMatrix = document.getElementById('simpleOverviewMatrix');
 
         if (!dom.scenariosInput || !dom.matrix) {
             return;
@@ -747,6 +870,7 @@
 
         loadLocal();
         ensureSelectedScenario();
+        state.highlightedScenarioId = state.data.selectedId;
 
         renderMatrix();
         syncSimpleMatrixSquare();
