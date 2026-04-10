@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.31',
+        version: '2.1.32',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -485,7 +485,6 @@
         if (!scenario) {
             if (dom.marker) dom.marker.classList.add('is-hidden');
             dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
-            dom.rawLegendDetail.textContent = 'Chargez des scénarios pour commencer la cotation.';
             renderLegendDescription(1, 1);
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Inefficace';
@@ -497,7 +496,6 @@
         if (dom.marker) dom.marker.classList.remove('is-hidden');
         const score = prob * impact;
         dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
-        dom.rawLegendDetail.textContent = `Probabilité: ${prob}/4 • Impact: ${impact}/4`;
         renderLegendDescription(prob, impact);
         dom.matrix.querySelectorAll('.simple-matrix-cell').forEach((cell) => {
             const isActive = Number(cell.dataset.prob) === prob && Number(cell.dataset.impact) === impact;
@@ -864,7 +862,6 @@
         dom.matrix = document.getElementById('simpleMatrix');
         dom.matrixWrapper = document.querySelector('.simple-edit-matrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');
-        dom.rawLegendDetail = document.getElementById('simpleRawLegendDetail');
         dom.legendProbabilityTitle = document.getElementById('simpleLegendProbabilityTitle');
         dom.legendProbabilityDetail1 = document.getElementById('simpleLegendProbabilityDetail1');
         dom.legendProbabilityDetail2 = document.getElementById('simpleLegendProbabilityDetail2');
