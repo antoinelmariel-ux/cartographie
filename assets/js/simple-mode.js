@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.32',
+        version: '2.1.33',
         scenarios: [],
         selectedId: null,
         updatedAt: null
@@ -261,6 +261,12 @@
         saveLocal();
     }
 
+    function deleteCurrentScenario() {
+        const current = getSelectedScenario();
+        if (!current) return;
+        deleteScenario(current.id);
+    }
+
     function deleteScenario(id) {
         const index = state.data.scenarios.findIndex((scenario) => scenario.id === id);
         if (index === -1) return;
@@ -476,6 +482,7 @@
 
         dom.currentScenario.textContent = scenario ? scenario.text : 'Aucun scénario sélectionné';
         dom.duplicateBtn.disabled = disabled;
+        dom.deleteBtn.disabled = disabled;
         dom.prevBtn.disabled = disabled;
         dom.nextBtn.disabled = disabled;
         dom.effectiveness.disabled = disabled;
@@ -805,6 +812,7 @@
 
         dom.loadScenariosBtn.addEventListener('click', () => replaceScenariosFromText(dom.scenariosInput.value));
         dom.duplicateBtn.addEventListener('click', duplicateScenario);
+        dom.deleteBtn.addEventListener('click', deleteCurrentScenario);
         dom.prevBtn.addEventListener('click', () => goToScenario(-1));
         dom.nextBtn.addEventListener('click', () => goToScenario(1));
 
@@ -859,6 +867,7 @@
         dom.overviewPanel = document.getElementById('simple-overview-panel');
         dom.currentScenario = document.getElementById('simpleCurrentScenario');
         dom.duplicateBtn = document.getElementById('simpleDuplicateBtn');
+        dom.deleteBtn = document.getElementById('simpleDeleteBtn');
         dom.matrix = document.getElementById('simpleMatrix');
         dom.matrixWrapper = document.querySelector('.simple-edit-matrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');

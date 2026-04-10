@@ -2520,6 +2520,24 @@ tbody tr:hover {
     gap: 12px;
 }
 
+.simple-sticky-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: stretch;
+}
+
+.simple-delete-btn {
+    color: #b42318;
+    border-color: #f1b5af;
+    background: #fff1f0;
+}
+
+.simple-delete-btn:hover {
+    background: #ffe2df;
+    border-color: #e88780;
+}
+
 .simple-caption {
     font-size: 0.82em;
     text-transform: uppercase;
