@@ -1,10 +1,11 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.33',
+        version: '2.1.34',
         scenarios: [],
         selectedId: null,
-        updatedAt: null
+        updatedAt: null,
+        language: 'fr'
     };
     const DEFAULT_AGGRAVATING_FACTORS = [
         { id: 'Pays à risque de corruption élevé (CPI < 40)', label: 'Pays à risque de corruption élevé (CPI < 40)' },
@@ -62,7 +63,69 @@
     const state = {
         data: cloneData(DEFAULT_DATA),
         view: 'scenarios',
-        highlightedScenarioId: null
+        highlightedScenarioId: null,
+        showProbabilityLegendDetails: false
+    };
+
+    const UI_TRANSLATIONS = {
+        fr: {
+            legendToggleTitle: 'Afficher/masquer le détail de probabilité',
+            noScenarioSelected: 'Aucun scénario sélectionné',
+            toolbarTitle: 'Version simplifiée - Cotation des risques bruts',
+            subtabScenarios: '1. Chargement des scénarios',
+            subtabAssessment: '2. Cotation',
+            subtabOverview: '3. Vue consolidée',
+            scenariosLabel: 'Collez vos scénarios (1 ligne = 1 scénario, max. 500 caractères)',
+            scenariosPlaceholder: `Exemple :
+Paiement indu via intermédiaire
+Conflit d'intérêt dans la sélection fournisseur
+Cadeau inapproprié à un agent public`,
+            loadScenarios: 'Charger les scénarios',
+            scenariosHelper: 'Les scénarios remplacent la liste actuelle.',
+            selectedScenarioCaption: 'Scénario sélectionné',
+            duplicateScenario: 'Dupliquer ce scénario',
+            deleteScenarioLabel: 'Supprimer ce scénario',
+            rawRiskTitle: 'Risque brut',
+            aggravatingTitle: 'Facteurs aggravants',
+            effectivenessLabel: 'Efficacité des mesures de maîtrise',
+            commentsLabel: 'Commentaires',
+            commentsPlaceholder: 'Ajoutez vos observations...',
+            prevScenario: '← Scénario précédent',
+            nextScenario: 'Scénario suivant →',
+            weak: 'Faible',
+            moderate: 'Modéré',
+            high: 'Élevé',
+            critical: 'Critique'
+        },
+        en: {
+            legendToggleTitle: 'Show/hide probability details',
+            noScenarioSelected: 'No scenario selected',
+            toolbarTitle: 'Simplified version - Raw risk scoring',
+            subtabScenarios: '1. Scenario loading',
+            subtabAssessment: '2. Scoring',
+            subtabOverview: '3. Consolidated view',
+            scenariosLabel: 'Paste your scenarios (1 line = 1 scenario, max 500 characters)',
+            scenariosPlaceholder: `Example:
+Undue payment through intermediary
+Conflict of interest in supplier selection
+Inappropriate gift to a public official`,
+            loadScenarios: 'Load scenarios',
+            scenariosHelper: 'Loading replaces the current list.',
+            selectedScenarioCaption: 'Selected scenario',
+            duplicateScenario: 'Duplicate this scenario',
+            deleteScenarioLabel: 'Delete this scenario',
+            rawRiskTitle: 'Raw risk',
+            aggravatingTitle: 'Aggravating factors',
+            effectivenessLabel: 'Control effectiveness',
+            commentsLabel: 'Comments',
+            commentsPlaceholder: 'Add your observations...',
+            prevScenario: '← Previous scenario',
+            nextScenario: 'Next scenario →',
+            weak: 'Low',
+            moderate: 'Medium',
+            high: 'High',
+            critical: 'Critical'
+        }
     };
 
     const dom = {};
@@ -327,10 +390,11 @@
     }
 
     function scoreLabel(score) {
-        if (score >= 20) return 'Critique';
-        if (score >= 12) return 'Élevé';
-        if (score >= 6) return 'Modéré';
-        return 'Faible';
+        const locale = UI_TRANSLATIONS[state.data.language] || UI_TRANSLATIONS.fr;
+        if (score >= 20) return locale.critical;
+        if (score >= 12) return locale.high;
+        if (score >= 6) return locale.moderate;
+        return locale.weak;
     }
 
     function effectivenessLabel(value) {
@@ -479,8 +543,9 @@
     function renderAssessment() {
         const scenario = getSelectedScenario();
         const disabled = !scenario;
+        const locale = UI_TRANSLATIONS[state.data.language] || UI_TRANSLATIONS.fr;
 
-        dom.currentScenario.textContent = scenario ? scenario.text : 'Aucun scénario sélectionné';
+        dom.currentScenario.textContent = scenario ? scenario.text : locale.noScenarioSelected;
         dom.duplicateBtn.disabled = disabled;
         dom.deleteBtn.disabled = disabled;
         dom.prevBtn.disabled = disabled;
@@ -491,11 +556,12 @@
 
         if (!scenario) {
             if (dom.marker) dom.marker.classList.add('is-hidden');
-            dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
+            dom.rawLegend.textContent = `P1 × I1 = 1 (${locale.weak})`;
             renderLegendDescription(1, 1);
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Inefficace';
             dom.comment.value = '';
+            renderAssessmentProgress();
             return;
         }
 
@@ -521,6 +587,19 @@
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
         dom.prevBtn.disabled = idx <= 0;
         dom.nextBtn.disabled = idx >= state.data.scenarios.length - 1;
+        renderAssessmentProgress();
+    }
+
+    function renderAssessmentProgress() {
+        if (!dom.assessmentProgressFill) return;
+        const total = state.data.scenarios.length;
+        if (!total || !state.data.selectedId) {
+            dom.assessmentProgressFill.style.width = '0%';
+            return;
+        }
+        const index = state.data.scenarios.findIndex((scenario) => scenario.id === state.data.selectedId);
+        const ratio = index < 0 ? 0 : ((index + 1) / total) * 100;
+        dom.assessmentProgressFill.style.width = `${Math.max(0, Math.min(100, ratio)).toFixed(2)}%`;
     }
 
     function setHighlightedScenario(id, options = {}) {
@@ -684,6 +763,55 @@
         }
     }
 
+    function applyLanguage(language) {
+        const nextLanguage = language === 'en' ? 'en' : 'fr';
+        const locale = UI_TRANSLATIONS[nextLanguage] || UI_TRANSLATIONS.fr;
+        state.data.language = nextLanguage;
+        if (!dom.languageToggleBtn) return;
+        dom.languageToggleBtn.textContent = nextLanguage === 'fr' ? 'EN' : 'FR';
+        dom.languageToggleBtn.title = nextLanguage === 'fr' ? 'Switch simplified mode to English' : 'Passer la version simplifiée en français';
+        dom.legendToggleBtn.title = locale.legendToggleTitle;
+        if (dom.toolbarTitle) dom.toolbarTitle.textContent = locale.toolbarTitle;
+        if (dom.subtabScenarios) dom.subtabScenarios.textContent = locale.subtabScenarios;
+        if (dom.subtabAssessment) dom.subtabAssessment.textContent = locale.subtabAssessment;
+        if (dom.subtabOverview) dom.subtabOverview.textContent = locale.subtabOverview;
+        if (dom.scenariosLabel) dom.scenariosLabel.textContent = locale.scenariosLabel;
+        if (dom.scenariosInput) dom.scenariosInput.placeholder = locale.scenariosPlaceholder;
+        if (dom.loadScenariosBtn) dom.loadScenariosBtn.textContent = locale.loadScenarios;
+        if (dom.scenariosHelper) dom.scenariosHelper.textContent = locale.scenariosHelper;
+        if (dom.selectedCaption) dom.selectedCaption.textContent = locale.selectedScenarioCaption;
+        if (dom.duplicateBtn) dom.duplicateBtn.textContent = locale.duplicateScenario;
+        if (dom.deleteBtn) {
+            dom.deleteBtn.textContent = `🗑️ ${locale.deleteScenarioLabel}`;
+            dom.deleteBtn.title = locale.deleteScenarioLabel;
+            dom.deleteBtn.setAttribute('aria-label', locale.deleteScenarioLabel);
+        }
+        if (dom.rawRiskTitle) dom.rawRiskTitle.textContent = locale.rawRiskTitle;
+        if (dom.aggravatingTitle) dom.aggravatingTitle.textContent = locale.aggravatingTitle;
+        if (dom.effectivenessLabel) dom.effectivenessLabel.textContent = locale.effectivenessLabel;
+        if (dom.commentLabel) dom.commentLabel.textContent = locale.commentsLabel;
+        if (dom.comment) dom.comment.placeholder = locale.commentsPlaceholder;
+        if (dom.prevBtn) dom.prevBtn.textContent = locale.prevScenario;
+        if (dom.nextBtn) dom.nextBtn.textContent = locale.nextScenario;
+    }
+
+    function toggleLanguage() {
+        applyLanguage(state.data.language === 'fr' ? 'en' : 'fr');
+        render();
+        saveLocal();
+    }
+
+    function setProbabilityLegendDetailsVisible(visible) {
+        state.showProbabilityLegendDetails = Boolean(visible);
+        if (!dom.legendProbabilityDetails || !dom.legendToggleBtn) return;
+        dom.legendProbabilityDetails.classList.toggle('visible', state.showProbabilityLegendDetails);
+        dom.legendToggleBtn.setAttribute('aria-expanded', String(state.showProbabilityLegendDetails));
+    }
+
+    function toggleProbabilityLegendDetails() {
+        setProbabilityLegendDetailsVisible(!state.showProbabilityLegendDetails);
+    }
+
     function syncSimpleMatrixSquare() {
         if (!dom.matrixWrapper) return;
         const width = dom.matrixWrapper.getBoundingClientRect().width;
@@ -781,6 +909,7 @@
                 }
                 state.data = cloneData(DEFAULT_DATA);
                 state.data.version = parsed.version || DEFAULT_DATA.version;
+                state.data.language = parsed.language === 'en' ? 'en' : 'fr';
                 state.data.scenarios = parsed.scenarios.map((s) => ({
                     id: s.id || uid(),
                     text: normalizeScenarioText(s.text),
@@ -829,6 +958,8 @@
         dom.exportBtn.addEventListener('click', exportData);
         dom.exportCsvBtn.addEventListener('click', exportCsvData);
         dom.importBtn.addEventListener('click', () => dom.importFile.click());
+        dom.languageToggleBtn.addEventListener('click', toggleLanguage);
+        dom.legendToggleBtn.addEventListener('click', toggleProbabilityLegendDetails);
         dom.importFile.addEventListener('change', (evt) => {
             importDataFromFile(evt.target.files[0]);
             evt.target.value = '';
@@ -861,34 +992,49 @@
     function init() {
         dom.scenariosInput = document.getElementById('simpleScenariosInput');
         dom.loadScenariosBtn = document.getElementById('simpleLoadScenariosBtn');
+        dom.toolbarTitle = document.getElementById('simpleToolbarTitle');
+        dom.subtabScenarios = document.getElementById('simpleSubtabScenarios');
+        dom.subtabAssessment = document.getElementById('simpleSubtabAssessment');
+        dom.subtabOverview = document.getElementById('simpleSubtabOverview');
+        dom.scenariosLabel = document.getElementById('simpleScenariosLabel');
+        dom.scenariosHelper = document.getElementById('simpleScenariosHelper');
         dom.scenarioList = document.getElementById('simpleScenarioList');
         dom.scenariosPanel = document.getElementById('simple-scenarios-panel');
         dom.assessmentPanel = document.getElementById('simple-assessment-panel');
         dom.overviewPanel = document.getElementById('simple-overview-panel');
         dom.currentScenario = document.getElementById('simpleCurrentScenario');
+        dom.selectedCaption = document.getElementById('simpleSelectedCaption');
         dom.duplicateBtn = document.getElementById('simpleDuplicateBtn');
         dom.deleteBtn = document.getElementById('simpleDeleteBtn');
         dom.matrix = document.getElementById('simpleMatrix');
         dom.matrixWrapper = document.querySelector('.simple-edit-matrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');
+        dom.rawRiskTitle = document.getElementById('simpleRawRiskTitle');
         dom.legendProbabilityTitle = document.getElementById('simpleLegendProbabilityTitle');
         dom.legendProbabilityDetail1 = document.getElementById('simpleLegendProbabilityDetail1');
         dom.legendProbabilityDetail2 = document.getElementById('simpleLegendProbabilityDetail2');
         dom.legendImpactTitle = document.getElementById('simpleLegendImpactTitle');
         dom.legendImpactBullets = document.getElementById('simpleLegendImpactBullets');
         dom.aggravatingFactorsList = document.getElementById('simpleAggravatingFactors');
+        dom.aggravatingTitle = document.getElementById('simpleAggravatingTitle');
         dom.effectiveness = document.getElementById('simpleEffectiveness');
+        dom.effectivenessLabel = document.getElementById('simpleEffectivenessLabel');
         dom.effectiveness.min = String(EFFECTIVENESS_LEVELS[0].value);
         dom.effectiveness.max = String(EFFECTIVENESS_LEVELS[EFFECTIVENESS_LEVELS.length - 1].value);
         dom.effectiveness.step = '1';
         dom.effectivenessLegend = document.getElementById('simpleEffectivenessLegend');
         dom.comment = document.getElementById('simpleComment');
+        dom.commentLabel = document.getElementById('simpleCommentLabel');
         dom.prevBtn = document.getElementById('simplePrevBtn');
         dom.nextBtn = document.getElementById('simpleNextBtn');
         dom.exportBtn = document.getElementById('simpleExportBtn');
         dom.exportCsvBtn = document.getElementById('simpleExportCsvBtn');
         dom.importBtn = document.getElementById('simpleImportBtn');
         dom.importFile = document.getElementById('simpleImportFile');
+        dom.languageToggleBtn = document.getElementById('simpleLanguageToggleBtn');
+        dom.legendToggleBtn = document.getElementById('simpleLegendToggleBtn');
+        dom.legendProbabilityDetails = document.getElementById('simpleLegendProbabilityDetails');
+        dom.assessmentProgressFill = document.getElementById('simpleAssessmentProgressFill');
         dom.overviewRiskList = document.getElementById('simpleOverviewRiskList');
         dom.overviewMatrix = document.getElementById('simpleOverviewMatrix');
         dom.overviewImpactLabels = document.getElementById('simpleOverviewImpactLabels');
@@ -901,6 +1047,8 @@
         loadLocal();
         ensureSelectedScenario();
         state.highlightedScenarioId = state.data.selectedId;
+        applyLanguage(state.data.language);
+        setProbabilityLegendDetailsVisible(false);
 
         renderMatrix();
         syncSimpleMatrixSquare();

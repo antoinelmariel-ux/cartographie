@@ -2426,6 +2426,11 @@ tbody tr:hover {
     color: #fff;
 }
 
+.simple-lang-toggle {
+    min-width: 52px;
+    letter-spacing: 0.04em;
+}
+
 .simple-panel {
     display: none;
 }
@@ -2518,6 +2523,23 @@ tbody tr:hover {
     justify-content: space-between;
     align-items: center;
     gap: 12px;
+}
+
+.simple-assessment-progress {
+    width: 100%;
+    height: 2px;
+    margin: -8px 0 10px;
+    background: rgba(148, 163, 184, 0.14);
+    border-radius: 99px;
+    overflow: hidden;
+}
+
+.simple-assessment-progress-fill {
+    display: block;
+    width: 0;
+    height: 100%;
+    background: rgba(51, 65, 85, 0.25);
+    transition: width 0.22s ease;
 }
 
 .simple-sticky-actions {
@@ -2752,6 +2774,39 @@ tbody tr:hover {
     margin: 0 0 10px;
     color: #27313d;
     font-size: 1.1rem;
+}
+
+.simple-legend-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.simple-legend-toggle-btn {
+    border: 1px solid #dbe2ea;
+    background: #ffffff;
+    color: #8a97a6;
+    border-radius: 999px;
+    width: 20px;
+    height: 20px;
+    font-size: 0.74rem;
+    line-height: 1;
+    padding: 0;
+    cursor: pointer;
+    opacity: 0.6;
+}
+
+.simple-legend-toggle-btn:hover {
+    opacity: 1;
+}
+
+.simple-legend-probability-details {
+    display: none;
+}
+
+.simple-legend-probability-details.visible {
+    display: block;
 }
 
 .simple-legend-block p {
