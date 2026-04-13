@@ -69,11 +69,11 @@
             },
             2: {
                 title: 'Impact 2 – Modéré',
-                bullets: ['Financier (assiette): < 3 M€', 'Juridique: procédure judiciaire ou administrative à l’échelle d’un collaborateur', 'Réputationnel: impact externe régional (ex. : ARS) ; atteinte limitée à quelques semaines', 'Opérationnel: perturbations légères ; perte temporaire d’activités ou de marchés']
+                bullets: ['Financier (assiette): [300K€ ; 3 M€[', 'Juridique: procédure judiciaire ou administrative à l’échelle d’un collaborateur', 'Réputationnel: impact externe régional (ex. : ARS) ; atteinte limitée à quelques semaines', 'Opérationnel: perturbations légères ; perte temporaire d’activités ou de marchés']
             },
             3: {
                 title: 'Impact 3 – Fort',
-                bullets: ['Financier (assiette): < 30 M€', 'Juridique: sanctions à l’échelle d’une filiale ; convention judiciaire d’intérêt public (CJIP)', 'Réputationnel: impact externe national (ex. : ministère de la Santé) ; crise médiatique nationale ; atteinte prolongée sur plusieurs mois', 'Opérationnel: perturbations importantes ; perte définitive d’activités ou de marchés']
+                bullets: ['Financier (assiette): [3M€ ; 30 M€[', 'Juridique: sanctions à l’échelle d’une filiale ; convention judiciaire d’intérêt public (CJIP)', 'Réputationnel: impact externe national (ex. : ministère de la Santé) ; crise médiatique nationale ; atteinte prolongée sur plusieurs mois', 'Opérationnel: perturbations importantes ; perte définitive d’activités ou de marchés']
             },
             4: {
                 title: 'Impact 4 – Critique',
@@ -87,11 +87,11 @@
             },
             2: {
                 title: 'Impact 2 – Moderate',
-                bullets: ['Financial (base): < €3 million', 'Legal: Legal or administrative proceedings involving an individual employee', 'Reputational: Regional external impact (e.g., ARS); disruption limited to a few weeks', 'Operational: Minor disruptions; temporary loss of business or contracts']
+                bullets: ['Financial (base): [300K€ ; 3 M€[', 'Legal: Legal or administrative proceedings involving an individual employee', 'Reputational: Regional external impact (e.g., ARS); disruption limited to a few weeks', 'Operational: Minor disruptions; temporary loss of business or contracts']
             },
             3: {
                 title: 'Impact 3 – High',
-                bullets: ['Financial (base): < €30 million', 'Legal: Sanctions at the subsidiary level; Public Interest Legal Agreement (PILA)', 'Reputational: National external impact (e.g., Department of Health); national media crisis; impact lasting several months', 'Operational: Significant disruptions; permanent loss of business or contracts']
+                bullets: ['Financial (base): [3M€ ; 30 M€[', 'Legal: Sanctions at the subsidiary level; Public Interest Legal Agreement (PILA)', 'Reputational: National external impact (e.g., Department of Health); national media crisis; impact lasting several months', 'Operational: Significant disruptions; permanent loss of business or contracts']
             },
             4: {
                 title: 'Impact 4 – Critical',
