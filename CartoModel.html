@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.30</title>
-    <link rel="stylesheet" href="assets/css/main.css?v=2.1.30">
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.34</title>
+    <link rel="stylesheet" href="assets/css/main.css?v=2.1.34">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
     <script src="assets/libs/html2canvas.min.js"></script>
@@ -213,8 +213,9 @@
         <div id="simple-tab" class="tab-content">
             <div class="main-content simple-mode">
                 <div class="toolbar">
-                    <div class="toolbar-title">Version simplifiée - Cotation des risques bruts</div>
+                    <div class="toolbar-title" id="simpleToolbarTitle">Version simplifiée - Cotation des risques bruts</div>
                     <div class="toolbar-actions">
+                        <button class="btn btn-outline simple-lang-toggle" id="simpleLanguageToggleBtn" aria-label="Basculer la langue de la version simplifiée">EN</button>
                         <button class="btn btn-outline" id="simpleExportBtn">📤 Export JSON</button>
                         <button class="btn btn-outline" id="simpleExportCsvBtn">📄 Export CSV</button>
                         <button class="btn btn-secondary" id="simpleImportBtn">📥 Import JSON</button>
@@ -224,20 +225,20 @@
 
                 <div class="content-area simple-mode-content">
                     <div class="simple-subtabs">
-                        <button class="simple-subtab active" data-simple-view="scenarios">1. Chargement des scénarios</button>
-                        <button class="simple-subtab" data-simple-view="assessment">2. Cotation</button>
-                        <button class="simple-subtab" data-simple-view="overview">3. Vue consolidée</button>
+                        <button class="simple-subtab active" id="simpleSubtabScenarios" data-simple-view="scenarios">1. Chargement des scénarios</button>
+                        <button class="simple-subtab" id="simpleSubtabAssessment" data-simple-view="assessment">2. Cotation</button>
+                        <button class="simple-subtab" id="simpleSubtabOverview" data-simple-view="overview">3. Vue consolidée</button>
                     </div>
 
                     <section class="simple-panel active" id="simple-scenarios-panel">
-                        <label class="form-label" for="simpleScenariosInput">Collez vos scénarios (1 ligne = 1 scénario, max. 500 caractères)</label>
+                        <label class="form-label" id="simpleScenariosLabel" for="simpleScenariosInput">Collez vos scénarios (1 ligne = 1 scénario, max. 500 caractères)</label>
                         <textarea id="simpleScenariosInput" class="form-input simple-textarea" rows="7" placeholder="Exemple :
 Paiement indu via intermédiaire
 Conflit d'intérêt dans la sélection fournisseur
 Cadeau inapproprié à un agent public"></textarea>
                         <div class="simple-actions-row">
                             <button class="btn btn-primary" id="simpleLoadScenariosBtn">Charger les scénarios</button>
-                            <span class="simple-helper">Les scénarios remplacent la liste actuelle.</span>
+                            <span class="simple-helper" id="simpleScenariosHelper">Les scénarios remplacent la liste actuelle.</span>
                         </div>
                         <div id="simpleScenarioList" class="simple-scenario-list"></div>
                     </section>
@@ -245,13 +246,16 @@ Cadeau inapproprié à un agent public"></textarea>
                     <section class="simple-panel" id="simple-assessment-panel">
                         <div class="simple-sticky-header">
                             <div>
-                                <div class="simple-caption">Scénario sélectionné</div>
+                                <div class="simple-caption" id="simpleSelectedCaption">Scénario sélectionné</div>
                                 <h3 id="simpleCurrentScenario" class="simple-current-scenario">Aucun scénario sélectionné</h3>
                             </div>
                             <div class="simple-sticky-actions">
                                 <button class="btn btn-secondary" id="simpleDuplicateBtn">Dupliquer ce scénario</button>
                                 <button class="btn btn-secondary simple-delete-btn" id="simpleDeleteBtn" aria-label="Supprimer le scénario sélectionné" title="Supprimer ce scénario">🗑️ Supprimer ce scénario</button>
                             </div>
+                        </div>
+                        <div class="simple-assessment-progress" id="simpleAssessmentProgress" aria-hidden="true">
+                            <span id="simpleAssessmentProgressFill" class="simple-assessment-progress-fill"></span>
                         </div>
 
                         <div class="risk-matrix-editor simple-risk-matrix-editor">
@@ -267,34 +271,39 @@ Cadeau inapproprié à un agent public"></textarea>
                                     </div>
                                 </div>
                                 <div class="matrix-description simple-matrix-description">
-                                    <div class="matrix-description-header">Risque brut</div>
+                                    <div class="matrix-description-header" id="simpleRawRiskTitle">Risque brut</div>
                                     <div id="simpleRawLegend" class="simple-legend-main">P1 × I1 = 1 (Faible)</div>
                                     <div class="simple-legend-description">
                                         <div class="simple-legend-block">
-                                            <h4 id="simpleLegendProbabilityTitle">Probabilité 1 – Peu probable</h4>
-                                            <p id="simpleLegendProbabilityDetail1">Événement non survenu sur les 5 dernières années.</p>
-                                            <p id="simpleLegendProbabilityDetail2">Événement non attendu sur les 5 prochaines années.</p>
+                                            <div class="simple-legend-title-row">
+                                                <h4 id="simpleLegendProbabilityTitle">Probabilité 1 – Peu probable</h4>
+                                                <button type="button" id="simpleLegendToggleBtn" class="simple-legend-toggle-btn" aria-expanded="false" aria-controls="simpleLegendProbabilityDetails" title="Afficher/masquer le détail de probabilité">ⓘ</button>
+                                            </div>
+                                            <div id="simpleLegendProbabilityDetails" class="simple-legend-probability-details">
+                                                <p id="simpleLegendProbabilityDetail1">Événement non survenu sur les 5 dernières années.</p>
+                                                <p id="simpleLegendProbabilityDetail2">Événement non attendu sur les 5 prochaines années.</p>
+                                            </div>
                                         </div>
                                         <div class="simple-legend-block">
                                             <h4 id="simpleLegendImpactTitle">Impact 1 – Faible</h4>
                                             <ul id="simpleLegendImpactBullets" class="simple-legend-bullets"></ul>
                                         </div>
                                         <div class="simple-aggravating-factors">
-                                            <h4>Facteurs aggravants</h4>
+                                            <h4 id="simpleAggravatingTitle">Facteurs aggravants</h4>
                                             <div id="simpleAggravatingFactors" class="simple-aggravating-list"></div>
                                         </div>
                                     </div>
                                 </div>
                             </div>
                             <div class="simple-effectiveness-block">
-                                <label class="form-label" for="simpleEffectiveness">Efficacité des mesures de maîtrise</label>
+                                <label class="form-label" id="simpleEffectivenessLabel" for="simpleEffectiveness">Efficacité des mesures de maîtrise</label>
                                 <input type="range" id="simpleEffectiveness" min="0" max="100" step="5" value="0">
                                 <div id="simpleEffectivenessLegend" class="simple-legend-sub">0% - Inefficace</div>
                             </div>
                         </div>
 
                         <div class="simple-comment-card">
-                            <label class="form-label" for="simpleComment">Commentaires</label>
+                            <label class="form-label" id="simpleCommentLabel" for="simpleComment">Commentaires</label>
                             <textarea id="simpleComment" class="form-input simple-textarea" rows="4" placeholder="Ajoutez vos observations..."></textarea>
                         </div>
 
@@ -710,7 +719,7 @@ Cadeau inapproprié à un agent public"></textarea>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.33</span>
+            <span class="app-version">Version 2.1.34</span>
         </footer>
     </div>
 
