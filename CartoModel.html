@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.35</title>
-    <link rel="stylesheet" href="assets/css/main.css?v=2.1.35">
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.1.36</title>
+    <link rel="stylesheet" href="assets/css/main.css?v=2.1.36">
     <!-- Local libraries for offline use -->
     <script src="assets/libs/chart.umd.min.js"></script>
     <script src="assets/libs/html2canvas.min.js"></script>
@@ -263,9 +263,9 @@ Cadeau inapproprié à un agent public"></textarea>
                                 <div class="edit-matrix-container">
                                     <div class="matrix edit-matrix simple-edit-matrix">
                                         <div class="matrix-grid" id="simpleMatrix"></div>
-                                        <div class="axis-label x-axis">Probabilité →</div>
+                                        <div class="axis-label x-axis" id="simpleMatrixProbabilityAxis">Probabilité →</div>
                                         <div class="axis-label y-axis">
-                                            <span class="axis-text">Impact</span>
+                                            <span class="axis-text" id="simpleMatrixImpactAxis">Impact</span>
                                             <span class="axis-arrow" aria-hidden="true">↑</span>
                                         </div>
                                     </div>
@@ -316,11 +316,11 @@ Cadeau inapproprié à un agent public"></textarea>
                     <section class="simple-panel" id="simple-overview-panel">
                         <div class="simple-overview-layout">
                             <div class="simple-overview-list-card">
-                                <h3>Risques bruts triés (P × I décroissant)</h3>
+                                <h3 id="simpleOverviewSortedTitle">Risques bruts triés (P × I décroissant)</h3>
                                 <div id="simpleOverviewRiskList" class="simple-overview-risk-list"></div>
                             </div>
                             <div class="simple-overview-matrix-card">
-                                <h3>Matrice des risques bruts</h3>
+                                <h3 id="simpleOverviewMatrixTitle">Matrice des risques bruts</h3>
                                 <div class="simple-overview-matrix-shell">
                                     <div class="simple-overview-impact-labels" id="simpleOverviewImpactLabels"></div>
                                     <div class="matrix simple-overview-matrix-wrapper">
@@ -719,7 +719,7 @@ Cadeau inapproprié à un agent public"></textarea>
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.1.35</span>
+            <span class="app-version">Version 2.1.36</span>
         </footer>
     </div>
 

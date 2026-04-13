@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.35',
+        version: '2.1.36',
         scenarios: [],
         selectedId: null,
         updatedAt: null,
@@ -144,7 +144,11 @@ Cadeau inapproprié à un agent public`,
             weak: 'Faible',
             moderate: 'Modéré',
             high: 'Élevé',
-            critical: 'Critique'
+            critical: 'Critique',
+            matrixProbabilityAxis: 'Probabilité →',
+            matrixImpactAxis: 'Impact',
+            overviewSortedTitle: 'Risques bruts triés (P × I décroissant)',
+            overviewMatrixTitle: 'Matrice des risques bruts'
         },
         en: {
             legendToggleTitle: 'Show/hide probability details',
@@ -173,7 +177,11 @@ Inappropriate gift to a public official`,
             weak: 'Low',
             moderate: 'Medium',
             high: 'High',
-            critical: 'Critical'
+            critical: 'Critical',
+            matrixProbabilityAxis: 'Probability →',
+            matrixImpactAxis: 'Impact',
+            overviewSortedTitle: 'Raw risks sorted (P × I descending)',
+            overviewMatrixTitle: 'Raw risk matrix'
         }
     };
 
@@ -852,6 +860,10 @@ Inappropriate gift to a public official`,
         if (dom.comment) dom.comment.placeholder = locale.commentsPlaceholder;
         if (dom.prevBtn) dom.prevBtn.textContent = locale.prevScenario;
         if (dom.nextBtn) dom.nextBtn.textContent = locale.nextScenario;
+        if (dom.matrixProbabilityAxis) dom.matrixProbabilityAxis.textContent = locale.matrixProbabilityAxis;
+        if (dom.matrixImpactAxis) dom.matrixImpactAxis.textContent = locale.matrixImpactAxis;
+        if (dom.overviewSortedTitle) dom.overviewSortedTitle.textContent = locale.overviewSortedTitle;
+        if (dom.overviewMatrixTitle) dom.overviewMatrixTitle.textContent = locale.overviewMatrixTitle;
     }
 
     function toggleLanguage() {
@@ -1066,6 +1078,8 @@ Inappropriate gift to a public official`,
         dom.duplicateBtn = document.getElementById('simpleDuplicateBtn');
         dom.deleteBtn = document.getElementById('simpleDeleteBtn');
         dom.matrix = document.getElementById('simpleMatrix');
+        dom.matrixProbabilityAxis = document.getElementById('simpleMatrixProbabilityAxis');
+        dom.matrixImpactAxis = document.getElementById('simpleMatrixImpactAxis');
         dom.matrixWrapper = document.querySelector('.simple-edit-matrix');
         dom.rawLegend = document.getElementById('simpleRawLegend');
         dom.rawRiskTitle = document.getElementById('simpleRawRiskTitle');
@@ -1095,6 +1109,8 @@ Inappropriate gift to a public official`,
         dom.legendProbabilityDetails = document.getElementById('simpleLegendProbabilityDetails');
         dom.assessmentProgressFill = document.getElementById('simpleAssessmentProgressFill');
         dom.overviewRiskList = document.getElementById('simpleOverviewRiskList');
+        dom.overviewSortedTitle = document.getElementById('simpleOverviewSortedTitle');
+        dom.overviewMatrixTitle = document.getElementById('simpleOverviewMatrixTitle');
         dom.overviewMatrix = document.getElementById('simpleOverviewMatrix');
         dom.overviewImpactLabels = document.getElementById('simpleOverviewImpactLabels');
         dom.overviewProbabilityLabels = document.getElementById('simpleOverviewProbabilityLabels');
