@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.34',
+        version: '2.1.35',
         scenarios: [],
         selectedId: null,
         updatedAt: null,
@@ -18,46 +18,95 @@
     ];
     const MAX_SCENARIO_LENGTH = 500;
     const EFFECTIVENESS_LEVELS = [
-        { value: 0, label: 'Inefficace' },
-        { value: 25, label: 'Insuffisant' },
-        { value: 50, label: 'Améliorable' },
-        { value: 75, label: 'Efficace' }
+        { value: 0, labels: { fr: 'Inefficace', en: 'Ineffective' } },
+        { value: 25, labels: { fr: 'Insuffisant', en: 'Insufficient' } },
+        { value: 50, labels: { fr: 'Améliorable', en: 'Room for improvement' } },
+        { value: 75, labels: { fr: 'Efficace', en: 'Effective' } }
     ];
-    const PROBABILITY_LEGEND = {
-        1: {
-            title: 'Probabilité 1 – Peu probable',
-            details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
+    const PROBABILITY_LEGEND_BY_LANGUAGE = {
+        fr: {
+            1: {
+                title: 'Probabilité 1 – Peu probable',
+                details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
+            },
+            2: {
+                title: 'Probabilité 2 – Moyennement probable',
+                details: ['Événement survenu 1 fois au cours des 5 dernières années.', 'Événement pouvant survenir 1 fois au cours des 5 prochaines années.']
+            },
+            3: {
+                title: 'Probabilité 3 – Probable',
+                details: ['Événement survenu 1 fois au cours de l’année passée.', 'Événement pouvant survenir 1 fois au cours de l’année à venir.']
+            },
+            4: {
+                title: 'Probabilité 4 – Très probable',
+                details: ['Événement survenu plusieurs fois au cours de l’année passée.', 'Événement attendu 1 ou plusieurs fois au cours de l’année à venir.']
+            }
         },
-        2: {
-            title: 'Probabilité 2 – Moyennement probable',
-            details: ['Événement survenu 1 fois au cours des 5 dernières années.', 'Événement pouvant survenir 1 fois au cours des 5 prochaines années.']
-        },
-        3: {
-            title: 'Probabilité 3 – Probable',
-            details: ['Événement survenu 1 fois au cours de l’année passée.', 'Événement pouvant survenir 1 fois au cours de l’année à venir.']
-        },
-        4: {
-            title: 'Probabilité 4 – Très probable',
-            details: ['Événement survenu plusieurs fois au cours de l’année passée.', 'Événement attendu 1 ou plusieurs fois au cours de l’année à venir.']
+        en: {
+            1: {
+                title: 'Probability 1 – Unlikely',
+                details: ['Event has not occurred in the past 5 years.', 'Event not expected to occur in the next 5 years.']
+            },
+            2: {
+                title: 'Probability 2 – Moderately likely',
+                details: ['Event that has occurred once in the past 5 years.', 'Event that may occur once in the next 5 years.']
+            },
+            3: {
+                title: 'Probability 3 – Likely',
+                details: ['Event that has occurred once in the past year.', 'Event that may occur once in the coming year.']
+            },
+            4: {
+                title: 'Probability 4 – Very likely',
+                details: ['Event that occurred several times in the past year.', 'Event expected to occur once or more times in the coming year.']
+            }
         }
     };
-    const IMPACT_LEGEND = {
-        1: {
-            title: 'Impact 1 – Faible',
-            bullets: ['Financier (assiette): < 300 K€', 'Juridique: sanction interne disciplinaire envers un collaborateur', 'Réputationnel: impact nul, interne ou externe local ; atteinte limitée à quelques jours', 'Opérationnel: peu ou pas de perturbations ; ralentissement des activités']
+    const IMPACT_LEGEND_BY_LANGUAGE = {
+        fr: {
+            1: {
+                title: 'Impact 1 – Faible',
+                bullets: ['Financier (assiette): < 300 K€', 'Juridique: sanction interne disciplinaire envers un collaborateur', 'Réputationnel: impact nul, interne ou externe local ; atteinte limitée à quelques jours', 'Opérationnel: peu ou pas de perturbations ; ralentissement des activités']
+            },
+            2: {
+                title: 'Impact 2 – Modéré',
+                bullets: ['Financier (assiette): < 3 M€', 'Juridique: procédure judiciaire ou administrative à l’échelle d’un collaborateur', 'Réputationnel: impact externe régional (ex. : ARS) ; atteinte limitée à quelques semaines', 'Opérationnel: perturbations légères ; perte temporaire d’activités ou de marchés']
+            },
+            3: {
+                title: 'Impact 3 – Fort',
+                bullets: ['Financier (assiette): < 30 M€', 'Juridique: sanctions à l’échelle d’une filiale ; convention judiciaire d’intérêt public (CJIP)', 'Réputationnel: impact externe national (ex. : ministère de la Santé) ; crise médiatique nationale ; atteinte prolongée sur plusieurs mois', 'Opérationnel: perturbations importantes ; perte définitive d’activités ou de marchés']
+            },
+            4: {
+                title: 'Impact 4 – Critique',
+                bullets: ['Financier (assiette): ≥ 30 M€', 'Juridique: sanctions à l’échelle du Groupe ; condamnation pénale', 'Réputationnel: impact externe international (ex. : EMA, FDA, etc.) ; crise médiatique internationale ; atteinte durable sur plusieurs années', 'Opérationnel: arrêt des activités']
+            }
         },
-        2: {
-            title: 'Impact 2 – Modéré',
-            bullets: ['Financier (assiette): < 3 M€', 'Juridique: procédure judiciaire ou administrative à l’échelle d’un collaborateur', 'Réputationnel: impact externe régional (ex. : ARS) ; atteinte limitée à quelques semaines', 'Opérationnel: perturbations légères ; perte temporaire d’activités ou de marchés']
-        },
-        3: {
-            title: 'Impact 3 – Fort',
-            bullets: ['Financier (assiette): < 30 M€', 'Juridique: sanctions à l’échelle d’une filiale ; convention judiciaire d’intérêt public (CJIP)', 'Réputationnel: impact externe national (ex. : ministère de la Santé) ; crise médiatique nationale ; atteinte prolongée sur plusieurs mois', 'Opérationnel: perturbations importantes ; perte définitive d’activités ou de marchés']
-        },
-        4: {
-            title: 'Impact 4 – Critique',
-            bullets: ['Financier (assiette): ≥ 30 M€', 'Juridique: sanctions à l’échelle du Groupe ; condamnation pénale', 'Réputationnel: impact externe international (ex. : EMA, FDA, etc.) ; crise médiatique internationale ; atteinte durable sur plusieurs années', 'Opérationnel: arrêt des activités']
+        en: {
+            1: {
+                title: 'Impact 1 – Low',
+                bullets: ['Financial (base): < €300,000', 'Legal: Internal disciplinary action against an employee', 'Reputational: No impact, internal or local external (e.g., partners); disruption limited to a few days', 'Operational: Little or no disruption; slowdown in operations']
+            },
+            2: {
+                title: 'Impact 2 – Moderate',
+                bullets: ['Financial (base): < €3 million', 'Legal: Legal or administrative proceedings involving an individual employee', 'Reputational: Regional external impact (e.g., ARS); disruption limited to a few weeks', 'Operational: Minor disruptions; temporary loss of business or contracts']
+            },
+            3: {
+                title: 'Impact 3 – High',
+                bullets: ['Financial (base): < €30 million', 'Legal: Sanctions at the subsidiary level; Public Interest Legal Agreement (PILA)', 'Reputational: National external impact (e.g., Department of Health); national media crisis; impact lasting several months', 'Operational: Significant disruptions; permanent loss of business or contracts']
+            },
+            4: {
+                title: 'Impact 4 – Critical',
+                bullets: ['Financial (base): ≥ €30 million', 'Legal: Group-wide sanctions; criminal conviction', 'Reputational: International external impact (e.g., EMA, FDA, etc.); international media crisis; long-term damage lasting several years', 'Operational: Cessation of operations']
+            }
         }
+    };
+    const AGGRAVATING_FACTORS_EN = {
+        'Pays à risque de corruption élevé (CPI < 40)': 'Countries with a high risk of corruption (CPI < 40)',
+        'Pays à risque de corruption modéré (40 ≤ CPI < 60)': 'Countries with moderate corruption risk (40 ≤ CPI < 60)',
+        'Intermédiaires difficiles à contrôler': 'Intermediaries difficult to control',
+        'Zones géographiques instables': 'Geographically unstable areas',
+        'Secteurs d’activité exposés (BTP, énergie, défense)': 'Exposed sectors (construction, energy, defense)',
+        'Culture tolérante aux cadeaux': 'Culture of gift-giving',
+        'Turn-over élevé': 'High turnover'
     };
 
     const state = {
@@ -398,7 +447,8 @@ Inappropriate gift to a public official`,
     }
 
     function effectivenessLabel(value) {
-        return EFFECTIVENESS_LEVELS.find((level) => level.value === nearestEffectivenessLevel(value))?.label || 'Inefficace';
+        const language = state.data.language === 'en' ? 'en' : 'fr';
+        return EFFECTIVENESS_LEVELS.find((level) => level.value === nearestEffectivenessLevel(value))?.labels?.[language] || 'Inefficace';
     }
 
     function renderScenarioList() {
@@ -636,7 +686,9 @@ Inappropriate gift to a public official`,
             impactLevels.forEach((impact) => {
                 const label = document.createElement('div');
                 label.className = 'simple-overview-axis-level y-level';
-                label.textContent = ['Impact critique', 'Impact fort', 'Impact modéré', 'Impact faible'][4 - impact] || `Impact ${impact}`;
+                label.textContent = state.data.language === 'en'
+                    ? (['Critical impact', 'High impact', 'Moderate impact', 'Low impact'][4 - impact] || `Impact ${impact}`)
+                    : (['Impact critique', 'Impact fort', 'Impact modéré', 'Impact faible'][4 - impact] || `Impact ${impact}`);
                 dom.overviewImpactLabels.appendChild(label);
             });
         }
@@ -645,7 +697,9 @@ Inappropriate gift to a public official`,
             probabilityLevels.forEach((probability) => {
                 const label = document.createElement('div');
                 label.className = 'simple-overview-axis-level x-level';
-                label.textContent = ['Peu probable', 'Moyennement\nprobable', 'Probable', 'Très\nprobable'][probability - 1] || `Probabilité ${probability}`;
+                label.textContent = state.data.language === 'en'
+                    ? (['Unlikely', 'Moderately\nlikely', 'Likely', 'Very\nlikely'][probability - 1] || `Probability ${probability}`)
+                    : (['Peu probable', 'Moyennement\nprobable', 'Probable', 'Très\nprobable'][probability - 1] || `Probabilité ${probability}`);
                 dom.overviewProbabilityLabels.appendChild(label);
             });
         }
@@ -736,7 +790,9 @@ Inappropriate gift to a public official`,
             });
 
             const text = document.createElement('span');
-            text.textContent = factor.label;
+            text.textContent = state.data.language === 'en'
+                ? (AGGRAVATING_FACTORS_EN[factor.label] || factor.label)
+                : factor.label;
 
             label.appendChild(checkbox);
             label.appendChild(text);
@@ -745,8 +801,11 @@ Inappropriate gift to a public official`,
     }
 
     function renderLegendDescription(probability, impact) {
-        const probabilityLegend = PROBABILITY_LEGEND[probability] || PROBABILITY_LEGEND[1];
-        const impactLegend = IMPACT_LEGEND[impact] || IMPACT_LEGEND[1];
+        const language = state.data.language === 'en' ? 'en' : 'fr';
+        const probabilityLegendSet = PROBABILITY_LEGEND_BY_LANGUAGE[language] || PROBABILITY_LEGEND_BY_LANGUAGE.fr;
+        const impactLegendSet = IMPACT_LEGEND_BY_LANGUAGE[language] || IMPACT_LEGEND_BY_LANGUAGE.fr;
+        const probabilityLegend = probabilityLegendSet[probability] || probabilityLegendSet[1];
+        const impactLegend = impactLegendSet[impact] || impactLegendSet[1];
 
         if (dom.legendProbabilityTitle) dom.legendProbabilityTitle.textContent = probabilityLegend.title;
         if (dom.legendProbabilityDetail1) dom.legendProbabilityDetail1.textContent = probabilityLegend.details[0];
