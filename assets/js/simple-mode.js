@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.36',
+        version: '2.1.37',
         scenarios: [],
         selectedId: null,
         updatedAt: null,
@@ -132,6 +132,7 @@ Cadeau inapproprié à un agent public`,
             loadScenarios: 'Charger les scénarios',
             scenariosHelper: 'Les scénarios remplacent la liste actuelle.',
             selectedScenarioCaption: 'Scénario sélectionné',
+            entitiesLabel: 'Applicable à :',
             duplicateScenario: 'Dupliquer ce scénario',
             deleteScenarioLabel: 'Supprimer ce scénario',
             rawRiskTitle: 'Risque brut',
@@ -165,6 +166,7 @@ Inappropriate gift to a public official`,
             loadScenarios: 'Load scenarios',
             scenariosHelper: 'Loading replaces the current list.',
             selectedScenarioCaption: 'Selected scenario',
+            entitiesLabel: 'Applies to:',
             duplicateScenario: 'Duplicate this scenario',
             deleteScenarioLabel: 'Delete this scenario',
             rawRiskTitle: 'Raw risk',
@@ -294,7 +296,8 @@ Inappropriate gift to a public official`,
                     },
                     aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
                     effectiveness: nearestEffectivenessLevel(s.effectiveness),
-                    comment: s.comment || ''
+                    comment: s.comment || '',
+                    appliesTo: normalizeAppliesTo(s.appliesTo)
                 }));
 
             state.data = {
@@ -355,7 +358,8 @@ Inappropriate gift to a public official`,
             raw: { prob: 1, impact: 1 },
             aggravatingFactors: [],
             effectiveness: EFFECTIVENESS_LEVELS[0].value,
-            comment: ''
+            comment: '',
+            appliesTo: { lfbUsa: false, europlasma: false }
         }));
         state.data.selectedId = state.data.scenarios[0]?.id || null;
         state.highlightedScenarioId = state.data.selectedId;
@@ -371,7 +375,8 @@ Inappropriate gift to a public official`,
             id: uid(),
             text: `${current.text} (copie)`,
             raw: { ...current.raw },
-            aggravatingFactors: [...(current.aggravatingFactors || [])]
+            aggravatingFactors: [...(current.aggravatingFactors || [])],
+            appliesTo: normalizeAppliesTo(current.appliesTo)
         };
         const index = state.data.scenarios.findIndex((s) => s.id === current.id);
         state.data.scenarios.splice(index + 1, 0, cloned);
@@ -418,6 +423,13 @@ Inappropriate gift to a public official`,
         if (!Array.isArray(value)) return [];
         const allowed = new Set(getAggravatingFactors().map((factor) => factor.id));
         return [...new Set(value.map((item) => String(item)).filter((id) => allowed.has(id)))];
+    }
+
+    function normalizeAppliesTo(value) {
+        return {
+            lfbUsa: Boolean(value?.lfbUsa),
+            europlasma: Boolean(value?.europlasma)
+        };
     }
 
     function goToScenario(step) {
@@ -610,6 +622,8 @@ Inappropriate gift to a public official`,
         dom.nextBtn.disabled = disabled;
         dom.effectiveness.disabled = disabled;
         dom.comment.disabled = disabled;
+        dom.entityLfbUsa.disabled = disabled;
+        dom.entityEuroplasma.disabled = disabled;
         renderAggravatingFactors(scenario);
 
         if (!scenario) {
@@ -619,6 +633,8 @@ Inappropriate gift to a public official`,
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Inefficace';
             dom.comment.value = '';
+            dom.entityLfbUsa.checked = false;
+            dom.entityEuroplasma.checked = false;
             renderAssessmentProgress();
             return;
         }
@@ -641,6 +657,9 @@ Inappropriate gift to a public official`,
         dom.effectiveness.value = snappedEffectiveness;
         dom.effectivenessLegend.textContent = `${snappedEffectiveness}% - ${effectivenessLabel(snappedEffectiveness)}`;
         dom.comment.value = scenario.comment;
+        const appliesTo = normalizeAppliesTo(scenario.appliesTo);
+        dom.entityLfbUsa.checked = appliesTo.lfbUsa;
+        dom.entityEuroplasma.checked = appliesTo.europlasma;
 
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
         dom.prevBtn.disabled = idx <= 0;
@@ -847,6 +866,7 @@ Inappropriate gift to a public official`,
         if (dom.loadScenariosBtn) dom.loadScenariosBtn.textContent = locale.loadScenarios;
         if (dom.scenariosHelper) dom.scenariosHelper.textContent = locale.scenariosHelper;
         if (dom.selectedCaption) dom.selectedCaption.textContent = locale.selectedScenarioCaption;
+        if (dom.entitiesLabel) dom.entitiesLabel.textContent = locale.entitiesLabel;
         if (dom.duplicateBtn) dom.duplicateBtn.textContent = locale.duplicateScenario;
         if (dom.deleteBtn) {
             dom.deleteBtn.textContent = `🗑️ ${locale.deleteScenarioLabel}`;
@@ -938,6 +958,8 @@ Inappropriate gift to a public official`,
             'Risque',
             'Probabilité',
             'Impact',
+            'LFB USA',
+            'EuroPlasma',
             'Facteurs aggravants',
             'Efficacité des mesures',
             'Commentaire'
@@ -947,13 +969,14 @@ Inappropriate gift to a public official`,
             const risk = scenario.text || '';
             const probability = clampMatrixValue(scenario.raw?.prob);
             const impact = clampMatrixValue(scenario.raw?.impact);
+            const appliesTo = normalizeAppliesTo(scenario.appliesTo);
             const aggravatingFactors = (scenario.aggravatingFactors || [])
                 .map((id) => factorsLabelById.get(id) || id)
                 .join(' | ');
             const effectiveness = `${nearestEffectivenessLevel(scenario.effectiveness)}% - ${effectivenessLabel(scenario.effectiveness)}`;
             const comment = scenario.comment || '';
 
-            return [risk, probability, impact, aggravatingFactors, effectiveness, comment];
+            return [risk, probability, impact, appliesTo.lfbUsa ? 'Oui' : 'Non', appliesTo.europlasma ? 'Oui' : 'Non', aggravatingFactors, effectiveness, comment];
         });
 
         const csvContent = [header, ...rows]
@@ -990,7 +1013,8 @@ Inappropriate gift to a public official`,
                     },
                     aggravatingFactors: normalizeAggravatingFactors(s.aggravatingFactors),
                     effectiveness: nearestEffectivenessLevel(s.effectiveness),
-                    comment: s.comment || ''
+                    comment: s.comment || '',
+                    appliesTo: normalizeAppliesTo(s.appliesTo)
                 })).filter((s) => s.text);
                 state.data.selectedId = parsed.selectedId && state.data.scenarios.some((s) => s.id === parsed.selectedId)
                     ? parsed.selectedId
@@ -1024,6 +1048,18 @@ Inappropriate gift to a public official`,
 
         dom.comment.addEventListener('input', (evt) => {
             updateCurrentScenario({ comment: evt.target.value });
+        });
+        dom.entityLfbUsa.addEventListener('change', () => {
+            const current = getSelectedScenario();
+            if (!current) return;
+            const appliesTo = normalizeAppliesTo(current.appliesTo);
+            updateCurrentScenario({ appliesTo: { ...appliesTo, lfbUsa: dom.entityLfbUsa.checked } });
+        });
+        dom.entityEuroplasma.addEventListener('change', () => {
+            const current = getSelectedScenario();
+            if (!current) return;
+            const appliesTo = normalizeAppliesTo(current.appliesTo);
+            updateCurrentScenario({ appliesTo: { ...appliesTo, europlasma: dom.entityEuroplasma.checked } });
         });
 
         dom.exportBtn.addEventListener('click', exportData);
@@ -1098,6 +1134,9 @@ Inappropriate gift to a public official`,
         dom.effectivenessLegend = document.getElementById('simpleEffectivenessLegend');
         dom.comment = document.getElementById('simpleComment');
         dom.commentLabel = document.getElementById('simpleCommentLabel');
+        dom.entitiesLabel = document.getElementById('simpleEntitiesLabel');
+        dom.entityLfbUsa = document.getElementById('simpleEntityLfbUsa');
+        dom.entityEuroplasma = document.getElementById('simpleEntityEuroplasma');
         dom.prevBtn = document.getElementById('simplePrevBtn');
         dom.nextBtn = document.getElementById('simpleNextBtn');
         dom.exportBtn = document.getElementById('simpleExportBtn');
