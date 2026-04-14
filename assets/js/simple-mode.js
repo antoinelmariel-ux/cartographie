@@ -1,7 +1,7 @@
 (function () {
     const STORAGE_KEY = 'rmsSimpleModeData';
     const DEFAULT_DATA = {
-        version: '2.1.37',
+        version: '2.1.38',
         scenarios: [],
         selectedId: null,
         updatedAt: null,
@@ -26,19 +26,19 @@
     const PROBABILITY_LEGEND_BY_LANGUAGE = {
         fr: {
             1: {
-                title: 'Probabilité en l'absence de procédures – Peu probable',
+                title: "Probabilité en l'absence de procédures – Peu probable",
                 details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
             },
             2: {
-                title: 'Probabilité en l'absence de procédures – Moyennement probable',
+                title: "Probabilité en l'absence de procédures – Moyennement probable",
                 details: ['Événement survenu 1 fois au cours des 5 dernières années.', 'Événement pouvant survenir 1 fois au cours des 5 prochaines années.']
             },
             3: {
-                title: 'Probabilité en l'absence de procédures – Probable',
+                title: "Probabilité en l'absence de procédures – Probable",
                 details: ['Événement survenu 1 fois au cours de l’année passée.', 'Événement pouvant survenir 1 fois au cours de l’année à venir.']
             },
             4: {
-                title: 'Probabilité en l'absence de procédures – Très probable',
+                title: "Probabilité en l'absence de procédures – Très probable",
                 details: ['Événement survenu plusieurs fois au cours de l’année passée.', 'Événement attendu 1 ou plusieurs fois au cours de l’année à venir.']
             }
         },
