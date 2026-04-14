@@ -26,37 +26,37 @@
     const PROBABILITY_LEGEND_BY_LANGUAGE = {
         fr: {
             1: {
-                title: 'Probabilité 1 – Peu probable',
+                title: 'Probabilité en l'absence de procédures – Peu probable',
                 details: ['Événement non survenu sur les 5 dernières années.', 'Événement non attendu sur les 5 prochaines années.']
             },
             2: {
-                title: 'Probabilité 2 – Moyennement probable',
+                title: 'Probabilité en l'absence de procédures – Moyennement probable',
                 details: ['Événement survenu 1 fois au cours des 5 dernières années.', 'Événement pouvant survenir 1 fois au cours des 5 prochaines années.']
             },
             3: {
-                title: 'Probabilité 3 – Probable',
+                title: 'Probabilité en l'absence de procédures – Probable',
                 details: ['Événement survenu 1 fois au cours de l’année passée.', 'Événement pouvant survenir 1 fois au cours de l’année à venir.']
             },
             4: {
-                title: 'Probabilité 4 – Très probable',
+                title: 'Probabilité en l'absence de procédures – Très probable',
                 details: ['Événement survenu plusieurs fois au cours de l’année passée.', 'Événement attendu 1 ou plusieurs fois au cours de l’année à venir.']
             }
         },
         en: {
             1: {
-                title: 'Probability 1 – Unlikely',
+                title: 'Probability in the absence of procedures – Unlikely',
                 details: ['Event has not occurred in the past 5 years.', 'Event not expected to occur in the next 5 years.']
             },
             2: {
-                title: 'Probability 2 – Moderately likely',
+                title: 'Probability in the absence of procedures – Moderately likely',
                 details: ['Event that has occurred once in the past 5 years.', 'Event that may occur once in the next 5 years.']
             },
             3: {
-                title: 'Probability 3 – Likely',
+                title: 'Probability in the absence of procedures – Likely',
                 details: ['Event that has occurred once in the past year.', 'Event that may occur once in the coming year.']
             },
             4: {
-                title: 'Probability 4 – Very likely',
+                title: 'Probability in the absence of procedures – Very likely',
                 details: ['Event that occurred several times in the past year.', 'Event expected to occur once or more times in the coming year.']
             }
         }
@@ -135,7 +135,7 @@ Cadeau inapproprié à un agent public`,
             entitiesLabel: 'Applicable à :',
             duplicateScenario: 'Dupliquer ce scénario',
             deleteScenarioLabel: 'Supprimer ce scénario',
-            rawRiskTitle: 'Risque brut',
+            rawRiskTitle: 'Risque brut (inhérent)',
             aggravatingTitle: 'Facteurs aggravants',
             effectivenessLabel: 'Efficacité des mesures de maîtrise',
             commentsLabel: 'Commentaires',
@@ -147,14 +147,14 @@ Cadeau inapproprié à un agent public`,
             high: 'Élevé',
             critical: 'Critique',
             matrixProbabilityAxis: 'Probabilité →',
-            matrixImpactAxis: 'Impact',
+            matrixImpactAxis: 'Impact →',
             overviewSortedTitle: 'Risques bruts triés (P × I décroissant)',
             overviewMatrixTitle: 'Matrice des risques bruts'
         },
         en: {
             legendToggleTitle: 'Show/hide probability details',
             noScenarioSelected: 'No scenario selected',
-            toolbarTitle: 'Simplified version - Raw risk scoring',
+            toolbarTitle: 'Simplified version - Growth risk scoring',
             subtabScenarios: '1. Scenario loading',
             subtabAssessment: '2. Scoring',
             subtabOverview: '3. Consolidated view',
@@ -169,7 +169,7 @@ Inappropriate gift to a public official`,
             entitiesLabel: 'Applies to:',
             duplicateScenario: 'Duplicate this scenario',
             deleteScenarioLabel: 'Delete this scenario',
-            rawRiskTitle: 'Raw risk',
+            rawRiskTitle: 'Growth risk (inherent)',
             aggravatingTitle: 'Aggravating factors',
             effectivenessLabel: 'Control effectiveness',
             commentsLabel: 'Comments',
@@ -181,9 +181,9 @@ Inappropriate gift to a public official`,
             high: 'High',
             critical: 'Critical',
             matrixProbabilityAxis: 'Probability →',
-            matrixImpactAxis: 'Impact',
-            overviewSortedTitle: 'Raw risks sorted (P × I descending)',
-            overviewMatrixTitle: 'Raw risk matrix'
+            matrixImpactAxis: 'Impact →',
+            overviewSortedTitle: 'Growth risks sorted (P × I descending)',
+            overviewMatrixTitle: 'Growth risk matrix'
         }
     };
 
