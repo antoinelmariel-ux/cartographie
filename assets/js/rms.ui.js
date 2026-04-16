@@ -316,6 +316,7 @@ var lastRiskData = null;
 var selectedControlsForRisk = [];
 var controlAssignmentsForRisk = {};
 var controlFilterQueryForRisk = '';
+var currentBenefitFocusForControlSelector = '';
 var currentEditingRiskId = null;
 var selectedActionPlansForRisk = [];
 var lastActionPlanData = null;
@@ -356,6 +357,7 @@ function renderRiskChipList(kind) {
         </span>
     `).join('');
     if (kind === 'undue') {
+        renderBenefitFirstAssignment();
         updateSelectedControlsDisplay();
     }
 }
@@ -422,9 +424,115 @@ function setRiskControlAssignments(assignments) {
         };
     });
     controlAssignmentsForRisk = next;
+    renderBenefitFirstAssignment();
     updateSelectedControlsDisplay();
 }
 window.setRiskControlAssignments = setRiskControlAssignments;
+
+function getRecommendedControlIdsForBenefit(label) {
+    if (!label || !rms || !Array.isArray(rms.risks)) return [];
+    const ids = new Set();
+    rms.risks.forEach(risk => {
+        const assignments = Array.isArray(risk?.controlAssignments) ? risk.controlAssignments : [];
+        assignments.forEach(entry => {
+            if (!entry || entry.controlId == null) return;
+            const undueBenefits = Array.isArray(entry.avantagesIndus) ? entry.avantagesIndus : [];
+            if (undueBenefits.includes(label)) {
+                ids.add(entry.controlId);
+            }
+        });
+    });
+    return Array.from(ids);
+}
+
+function getAssignedControlNamesForBenefit(label) {
+    if (!label || !rms) return [];
+    const linked = selectedControlsForRisk.map(controlId => {
+        const assignment = controlAssignmentsForRisk[String(controlId)] || {};
+        if (!(assignment.avantagesIndus || []).includes(label) && !assignment.transverse) {
+            return null;
+        }
+        const control = rms.controls.find(ctrl => ctrl.id === controlId);
+        return control?.name || `#${controlId}`;
+    }).filter(Boolean);
+    return linked;
+}
+
+function renderBenefitFirstAssignment() {
+    const container = document.getElementById('benefitFirstAssignment');
+    if (!container) return;
+    const undueBenefits = Array.isArray(riskBenefitsState.undue) ? riskBenefitsState.undue : [];
+    if (!undueBenefits.length) {
+        container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="benefit-first-assignment-title">Attribution guidée par avantage indu</div>
+        <div class="benefit-first-assignment-grid">
+            ${undueBenefits.map(label => {
+                const linkedControls = getAssignedControlNamesForBenefit(label);
+                const recommendedCount = getRecommendedControlIdsForBenefit(label).length;
+                const summary = linkedControls.length
+                    ? linkedControls.slice(0, 2).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
+                    : 'Aucun contrôle lié';
+                return `
+                    <div class="benefit-first-card">
+                        <div>
+                            <div class="benefit-first-label">${label}</div>
+                            <div class="benefit-first-meta">${summary}</div>
+                        </div>
+                        <div class="benefit-first-actions">
+                            <span class="benefit-first-reco">${recommendedCount} recommandé${recommendedCount > 1 ? 's' : ''}</span>
+                            <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Assigner des contrôles</button>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+    `;
+}
+window.renderBenefitFirstAssignment = renderBenefitFirstAssignment;
+
+function openControlSelectorForBenefit(encodedLabel) {
+    const label = decodeURIComponent(encodedLabel);
+    currentBenefitFocusForControlSelector = label;
+    openControlSelector();
+}
+window.openControlSelectorForBenefit = openControlSelectorForBenefit;
+
+function clearControlBenefitFocus() {
+    currentBenefitFocusForControlSelector = '';
+    renderControlSelectionList();
+}
+window.clearControlBenefitFocus = clearControlBenefitFocus;
+
+function selectRecommendedControlsForFocusedBenefit() {
+    const label = currentBenefitFocusForControlSelector;
+    if (!label) return;
+    const recommendedIds = getRecommendedControlIdsForBenefit(label);
+    recommendedIds.forEach(controlId => {
+        if (!selectedControlsForRisk.includes(controlId)) {
+            selectedControlsForRisk.push(controlId);
+        }
+        const key = String(controlId);
+        if (!controlAssignmentsForRisk[key]) {
+            controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
+        }
+        const benefits = controlAssignmentsForRisk[key].avantagesIndus || [];
+        if (!benefits.includes(label)) {
+            benefits.push(label);
+        }
+        controlAssignmentsForRisk[key].avantagesIndus = benefits;
+        controlAssignmentsForRisk[key].transverse = false;
+    });
+    updateSelectedControlsDisplay();
+    renderControlSelectionList();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+}
+window.selectRecommendedControlsForFocusedBenefit = selectRecommendedControlsForFocusedBenefit;
 
 const MODAL_Z_INDEX_STEP = 5;
 
@@ -1008,6 +1116,20 @@ window.createControlFromRisk = createControlFromRisk;
 function renderControlSelectionList() {
     const list = document.getElementById('controlList');
     if (!list || !rms) return;
+    const focusContainer = document.getElementById('controlBenefitFocus');
+    const focusLabel = currentBenefitFocusForControlSelector;
+    const recommendedSet = new Set(getRecommendedControlIdsForBenefit(focusLabel));
+    if (focusContainer) {
+        focusContainer.innerHTML = focusLabel
+            ? `<div class="control-benefit-focus-card">
+                    <strong>Attribution pour :</strong> ${focusLabel}
+                    <div class="control-benefit-focus-actions">
+                        <button type="button" class="btn btn-outline" onclick="selectRecommendedControlsForFocusedBenefit()">Sélectionner les recommandés</button>
+                        <button type="button" class="btn btn-outline" onclick="clearControlBenefitFocus()">Voir tous les avantages</button>
+                    </div>
+               </div>`
+            : '';
+    }
     const query = controlFilterQueryForRisk.toLowerCase();
     const typeMap = Array.isArray(rms.config?.controlTypes)
         ? rms.config.controlTypes.reduce((acc, item) => {
@@ -1025,7 +1147,9 @@ function renderControlSelectionList() {
         : {};
     list.innerHTML = rms.controls.filter(ctrl => {
         const name = (ctrl.name || '').toLowerCase();
-        return String(ctrl.id).includes(query) || name.includes(query);
+        const matchesQuery = String(ctrl.id).includes(query) || name.includes(query);
+        const matchesFocus = !focusLabel || recommendedSet.has(ctrl.id) || selectedControlsForRisk.includes(ctrl.id);
+        return matchesQuery && matchesFocus;
     }).map(ctrl => {
         const isSelected = selectedControlsForRisk.includes(ctrl.id);
         const typeKey = ctrl?.type != null ? String(ctrl.type).toLowerCase() : '';
@@ -1040,6 +1164,7 @@ function renderControlSelectionList() {
               <div class="risk-item-info">
                 <div class="risk-item-title">#${ctrl.id} - ${controlName}</div>
                 <div class="risk-item-meta">Type: ${typeLabel || 'Non défini'} | Origine: ${originLabel || 'Non définie'} | Propriétaire: ${ownerLabel || 'Non défini'}</div>
+                ${focusLabel && recommendedSet.has(ctrl.id) ? '<div class="risk-item-hint">Recommandé pour cet avantage indu</div>' : ''}
               </div>
             </div>`;
     }).join('');
@@ -1052,6 +1177,7 @@ function filterControlsForRisk(query) {
 window.filterControlsForRisk = filterControlsForRisk;
 
 function closeControlSelector() {
+    currentBenefitFocusForControlSelector = '';
     closeModal('controlSelectorModal');
 }
 window.closeControlSelector = closeControlSelector;
@@ -1067,6 +1193,14 @@ function toggleControlSelection(controlId) {
         if (!controlAssignmentsForRisk[key]) {
             controlAssignmentsForRisk[key] = { transverse: true, avantagesIndus: [] };
         }
+        if (currentBenefitFocusForControlSelector) {
+            const entry = controlAssignmentsForRisk[key];
+            entry.transverse = false;
+            entry.avantagesIndus = Array.isArray(entry.avantagesIndus) ? entry.avantagesIndus : [];
+            if (!entry.avantagesIndus.includes(currentBenefitFocusForControlSelector)) {
+                entry.avantagesIndus.push(currentBenefitFocusForControlSelector);
+            }
+        }
     }
     if (rms && typeof rms.markUnsavedChange === 'function') {
         rms.markUnsavedChange('riskForm');
@@ -1075,6 +1209,7 @@ function toggleControlSelection(controlId) {
 window.toggleControlSelection = toggleControlSelection;
 
 function confirmControlSelection() {
+    renderBenefitFirstAssignment();
     updateSelectedControlsDisplay();
     closeControlSelector();
 }
@@ -1085,6 +1220,7 @@ function updateSelectedControlsDisplay() {
     if (!container) return;
     if (selectedControlsForRisk.length === 0) {
         container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle sélectionné</div>';
+        renderBenefitFirstAssignment();
         return;
     }
     const undueBenefits = Array.isArray(riskBenefitsState.undue) ? riskBenefitsState.undue : [];
@@ -1117,6 +1253,7 @@ function updateSelectedControlsDisplay() {
                 <div class="control-assignment-tags">${tags}</div>
             </div>`;
     }).join('')}</div>`;
+    renderBenefitFirstAssignment();
 }
 window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
 
