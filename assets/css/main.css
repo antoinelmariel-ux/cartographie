@@ -1536,6 +1536,33 @@ body.feedback-mode-paused .feedback-panel * {
 .risk-item-score.high { background: #e67e22; }
 .risk-item-score.critical { background: var(--danger-color); }
 
+.risk-item-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.risk-item-edit-btn {
+    width: 24px;
+    height: 24px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--surface-color);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8em;
+    line-height: 1;
+    transition: all 0.2s ease;
+}
+
+.risk-item-edit-btn:hover {
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    background: rgba(11, 61, 96, 0.08);
+}
+
 .risk-item-meta {
     font-size: 0.85em;
     color: var(--muted-text-color);
