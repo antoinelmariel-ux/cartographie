@@ -2786,6 +2786,17 @@ tbody tr:hover {
     font-size: 0.78rem;
     color: #1f2937;
     background: #ffffff;
+    gap: 6px;
+}
+
+.transverse-control-remove-btn {
+    border: none;
+    background: transparent;
+    color: #b91c1c;
+    cursor: pointer;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0;
 }
 
 .control-assignment-card {
@@ -2887,6 +2898,25 @@ tbody tr:hover {
     margin-top: 4px;
     color: #64748b;
     font-size: 0.78rem;
+}
+
+.benefit-first-linked-controls {
+    margin-top: 8px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.benefit-first-linked-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #bfdbfe;
+    border-radius: 999px;
+    padding: 3px 9px;
+    background: #eff6ff;
+    color: #1e3a8a;
+    font-size: 0.74rem;
+    font-weight: 600;
 }
 
 .benefit-first-actions {
