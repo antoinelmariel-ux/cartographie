@@ -2361,6 +2361,13 @@ function applyPatch() {
         });
       }
 
+      function setControlFieldValue(fieldId, value) {
+        const field = document.getElementById(fieldId);
+        if (field) {
+          field.value = value || '';
+        }
+      }
+
       window.addNewControl = function() {
         currentEditingControlId = null;
         const form = document.getElementById('controlForm');
@@ -2369,15 +2376,15 @@ function applyPatch() {
         selectedRisksForControl = [];
 
         if (lastControlData) {
-          document.getElementById('controlName').value = lastControlData.name || '';
-          document.getElementById('controlType').value = lastControlData.type || '';
-          document.getElementById('controlOrigin').value = lastControlData.origin || '';
-          document.getElementById('controlOwner').value = lastControlData.owner || '';
-          document.getElementById('controlFrequency').value = lastControlData.frequency || '';
-          document.getElementById('controlMode').value = lastControlData.mode || '';
-          document.getElementById('controlEffectiveness').value = lastControlData.effectiveness || '';
-          document.getElementById('controlStatus').value = lastControlData.status || '';
-          document.getElementById('controlDescription').value = lastControlData.description || '';
+          setControlFieldValue('controlName', lastControlData.name);
+          setControlFieldValue('controlType', lastControlData.type);
+          setControlFieldValue('controlOrigin', lastControlData.origin);
+          setControlFieldValue('controlOwner', lastControlData.owner);
+          setControlFieldValue('controlFrequency', lastControlData.frequency);
+          setControlFieldValue('controlMode', lastControlData.mode);
+          setControlFieldValue('controlEffectiveness', lastControlData.effectiveness);
+          setControlFieldValue('controlStatus', lastControlData.status);
+          setControlFieldValue('controlDescription', lastControlData.description);
           selectedRisksForControl = [...(lastControlData.risks || [])];
         }
 
@@ -2411,15 +2418,15 @@ function applyPatch() {
         currentEditingControlId = controlId;
         selectedRisksForControl = control.risks || [];
 
-        document.getElementById('controlName').value = control.name || '';
-        document.getElementById('controlType').value = control.type || '';
-        document.getElementById('controlOrigin').value = control.origin || '';
-        document.getElementById('controlOwner').value = control.owner || '';
-        document.getElementById('controlFrequency').value = control.frequency || '';
-        document.getElementById('controlMode').value = control.mode || '';
-        document.getElementById('controlEffectiveness').value = control.effectiveness || '';
-        document.getElementById('controlStatus').value = control.status || '';
-        document.getElementById('controlDescription').value = control.description || '';
+        setControlFieldValue('controlName', control.name);
+        setControlFieldValue('controlType', control.type);
+        setControlFieldValue('controlOrigin', control.origin);
+        setControlFieldValue('controlOwner', control.owner);
+        setControlFieldValue('controlFrequency', control.frequency);
+        setControlFieldValue('controlMode', control.mode);
+        setControlFieldValue('controlEffectiveness', control.effectiveness);
+        setControlFieldValue('controlStatus', control.status);
+        setControlFieldValue('controlDescription', control.description);
 
         document.getElementById('controlModalTitle').textContent = 'Modifier le Contrôle';
         updateSelectedRisksDisplay();
@@ -2597,9 +2604,8 @@ function applyPatch() {
           risks: [...selectedRisksForControl]
         };
 
-        if (!controlData.name || !controlData.type || !controlData.origin || !controlData.owner || !controlData.frequency ||
-            !controlData.mode || !controlData.effectiveness || !controlData.status) {
-          alert('Veuillez remplir tous les champs obligatoires (marqués d\'un *)');
+        if (!controlData.name) {
+          alert('Veuillez renseigner le nom du contrôle.');
           return;
         }
 
