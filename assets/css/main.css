@@ -2926,6 +2926,28 @@ tbody tr:hover {
     color: var(--muted-text-color);
 }
 
+.risk-list-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: #475569;
+    margin: 12px 0 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.risk-list-section-title:first-child {
+    margin-top: 0;
+}
+
+.risk-list-empty {
+    padding: 10px;
+    font-size: 0.86rem;
+    color: var(--muted-text-color);
+    border: 1px dashed #cbd5e1;
+    border-radius: 8px;
+    margin-bottom: 8px;
+}
+
 /* Amélioration des contrôles existants */
 .control-item {
     background: var(--surface-color);
