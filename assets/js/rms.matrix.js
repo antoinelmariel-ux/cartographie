@@ -491,11 +491,11 @@ function updateMatrixDescription(prob, impact, state = activeRiskEditState) {
 
     container.innerHTML = `
         <div class="matrix-description-header">${stateConfig.label}</div>
-        <div class="matrix-description-section">
+        <div class="matrix-description-section matrix-description-highlight">
             <h4>Probabilité ${prob} – ${probability.label}</h4>
             <p>${probability.text}</p>
         </div>
-        <div class="matrix-description-section">
+        <div class="matrix-description-section matrix-description-highlight">
             <h4>Impact ${impact} – ${impactInfo.label}</h4>
             <p>${impactInfo.text}</p>
         </div>
