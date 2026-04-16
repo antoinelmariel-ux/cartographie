@@ -2198,6 +2198,14 @@ tbody tr:hover {
     min-width: 220px;
 }
 
+
+.form-actions {
+    display: flex;
+    justify-content: flex-start;
+    gap: 12px;
+    padding: 0 30px 24px;
+}
+
 .modal-footer {
     background: var(--light-bg);
     padding: 20px 30px;
