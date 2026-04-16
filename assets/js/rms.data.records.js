@@ -1,7 +1,27 @@
 (function (global) {
     const defaultDataSets = {
         risks: [],
-        controls: [],
+        controls: [
+            { id: 1, name: 'Separation of medical and commercial roles (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'annuelle', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 2, name: 'Segregation of duties (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'annuelle', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 3, name: 'Collegial decision-making (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 4, name: 'Collegiality via committees/review bodies (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 5, name: 'Documentation of needs (generic)', type: 'a-priori', origin: 'interne', owner: 'Achats', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 6, name: 'Documentation of partner selection (generic)', type: 'a-priori', origin: 'interne', owner: 'Achats', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 7, name: 'Due diligence (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 8, name: 'Pricing structure / ceiling (generic)', type: 'a-priori', origin: 'interne', owner: 'Finance', frequency: 'annuelle', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 9, name: 'Competitive tendering (generic)', type: 'a-priori', origin: 'interne', owner: 'Achats', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 10, name: 'Level 2 prior authorisation (generic)', type: 'a-priori', origin: 'interne', owner: 'Management', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 11, name: 'Level 2 ex-post control (generic)', type: 'a-posteriori', origin: 'interne', owner: 'Contrôle interne', frequency: 'mensuelle', mode: 'picking', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 12, name: 'Reconciliation of invoice and purchase order (generic)', type: 'a-posteriori', origin: 'interne', owner: 'Finance', frequency: 'mensuelle', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 13, name: 'Proof of service rendered (generic)', type: 'a-posteriori', origin: 'interne', owner: 'Achats', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 14, name: 'Traceability of actions/flows (generic)', type: 'a-posteriori', origin: 'interne', owner: 'IT', frequency: 'quotidienne', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 15, name: 'Traceability of the validation workflow (generic)', type: 'a-posteriori', origin: 'interne', owner: 'IT', frequency: 'quotidienne', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 16, name: 'Contract with anti-corruption clause (generic)', type: 'a-priori', origin: 'interne', owner: 'Juridique', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'forte', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 17, name: 'Contract without anti-corruption clause (generic)', type: 'a-posteriori', origin: 'interne', owner: 'Juridique', frequency: 'ad-hoc', mode: 'picking', effectiveness: 'faible', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 18, name: 'Anti-corruption training (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'annuelle', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
+            { id: 19, name: 'Internal whistleblowing mechanism (generic)', type: 'a-posteriori', origin: 'interne', owner: 'Compliance', frequency: 'ad-hoc', mode: 'systematique', effectiveness: 'moyenne', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' }
+        ],
         actionPlans: [],
         interviews: [],
         history: [
