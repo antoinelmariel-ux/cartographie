@@ -1357,11 +1357,13 @@ function updateSelectedControlsDisplay() {
             <div class="control-assignment-card">
                 <div class="control-assignment-header">
                     <div class="control-assignment-title">#${id} - ${name.substring(0, 70)}${name.length > 70 ? '...' : ''}</div>
-                    <div>
+                    <div class="control-assignment-actions">
                         <label style="font-size:0.78rem;">
                             <input type="checkbox" ${assignment.transverse ? 'checked' : ''} onchange="toggleControlTransverse(${id})"> Transverse
                         </label>
-                        <span class="remove-control" onclick="removeControlFromSelection(${id})">×</span>
+                        <button type="button" class="control-assignment-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Retirer le contrôle #${id}">
+                            Retirer
+                        </button>
                     </div>
                 </div>
                 <div class="control-assignment-tags">${tags}</div>
