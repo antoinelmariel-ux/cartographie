@@ -46,6 +46,29 @@ function switchTab(tabNameOrEvent, maybeTabName) {
 }
 window.switchTab = switchTab;
 
+window.matrixEditMode = false;
+
+function toggleMatrixEditMode(forceState = null) {
+    const nextState = typeof forceState === 'boolean' ? forceState : !window.matrixEditMode;
+    window.matrixEditMode = nextState;
+    const button = document.getElementById('matrixEditToggleBtn');
+    if (button) {
+        button.classList.toggle('btn-primary', nextState);
+        button.classList.toggle('btn-secondary', !nextState);
+        button.textContent = nextState ? 'Édition active' : 'Édition';
+    }
+    document.body.classList.toggle('matrix-edit-mode', nextState);
+    if (window.rms) {
+        rms.renderRiskPoints();
+    }
+    if (typeof showNotification === 'function') {
+        showNotification('info', nextState
+            ? 'Mode édition activé : faites glisser un risque dans la matrice brute.'
+            : 'Mode édition désactivé.');
+    }
+}
+window.toggleMatrixEditMode = toggleMatrixEditMode;
+
 function syncRiskFilterWidgets(filterKey, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
     if (!normalizedKey) {
@@ -261,6 +284,7 @@ window.searchActionPlans = searchActionPlans;
 
 var lastRiskData = null;
 var selectedControlsForRisk = [];
+var controlAssignmentsForRisk = {};
 var controlFilterQueryForRisk = '';
 var currentEditingRiskId = null;
 var selectedActionPlansForRisk = [];
@@ -271,6 +295,106 @@ var currentEditingActionPlanId = null;
 var actionPlanFilterQueryForRisk = '';
 var controlCreationContext = null;
 var actionPlanCreationContext = null;
+var riskBenefitsState = {
+    undue: [],
+    expected: []
+};
+
+function getSelectedValues(selectId) {
+    const element = document.getElementById(selectId);
+    if (!element) return [];
+    return Array.from(element.selectedOptions || []).map(option => option.value).filter(Boolean);
+}
+
+function setSelectedValues(selectId, values) {
+    const element = document.getElementById(selectId);
+    if (!element) return;
+    const selectedSet = new Set(Array.isArray(values) ? values : []);
+    Array.from(element.options).forEach(option => {
+        option.selected = selectedSet.has(option.value);
+    });
+}
+
+function renderRiskChipList(kind) {
+    const container = document.getElementById(kind === 'undue' ? 'undueBenefitsChips' : 'expectedBenefitsChips');
+    if (!container) return;
+    const chips = Array.isArray(riskBenefitsState[kind]) ? riskBenefitsState[kind] : [];
+    container.innerHTML = chips.map((chip, index) => `
+        <span class="risk-chip-item">
+            ${chip}
+            <button type="button" class="risk-chip-remove" onclick="removeRiskChip('${kind}', ${index})" aria-label="Supprimer ${chip}">×</button>
+        </span>
+    `).join('');
+    if (kind === 'undue') {
+        updateSelectedControlsDisplay();
+    }
+}
+
+function setRiskBenefitChips(kind, values) {
+    const list = Array.isArray(values) ? values : [];
+    const normalized = [];
+    const seen = new Set();
+    list.forEach(item => {
+        const value = typeof item === 'string' ? item.trim() : (item != null ? String(item).trim() : '');
+        if (!value) return;
+        const key = value.toLowerCase();
+        if (seen.has(key)) return;
+        seen.add(key);
+        normalized.push(value);
+    });
+    riskBenefitsState[kind] = normalized;
+    renderRiskChipList(kind);
+}
+window.setRiskBenefitChips = setRiskBenefitChips;
+
+function addRiskChip(kind) {
+    const inputId = kind === 'undue' ? 'undueBenefitsInput' : 'expectedBenefitsInput';
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const value = input.value.trim();
+    if (!value) return;
+    const existing = Array.isArray(riskBenefitsState[kind]) ? riskBenefitsState[kind] : [];
+    if (!existing.some(item => item.toLowerCase() === value.toLowerCase())) {
+        existing.push(value);
+        riskBenefitsState[kind] = existing;
+    }
+    input.value = '';
+    renderRiskChipList(kind);
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+}
+window.addRiskChip = addRiskChip;
+
+function removeRiskChip(kind, index) {
+    const existing = Array.isArray(riskBenefitsState[kind]) ? riskBenefitsState[kind] : [];
+    existing.splice(index, 1);
+    riskBenefitsState[kind] = existing;
+    Object.values(controlAssignmentsForRisk).forEach(assignment => {
+        if (!assignment || !Array.isArray(assignment.avantagesIndus)) return;
+        assignment.avantagesIndus = assignment.avantagesIndus.filter(label => existing.includes(label));
+    });
+    renderRiskChipList(kind);
+    updateSelectedControlsDisplay();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+}
+window.removeRiskChip = removeRiskChip;
+
+function setRiskControlAssignments(assignments) {
+    const next = {};
+    (Array.isArray(assignments) ? assignments : []).forEach(entry => {
+        if (!entry || entry.controlId == null) return;
+        next[String(entry.controlId)] = {
+            transverse: !!entry.transverse,
+            avantagesIndus: Array.isArray(entry.avantagesIndus) ? [...entry.avantagesIndus] : []
+        };
+    });
+    controlAssignmentsForRisk = next;
+    updateSelectedControlsDisplay();
+}
+window.setRiskControlAssignments = setRiskControlAssignments;
 
 const MODAL_Z_INDEX_STEP = 5;
 
@@ -539,10 +663,10 @@ function addNewRisk() {
 
         const statutSelect = document.getElementById('statut');
         if (lastRiskData) {
-            document.getElementById('processus').value = lastRiskData.processus || '';
+            setSelectedValues('processus', lastRiskData.processusAssocies || (lastRiskData.processus ? [lastRiskData.processus] : []));
             rms.updateSousProcessusOptions();
-            document.getElementById('sousProcessus').value = lastRiskData.sousProcessus || '';
-            document.getElementById('typeCorruption').value = lastRiskData.typeCorruption || '';
+            setSelectedValues('sousProcessus', lastRiskData.sousProcessusAssocies || (lastRiskData.sousProcessus ? [lastRiskData.sousProcessus] : []));
+            setSelectedValues('typeCorruption', lastRiskData.typesCorruption || (lastRiskData.typeCorruption ? [lastRiskData.typeCorruption] : []));
 
             const tiersSelect = document.getElementById('tiers');
             Array.from(tiersSelect.options).forEach(opt => {
@@ -571,11 +695,17 @@ function addNewRisk() {
                 impactNetInput.value = lastRiskData.impactNet || impactNetInput.value || 1;
             }
             selectedControlsForRisk = [...(lastRiskData.controls || [])];
+            setRiskControlAssignments(lastRiskData.controlAssignments || []);
+            setRiskBenefitChips('undue', lastRiskData.avantagesIndus || []);
+            setRiskBenefitChips('expected', lastRiskData.avantagesAttendus || []);
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
             setAggravatingFactorsSelection(lastRiskData.aggravatingFactors || null);
         } else {
             rms.updateSousProcessusOptions();
             selectedControlsForRisk = [];
+            setRiskControlAssignments([]);
+            setRiskBenefitChips('undue', []);
+            setRiskBenefitChips('expected', []);
             selectedActionPlansForRisk = [];
             setAggravatingFactorsSelection(null);
             setRiskCountriesSelection([]);
@@ -654,13 +784,35 @@ function saveRisk() {
 
     const countriesSelect = document.getElementById('riskCountries');
 
+    const processusAssocies = getSelectedValues('processus');
+    const sousProcessusAssocies = getSelectedValues('sousProcessus');
+    const typesCorruption = getSelectedValues('typeCorruption');
+
+    const controlAssignments = selectedControlsForRisk.map(controlId => {
+        const key = String(controlId);
+        const assignment = controlAssignmentsForRisk[key] || {};
+        const selectedUndueBenefits = Array.isArray(assignment.avantagesIndus)
+            ? assignment.avantagesIndus.filter(label => (riskBenefitsState.undue || []).includes(label))
+            : [];
+        return {
+            controlId,
+            transverse: !!assignment.transverse,
+            avantagesIndus: selectedUndueBenefits
+        };
+    });
+
     const formData = {
-        processus: document.getElementById('processus').value,
-        sousProcessus: document.getElementById('sousProcessus').value,
+        processus: processusAssocies[0] || '',
+        processusAssocies,
+        sousProcessus: sousProcessusAssocies[0] || '',
+        sousProcessusAssocies,
         description: document.getElementById('description').value,
-        typeCorruption: document.getElementById('typeCorruption').value,
+        typeCorruption: typesCorruption[0] || '',
+        typesCorruption,
         statut: document.getElementById('statut').value,
         tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
+        avantagesIndus: [...(riskBenefitsState.undue || [])],
+        avantagesAttendus: [...(riskBenefitsState.expected || [])],
         paysExposes: countriesSelect
             ? Array.from(countriesSelect.selectedOptions).map(o => o.value)
             : [],
@@ -672,6 +824,7 @@ function saveRisk() {
         aggravatingFactors,
         aggravatingCoefficient,
         controls: [...selectedControlsForRisk],
+        controlAssignments,
         actionPlans: [...selectedActionPlansForRisk]
     };
 
@@ -679,7 +832,7 @@ function saveRisk() {
     formData.impactPost = formData.impactNet;
 
     // Validate form
-    if (!formData.processus || !formData.description || !formData.typeCorruption || !formData.statut) {
+    if (!formData.processusAssocies.length || !formData.description || !formData.typesCorruption.length || !formData.statut) {
         showNotification('error', 'Veuillez remplir tous les champs obligatoires');
         return;
     }
@@ -761,6 +914,7 @@ function saveRisk() {
         tiers: [...formData.tiers],
         paysExposes: [...formData.paysExposes],
         controls: [...formData.controls],
+        controlAssignments: [...formData.controlAssignments],
         actionPlans: [...formData.actionPlans],
         aggravatingFactors: typeof normalizeAggravatingFactors === 'function'
             ? normalizeAggravatingFactors(formData.aggravatingFactors)
@@ -772,6 +926,30 @@ function saveRisk() {
     }
 }
 window.saveRisk = saveRisk;
+
+function applyMatrixRiskMove(riskId, probability, impact) {
+    if (!rms || !window.matrixEditMode) return;
+    const risk = Array.isArray(rms.risks) ? rms.risks.find(item => idsEqual(item.id, riskId)) : null;
+    if (!risk) return;
+
+    const nextProb = Math.min(4, Math.max(1, parseInt(probability, 10) || 1));
+    const nextImpact = Math.min(4, Math.max(1, parseInt(impact, 10) || 1));
+    risk.probBrut = nextProb;
+    risk.impactBrut = nextImpact;
+
+    const normalizedRisk = typeof rms.normalizeRisk === 'function'
+        ? rms.normalizeRisk(risk)
+        : risk;
+    const index = rms.risks.findIndex(item => idsEqual(item.id, riskId));
+    if (index > -1) {
+        rms.risks[index] = normalizedRisk;
+    }
+
+    rms.saveData();
+    rms.renderRiskPoints();
+    rms.updateRiskDetailsList();
+}
+window.applyMatrixRiskMove = applyMatrixRiskMove;
 
 function openControlSelector() {
     controlFilterQueryForRisk = '';
@@ -850,10 +1028,15 @@ window.closeControlSelector = closeControlSelector;
 
 function toggleControlSelection(controlId) {
     const index = selectedControlsForRisk.indexOf(controlId);
+    const key = String(controlId);
     if (index > -1) {
         selectedControlsForRisk.splice(index, 1);
+        delete controlAssignmentsForRisk[key];
     } else {
         selectedControlsForRisk.push(controlId);
+        if (!controlAssignmentsForRisk[key]) {
+            controlAssignmentsForRisk[key] = { transverse: true, avantagesIndus: [] };
+        }
     }
     if (rms && typeof rms.markUnsavedChange === 'function') {
         rms.markUnsavedChange('riskForm');
@@ -874,27 +1057,81 @@ function updateSelectedControlsDisplay() {
         container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle sélectionné</div>';
         return;
     }
-    container.innerHTML = selectedControlsForRisk.map(id => {
+    const undueBenefits = Array.isArray(riskBenefitsState.undue) ? riskBenefitsState.undue : [];
+    container.innerHTML = `<div class="controls-assignment-list">${selectedControlsForRisk.map(id => {
         const ctrl = rms.controls.find(c => c.id === id);
         if (!ctrl) return '';
         const name = ctrl.name || 'Sans nom';
+        const key = String(id);
+        if (!controlAssignmentsForRisk[key]) {
+            controlAssignmentsForRisk[key] = { transverse: true, avantagesIndus: [] };
+        }
+        const assignment = controlAssignmentsForRisk[key];
+        const tags = undueBenefits.length
+            ? undueBenefits.map(label => {
+                const isActive = assignment.avantagesIndus.includes(label);
+                return `<button type="button" class="control-assignment-chip ${isActive ? 'active' : ''}" onclick="toggleControlAssignmentBenefit(${id}, '${encodeURIComponent(label)}')">${label}</button>`;
+            }).join('')
+            : '<span style="font-size:0.78rem;color:#6b7280;">Ajoutez des avantages indus pour les relier aux contrôles.</span>';
         return `
-            <div class="selected-control-item">
-              #${id} - ${name.substring(0, 50)}${name.length > 50 ? '...' : ''}
-              <span class="remove-control" onclick="removeControlFromSelection(${id})">×</span>
+            <div class="control-assignment-card">
+                <div class="control-assignment-header">
+                    <div class="control-assignment-title">#${id} - ${name.substring(0, 70)}${name.length > 70 ? '...' : ''}</div>
+                    <div>
+                        <label style="font-size:0.78rem;">
+                            <input type="checkbox" ${assignment.transverse ? 'checked' : ''} onchange="toggleControlTransverse(${id})"> Transverse
+                        </label>
+                        <span class="remove-control" onclick="removeControlFromSelection(${id})">×</span>
+                    </div>
+                </div>
+                <div class="control-assignment-tags">${tags}</div>
             </div>`;
-    }).join('');
+    }).join('')}</div>`;
 }
 window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
 
 function removeControlFromSelection(controlId) {
     selectedControlsForRisk = selectedControlsForRisk.filter(id => id !== controlId);
+    delete controlAssignmentsForRisk[String(controlId)];
     updateSelectedControlsDisplay();
     if (rms && typeof rms.markUnsavedChange === 'function') {
         rms.markUnsavedChange('riskForm');
     }
 }
 window.removeControlFromSelection = removeControlFromSelection;
+
+function toggleControlTransverse(controlId) {
+    const key = String(controlId);
+    if (!controlAssignmentsForRisk[key]) {
+        controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
+    }
+    controlAssignmentsForRisk[key].transverse = !controlAssignmentsForRisk[key].transverse;
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+}
+window.toggleControlTransverse = toggleControlTransverse;
+
+function toggleControlAssignmentBenefit(controlId, encodedLabel) {
+    const label = decodeURIComponent(encodedLabel);
+    const key = String(controlId);
+    if (!controlAssignmentsForRisk[key]) {
+        controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
+    }
+    const current = controlAssignmentsForRisk[key].avantagesIndus || [];
+    const index = current.indexOf(label);
+    if (index >= 0) {
+        current.splice(index, 1);
+    } else {
+        current.push(label);
+    }
+    controlAssignmentsForRisk[key].avantagesIndus = current;
+    updateSelectedControlsDisplay();
+    if (rms && typeof rms.markUnsavedChange === 'function') {
+        rms.markUnsavedChange('riskForm');
+    }
+}
+window.toggleControlAssignmentBenefit = toggleControlAssignmentBenefit;
 
 function updateSelectedActionPlansDisplay() {
     const container = document.getElementById('riskActionPlans');
@@ -1410,6 +1647,17 @@ function bindEvents() {
             }
         });
     }
+
+    ['undueBenefitsInput', 'expectedBenefitsInput'].forEach((inputId) => {
+        const input = document.getElementById(inputId);
+        if (!input) return;
+        input.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                event.preventDefault();
+                addRiskChip(inputId === 'undueBenefitsInput' ? 'undue' : 'expected');
+            }
+        });
+    });
 
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.control-action-btn.edit');
