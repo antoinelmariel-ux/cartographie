@@ -670,21 +670,19 @@ class RiskManagementSystem {
             'Spain',
             'UK',
             'Mexico',
-            'EuroPasma',
+            'EuroPlasma',
             'LFB USA',
             'HemaBiologics',
             'Distributors'
         ];
 
         const targetColumns = [
-            { key: 'hq', label: 'HQ', countries: ['HQ'] },
+            { key: 'hq', label: 'Entités transverses', countries: ['HQ', 'LFB USA', 'EuroPlasma'] },
             {
                 key: 'pharma-affiliates-jv-plus-50',
                 label: 'Pharma Affiliates / JV > 50%',
                 countries: ['France', 'Benelux', 'Germany', 'Spain', 'UK', 'Mexico']
             },
-            { key: 'europasma', label: 'EuroPasma', countries: ['EuroPasma'] },
-            { key: 'lfb-usa', label: 'LFB USA', countries: ['LFB USA'] },
             {
                 key: 'distributors-jv-minus-50',
                 label: 'Distributors / JV < 50%',
@@ -713,7 +711,9 @@ class RiskManagementSystem {
             this.config.countries
         );
         const existing = Array.isArray(this.config?.countryColumns) ? this.config.countryColumns : [];
-        const shouldMigrateColumns = !existing.length || looksLikeLegacyCountryModel;
+        const hasDeprecatedSplitColumns = existing.some(column => ['lfb-usa', 'europasma'].includes(column?.key));
+        const hasDeprecatedHqLabel = existing.some(column => column?.key === 'hq' && column?.label === 'HQ');
+        const shouldMigrateColumns = !existing.length || looksLikeLegacyCountryModel || hasDeprecatedSplitColumns || hasDeprecatedHqLabel;
         if (shouldMigrateColumns) {
             this.config.countryColumns = normalizedTargets;
             changed = true;
