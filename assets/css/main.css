@@ -2769,6 +2769,82 @@ tbody tr:hover {
     color: #1d4ed8;
 }
 
+.benefit-first-assignment {
+    margin-top: 12px;
+    margin-bottom: 4px;
+}
+
+.benefit-first-assignment-title {
+    font-size: 0.82rem;
+    color: #475569;
+    margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.benefit-first-assignment-grid {
+    display: grid;
+    gap: 8px;
+}
+
+.benefit-first-card {
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    align-items: center;
+    background: #f8fbff;
+}
+
+.benefit-first-label {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.benefit-first-meta {
+    margin-top: 4px;
+    color: #64748b;
+    font-size: 0.78rem;
+}
+
+.benefit-first-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.benefit-first-reco {
+    font-size: 0.76rem;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.control-benefit-focus {
+    margin-top: 8px;
+}
+
+.control-benefit-focus-card {
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    padding: 10px;
+    background: #eff6ff;
+    font-size: 0.86rem;
+}
+
+.control-benefit-focus-actions {
+    margin-top: 8px;
+    display: flex;
+    gap: 8px;
+}
+
+.risk-item-hint {
+    margin-top: 4px;
+    font-size: 0.78rem;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
 .matrix-edit-mode .risk-point {
     cursor: grab;
 }
