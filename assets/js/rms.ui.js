@@ -1250,7 +1250,11 @@ function renderControlSelectionList() {
         ? availableControls.filter(ctrl => !recommendedSet.has(ctrl.id))
         : availableControls;
     const renderControlItem = ctrl => {
-        const isSelected = selectedControlsForRisk.includes(ctrl.id);
+        const key = String(ctrl.id);
+        const assignment = controlAssignmentsForRisk[key] || {};
+        const isSelected = focusLabel
+            ? (assignment.avantagesIndus || []).includes(focusLabel)
+            : selectedControlsForRisk.includes(ctrl.id);
         const typeKey = ctrl?.type != null ? String(ctrl.type).toLowerCase() : '';
         const typeLabel = typeKey ? (typeMap[typeKey] || ctrl.type || '') : '';
         const originKey = ctrl?.origin != null ? String(ctrl.origin).toLowerCase() : '';
@@ -1302,21 +1306,38 @@ window.closeControlSelector = closeControlSelector;
 function toggleControlSelection(controlId) {
     const index = selectedControlsForRisk.indexOf(controlId);
     const key = String(controlId);
-    if (index > -1) {
+    const focusedBenefit = currentBenefitFocusForControlSelector;
+
+    if (focusedBenefit) {
+        if (index === -1) {
+            selectedControlsForRisk.push(controlId);
+        }
+
+        if (!controlAssignmentsForRisk[key]) {
+            controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
+        }
+
+        const entry = controlAssignmentsForRisk[key];
+        entry.avantagesIndus = Array.isArray(entry.avantagesIndus) ? entry.avantagesIndus : [];
+        const hasFocusedBenefit = entry.avantagesIndus.includes(focusedBenefit);
+
+        if (hasFocusedBenefit) {
+            entry.avantagesIndus = entry.avantagesIndus.filter(label => label !== focusedBenefit);
+            if (!entry.transverse && entry.avantagesIndus.length === 0) {
+                selectedControlsForRisk = selectedControlsForRisk.filter(id => id !== controlId);
+                delete controlAssignmentsForRisk[key];
+            }
+        } else {
+            entry.avantagesIndus.push(focusedBenefit);
+            entry.transverse = false;
+        }
+    } else if (index > -1) {
         selectedControlsForRisk.splice(index, 1);
         delete controlAssignmentsForRisk[key];
     } else {
         selectedControlsForRisk.push(controlId);
         if (!controlAssignmentsForRisk[key]) {
             controlAssignmentsForRisk[key] = { transverse: true, avantagesIndus: [] };
-        }
-        if (currentBenefitFocusForControlSelector) {
-            const entry = controlAssignmentsForRisk[key];
-            entry.transverse = false;
-            entry.avantagesIndus = Array.isArray(entry.avantagesIndus) ? entry.avantagesIndus : [];
-            if (!entry.avantagesIndus.includes(currentBenefitFocusForControlSelector)) {
-                entry.avantagesIndus.push(currentBenefitFocusForControlSelector);
-            }
         }
     }
     updateSelectedControlsDisplay();
