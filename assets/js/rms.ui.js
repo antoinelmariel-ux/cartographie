@@ -529,7 +529,7 @@ function getAssignedControlNamesForBenefit(label) {
     if (!label || !rms) return [];
     const linked = selectedControlsForRisk.map(controlId => {
         const assignment = controlAssignmentsForRisk[String(controlId)] || {};
-        if (!(assignment.avantagesIndus || []).includes(label) && !assignment.transverse) {
+        if (!(assignment.avantagesIndus || []).includes(label)) {
             return null;
         }
         const control = rms.controls.find(ctrl => ctrl.id === controlId);
@@ -1338,7 +1338,7 @@ function updateSelectedControlsDisplay() {
         return;
     }
     const undueBenefits = Array.isArray(riskBenefitsState.undue) ? riskBenefitsState.undue : [];
-    container.innerHTML = `<div class="controls-assignment-list">${selectedControlsForRisk.map(id => {
+    const cardsHtml = selectedControlsForRisk.map(id => {
         const ctrl = rms.controls.find(c => c.id === id);
         if (!ctrl) return '';
         const name = ctrl.name || 'Sans nom';
@@ -1368,7 +1368,21 @@ function updateSelectedControlsDisplay() {
                 </div>
                 <div class="control-assignment-tags">${tags}</div>
             </div>`;
-    }).join('')}</div>`;
+    }).join('');
+    const transverseControls = selectedControlsForRisk.map(id => {
+        const assignment = controlAssignmentsForRisk[String(id)];
+        if (!assignment?.transverse) return null;
+        const ctrl = rms.controls.find(c => c.id === id);
+        if (!ctrl) return null;
+        return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Sans nom'}</span>`;
+    }).filter(Boolean);
+    const transverseSection = transverseControls.length
+        ? `<div class="transverse-controls-section">
+                <div class="transverse-controls-title">Contrôles transverses</div>
+                <div class="transverse-controls-list">${transverseControls.join('')}</div>
+           </div>`
+        : '';
+    container.innerHTML = `<div class="controls-assignment-list">${cardsHtml}</div>${transverseSection}`;
     renderBenefitFirstAssignment();
 }
 window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
@@ -1389,6 +1403,7 @@ function toggleControlTransverse(controlId) {
         controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
     }
     controlAssignmentsForRisk[key].transverse = !controlAssignmentsForRisk[key].transverse;
+    updateSelectedControlsDisplay();
     if (rms && typeof rms.markUnsavedChange === 'function') {
         rms.markUnsavedChange('riskForm');
     }
