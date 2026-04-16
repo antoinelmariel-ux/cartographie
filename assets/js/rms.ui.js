@@ -345,7 +345,7 @@ function normalizeBenefitForMatching(value) {
         .join(' ');
 }
 
-function buildUndueBenefitsDictionary() {
+function buildBenefitsDictionary(kind) {
     const dictionary = new Map();
     const addValue = (candidate) => {
         const label = typeof candidate === 'string' ? candidate.trim() : (candidate != null ? String(candidate).trim() : '');
@@ -355,21 +355,24 @@ function buildUndueBenefitsDictionary() {
         dictionary.set(normalized, label);
     };
 
-    (riskBenefitsState.undue || []).forEach(addValue);
+    const stateKey = kind === 'expected' ? 'expected' : 'undue';
+    const riskKey = kind === 'expected' ? 'avantagesAttendus' : 'avantagesIndus';
+
+    (riskBenefitsState[stateKey] || []).forEach(addValue);
     (rms?.risks || []).forEach(risk => {
-        (risk?.avantagesIndus || []).forEach(addValue);
+        (risk?.[riskKey] || []).forEach(addValue);
     });
 
     return dictionary;
 }
 
-function findClosestExistingUndueBenefitLabel(value) {
+function findClosestExistingBenefitLabel(value, kind) {
     const source = typeof value === 'string' ? value.trim() : '';
     if (!source) return '';
     const normalized = normalizeBenefitForMatching(source);
     if (!normalized) return '';
     const tokens = new Set(normalized.split(' ').filter(Boolean));
-    const dictionary = buildUndueBenefitsDictionary();
+    const dictionary = buildBenefitsDictionary(kind);
 
     if (dictionary.has(normalized)) {
         return dictionary.get(normalized) || '';
@@ -391,10 +394,10 @@ function findClosestExistingUndueBenefitLabel(value) {
     return '';
 }
 
-function refreshUndueBenefitsAutocomplete() {
-    const datalist = document.getElementById('undueBenefitsSuggestions');
+function refreshBenefitsAutocomplete(kind) {
+    const datalist = document.getElementById(kind === 'expected' ? 'expectedBenefitsSuggestions' : 'undueBenefitsSuggestions');
     if (!datalist) return;
-    const dictionary = buildUndueBenefitsDictionary();
+    const dictionary = buildBenefitsDictionary(kind);
     const options = Array.from(dictionary.values()).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
     datalist.innerHTML = options
         .map(label => `<option value="${label.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"></option>`)
@@ -426,8 +429,10 @@ function renderRiskChipList(kind) {
             <button type="button" class="risk-chip-remove" onclick="removeRiskChip('${kind}', ${index})" aria-label="Supprimer ${chip}">×</button>
         </span>
     `).join('');
+    if (kind === 'undue' || kind === 'expected') {
+        refreshBenefitsAutocomplete(kind);
+    }
     if (kind === 'undue') {
-        refreshUndueBenefitsAutocomplete();
         renderBenefitFirstAssignment();
         updateSelectedControlsDisplay();
     }
@@ -456,9 +461,7 @@ function addRiskChip(kind) {
     if (!input) return;
     const value = input.value.trim();
     if (!value) return;
-    const resolvedValue = kind === 'undue'
-        ? (findClosestExistingUndueBenefitLabel(value) || value)
-        : value;
+    const resolvedValue = findClosestExistingBenefitLabel(value, kind) || value;
     const existing = Array.isArray(riskBenefitsState[kind]) ? riskBenefitsState[kind] : [];
     if (!existing.some(item => normalizeBenefitForMatching(item) === normalizeBenefitForMatching(resolvedValue))) {
         existing.push(resolvedValue);
@@ -1895,7 +1898,16 @@ function bindEvents() {
         if (inputId === 'undueBenefitsInput') {
             input.addEventListener('blur', () => {
                 if (!input.value.trim()) return;
-                const existingLabel = findClosestExistingUndueBenefitLabel(input.value);
+                const existingLabel = findClosestExistingBenefitLabel(input.value, 'undue');
+                if (existingLabel) {
+                    input.value = existingLabel;
+                }
+            });
+        }
+        if (inputId === 'expectedBenefitsInput') {
+            input.addEventListener('blur', () => {
+                if (!input.value.trim()) return;
+                const existingLabel = findClosestExistingBenefitLabel(input.value, 'expected');
                 if (existingLabel) {
                     input.value = existingLabel;
                 }
@@ -1909,7 +1921,8 @@ function bindEvents() {
         });
     });
 
-    refreshUndueBenefitsAutocomplete();
+    refreshBenefitsAutocomplete('undue');
+    refreshBenefitsAutocomplete('expected');
 
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.control-action-btn.edit');
