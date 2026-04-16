@@ -1245,6 +1245,26 @@ body.feedback-mode-paused .feedback-panel * {
     margin-bottom: 6px;
 }
 
+.matrix-description-section.matrix-description-highlight {
+    background: linear-gradient(135deg, rgba(236, 240, 241, 0.55), rgba(236, 240, 241, 0.9));
+    border: 1px solid rgba(255, 255, 255, 0.75);
+    border-radius: calc(var(--border-radius) - 4px);
+    padding: 14px 16px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.6);
+}
+
+.matrix-description-section.matrix-description-highlight h4 {
+    margin: 0 0 8px;
+    font-size: 0.98em;
+}
+
+.matrix-description-section.matrix-description-highlight p {
+    margin: 0;
+    color: var(--text-color);
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
 .matrix-description-empty {
     color: var(--muted-text-color);
     font-style: italic;
