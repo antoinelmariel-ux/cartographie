@@ -7582,7 +7582,16 @@ class RiskManagementSystem {
                     <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
                         <div class="risk-item-header">
                             <span class="risk-item-title">${risk.description}</span>
-                            <span class="risk-item-score ${scoreClass}">${formattedScore}</span>
+                            <div class="risk-item-actions">
+                                <span class="risk-item-score ${scoreClass}">${formattedScore}</span>
+                                <button
+                                    type="button"
+                                    class="risk-item-edit-btn"
+                                    title="Éditer le risque"
+                                    aria-label="Éditer le risque ${risk.description}"
+                                    onclick="event.stopPropagation(); rms.editRisk(${JSON.stringify(risk.id)})"
+                                >✏️</button>
+                            </div>
                         </div>
                         <div class="risk-item-meta">
                             ${metaDetails}
