@@ -1246,7 +1246,6 @@ body.feedback-mode-paused .feedback-panel * {
 }
 
 .matrix-description-section.matrix-description-highlight {
-    background: linear-gradient(135deg, rgba(236, 240, 241, 0.55), rgba(236, 240, 241, 0.9));
     border: 1px solid rgba(255, 255, 255, 0.75);
     border-radius: calc(var(--border-radius) - 4px);
     padding: 14px 16px;
