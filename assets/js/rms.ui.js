@@ -554,7 +554,6 @@ function renderBenefitFirstAssignment() {
         <div class="benefit-first-assignment-grid">
             ${undueBenefits.map(label => {
                 const linkedControls = getAssignedControlsForBenefit(label);
-                const recommendedCount = getRecommendedControlIdsForBenefit(label).length;
                 const summary = linkedControls.length
                     ? linkedControls.slice(0, 2).map(item => item.name).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
                     : 'Aucun contrôle lié';
@@ -571,7 +570,6 @@ function renderBenefitFirstAssignment() {
                             ${linkedHtml}
                         </div>
                         <div class="benefit-first-actions">
-                            <span class="benefit-first-reco">${recommendedCount} recommandé${recommendedCount > 1 ? 's' : ''}</span>
                             <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Ajouter un contrôle</button>
                         </div>
                     </div>
