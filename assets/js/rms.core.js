@@ -876,6 +876,53 @@ class RiskManagementSystem {
         }
 
         const normalized = { ...risk };
+        const normalizeMultiValues = (values) => {
+            const source = Array.isArray(values) ? values : [];
+            const seen = new Set();
+            return source.reduce((acc, item) => {
+                const value = typeof item === 'string' ? item.trim() : (item != null ? String(item).trim() : '');
+                if (!value) return acc;
+                const key = value.toLowerCase();
+                if (seen.has(key)) return acc;
+                seen.add(key);
+                acc.push(value);
+                return acc;
+            }, []);
+        };
+
+        const processListSource = Array.isArray(risk?.processusAssocies)
+            ? risk.processusAssocies
+            : (risk?.processus ? [risk.processus] : []);
+        const subProcessListSource = Array.isArray(risk?.sousProcessusAssocies)
+            ? risk.sousProcessusAssocies
+            : (risk?.sousProcessus ? [risk.sousProcessus] : []);
+        const corruptionTypesSource = Array.isArray(risk?.typesCorruption)
+            ? risk.typesCorruption
+            : (risk?.typeCorruption ? [risk.typeCorruption] : []);
+
+        normalized.processusAssocies = normalizeMultiValues(processListSource);
+        normalized.sousProcessusAssocies = normalizeMultiValues(subProcessListSource);
+        normalized.typesCorruption = normalizeMultiValues(corruptionTypesSource);
+        normalized.processus = normalized.processusAssocies[0] || '';
+        normalized.sousProcessus = normalized.sousProcessusAssocies[0] || '';
+        normalized.typeCorruption = normalized.typesCorruption[0] || '';
+        normalized.avantagesIndus = normalizeMultiValues(risk?.avantagesIndus);
+        normalized.avantagesAttendus = normalizeMultiValues(risk?.avantagesAttendus);
+
+        const controlAssignments = Array.isArray(risk?.controlAssignments) ? risk.controlAssignments : [];
+        normalized.controlAssignments = controlAssignments
+            .map(entry => {
+                const controlId = entry?.controlId != null ? entry.controlId : entry?.id;
+                if (controlId == null) {
+                    return null;
+                }
+                return {
+                    controlId,
+                    transverse: !!entry?.transverse,
+                    avantagesIndus: normalizeMultiValues(entry?.avantagesIndus)
+                };
+            })
+            .filter(Boolean);
 
         if (typeof normalizeAggravatingFactors === 'function') {
             normalized.aggravatingFactors = normalizeAggravatingFactors(risk.aggravatingFactors);
@@ -6335,26 +6382,25 @@ class RiskManagementSystem {
         const processSelect = document.getElementById('processus');
         const sousSelect = document.getElementById('sousProcessus');
         if (!processSelect || !sousSelect) return;
-        const current = sousSelect.value;
-        const proc = processSelect.value;
+        const currentValues = Array.from(sousSelect.selectedOptions || []).map(option => option.value);
+        const selectedProcesses = Array.from(processSelect.selectedOptions || []).map(option => option.value);
+        const selectedSet = new Set(selectedProcesses);
         sousSelect.innerHTML = '';
-        const placeholder = document.createElement('option');
-        placeholder.value = '';
-        placeholder.textContent = 'Sélectionner...';
-        sousSelect.appendChild(placeholder);
-        if (proc && this.config.subProcesses[proc]) {
-            this.config.subProcesses[proc].forEach(sp => {
+        const seenSubs = new Set();
+        selectedSet.forEach(proc => {
+            const items = Array.isArray(this.config?.subProcesses?.[proc]) ? this.config.subProcesses[proc] : [];
+            items.forEach(sp => {
+                if (!sp || !sp.value || seenSubs.has(sp.value)) {
+                    return;
+                }
+                seenSubs.add(sp.value);
                 const opt = document.createElement('option');
                 opt.value = sp.value;
                 opt.textContent = sp.label;
+                opt.selected = currentValues.includes(sp.value);
                 sousSelect.appendChild(opt);
             });
-        }
-        if (Array.from(sousSelect.options).some(o => o.value === current)) {
-            sousSelect.value = current;
-        } else {
-            sousSelect.value = '';
-        }
+        });
     }
 
     getInterviewFilePath(fileName) {
@@ -7115,6 +7161,28 @@ class RiskManagementSystem {
             if (!grid) return;
 
             grid.querySelectorAll('.risk-point').forEach(p => p.remove());
+            if (viewKey === 'brut') {
+                grid.querySelectorAll('.matrix-cell').forEach(cell => {
+                    cell.ondragover = null;
+                    cell.ondrop = null;
+                    if (!window.matrixEditMode) {
+                        return;
+                    }
+                    cell.ondragover = (event) => {
+                        event.preventDefault();
+                    };
+                    cell.ondrop = (event) => {
+                        event.preventDefault();
+                        const riskId = event.dataTransfer?.getData('text/risk-id');
+                        if (!riskId) return;
+                        const probability = parseInt(cell.dataset.probability, 10);
+                        const impact = parseInt(cell.dataset.impact, 10);
+                        if (typeof window.applyMatrixRiskMove === 'function') {
+                            window.applyMatrixRiskMove(riskId, probability, impact);
+                        }
+                    };
+                });
+            }
 
             const cellCounts = {};
 
@@ -7247,6 +7315,12 @@ class RiskManagementSystem {
                 point.textContent = viewSymbols[viewKey] || '';
                 point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
                 point.onclick = () => this.selectRisk(risk.id);
+                if (viewKey === 'brut' && window.matrixEditMode) {
+                    point.draggable = true;
+                    point.addEventListener('dragstart', (event) => {
+                        event.dataTransfer?.setData('text/risk-id', String(risk.id));
+                    });
+                }
                 grid.appendChild(point);
 
                 const diameter = point.offsetWidth;
@@ -7276,14 +7350,22 @@ class RiskManagementSystem {
 
         return sourceRisks.filter(risk => {
             if (processFilter) {
-                const riskProcess = risk?.processus != null ? String(risk.processus).toLowerCase() : '';
-                if (!riskProcess.includes(processFilter)) {
+                const processValues = Array.isArray(risk?.processusAssocies) && risk.processusAssocies.length
+                    ? risk.processusAssocies
+                    : [risk?.processus];
+                const hasProcess = processValues.some(value => String(value || '').toLowerCase().includes(processFilter));
+                if (!hasProcess) {
                     return false;
                 }
             }
 
-            if (type && risk?.typeCorruption !== type) {
-                return false;
+            if (type) {
+                const typeValues = Array.isArray(risk?.typesCorruption) && risk.typesCorruption.length
+                    ? risk.typesCorruption
+                    : [risk?.typeCorruption];
+                if (!typeValues.some(value => value === type)) {
+                    return false;
+                }
             }
 
             if (status && risk?.statut !== status) {
@@ -11065,10 +11147,28 @@ class RiskManagementSystem {
         const form = document.getElementById('riskForm');
         if (form) {
             form.reset();
-            document.getElementById('processus').value = risk.processus || '';
+            const processSelect = document.getElementById('processus');
+            const subProcessSelect = document.getElementById('sousProcessus');
+            const corruptionTypeSelect = document.getElementById('typeCorruption');
+            const processValues = Array.isArray(risk.processusAssocies) ? risk.processusAssocies : (risk.processus ? [risk.processus] : []);
+            const subProcessValues = Array.isArray(risk.sousProcessusAssocies) ? risk.sousProcessusAssocies : (risk.sousProcessus ? [risk.sousProcessus] : []);
+            const corruptionTypes = Array.isArray(risk.typesCorruption) ? risk.typesCorruption : (risk.typeCorruption ? [risk.typeCorruption] : []);
+            if (processSelect) {
+                Array.from(processSelect.options).forEach(opt => {
+                    opt.selected = processValues.includes(opt.value);
+                });
+            }
             this.updateSousProcessusOptions();
-            document.getElementById('sousProcessus').value = risk.sousProcessus || '';
-            document.getElementById('typeCorruption').value = risk.typeCorruption || '';
+            if (subProcessSelect) {
+                Array.from(subProcessSelect.options).forEach(opt => {
+                    opt.selected = subProcessValues.includes(opt.value);
+                });
+            }
+            if (corruptionTypeSelect) {
+                Array.from(corruptionTypeSelect.options).forEach(opt => {
+                    opt.selected = corruptionTypes.includes(opt.value);
+                });
+            }
             const statutSelect = document.getElementById('statut');
             if (statutSelect) {
                 const defaultStatus = this.config?.riskStatuses?.[0]?.value || '';
@@ -11135,6 +11235,13 @@ class RiskManagementSystem {
         }
 
         selectedControlsForRisk = [...(risk.controls || [])];
+        if (typeof setRiskControlAssignments === 'function') {
+            setRiskControlAssignments(risk.controlAssignments || []);
+        }
+        if (typeof setRiskBenefitChips === 'function') {
+            setRiskBenefitChips('undue', risk.avantagesIndus || []);
+            setRiskBenefitChips('expected', risk.avantagesAttendus || []);
+        }
         selectedActionPlansForRisk = [...(risk.actionPlans || [])];
         updateSelectedControlsDisplay();
         updateSelectedActionPlansDisplay();

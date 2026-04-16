@@ -2642,6 +2642,103 @@ tbody tr:hover {
     color: #ff6b6b;
 }
 
+.form-grid-two-cols {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.chip-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.risk-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+    min-height: 30px;
+}
+
+.risk-chip-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #e8f2ff;
+    color: #1f2937;
+    font-size: 0.85rem;
+}
+
+.risk-chip-remove {
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-weight: 700;
+    color: #475569;
+}
+
+.risk-chip-remove:hover {
+    color: #dc2626;
+}
+
+.controls-assignment-list {
+    display: grid;
+    gap: 10px;
+}
+
+.control-assignment-card {
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: var(--surface-alt-color);
+}
+
+.control-assignment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.control-assignment-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.control-assignment-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 8px;
+}
+
+.control-assignment-chip {
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 4px 10px;
+    background: #fff;
+    font-size: 0.78rem;
+    cursor: pointer;
+}
+
+.control-assignment-chip.active {
+    border-color: #2563eb;
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.matrix-edit-mode .risk-point {
+    cursor: grab;
+}
+
+.matrix-edit-mode .risk-point:active {
+    cursor: grabbing;
+}
+
 .risk-list {
     max-height: 400px;
     overflow-y: auto;
