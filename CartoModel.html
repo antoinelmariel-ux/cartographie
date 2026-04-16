@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.32</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.33</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -745,7 +745,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.32</span>
+            <span class="app-version">Version 2.14.33</span>
         </footer>
     </div>
 
@@ -916,7 +916,7 @@
                 <button class="modal-close" onclick="closeControlModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="controlForm" onsubmit="saveControl(); return false;">
+                <form id="controlForm" onsubmit="saveControl(); return false;" novalidate>
                     <div class="form-section">
                         <div class="form-section-title">Informations Générales</div>
                         <div class="form-grid">
@@ -1000,7 +1000,7 @@
                 <button class="modal-close" onclick="closeActionPlanModal()">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="actionPlanForm" onsubmit="saveActionPlan(); return false;">
+                <form id="actionPlanForm" onsubmit="saveActionPlan(); return false;" novalidate>
                     <div class="form-section">
                         <div class="form-section-title">Informations Générales</div>
                         <div class="form-grid">

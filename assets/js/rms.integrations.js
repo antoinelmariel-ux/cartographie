@@ -2364,6 +2364,16 @@ function applyPatch() {
       function setControlFieldValue(fieldId, value) {
         const field = document.getElementById(fieldId);
         if (field) {
+          if (field.tagName === 'SELECT' && value) {
+            const normalizedValue = String(value);
+            const hasOption = Array.from(field.options || []).some(option => option.value === normalizedValue);
+            if (!hasOption) {
+              const option = document.createElement('option');
+              option.value = normalizedValue;
+              option.textContent = normalizedValue;
+              field.appendChild(option);
+            }
+          }
           field.value = value || '';
         }
       }
@@ -2592,7 +2602,7 @@ function applyPatch() {
         if (!form) return;
         const formData = new FormData(form);
         const controlData = {
-          name: formData.get('name'),
+          name: String(formData.get('name') || '').trim(),
           type: formData.get('type'),
           origin: formData.get('origin'),
           owner: formData.get('owner'),
@@ -2603,10 +2613,12 @@ function applyPatch() {
           description: formData.get('description'),
           risks: [...selectedRisksForControl]
         };
-
-        if (!controlData.name) {
-          alert('Veuillez renseigner le nom du contrôle.');
-          return;
+        const isDraftControl = !controlData.name;
+        if (isDraftControl) {
+          controlData.name = `Contrôle brouillon (${new Date().toLocaleDateString('fr-FR')})`;
+        }
+        if (!controlData.status || isDraftControl) {
+          controlData.status = 'brouillon';
         }
 
         let resultingControlId = currentEditingControlId || null;
@@ -2622,7 +2634,11 @@ function applyPatch() {
               ...controlData
             };
             addHistoryItem("Modification contrôle", `Contrôle "${controlData.name}" (ID ${currentEditingControlId}) mis à jour.`, {id: currentEditingControlId, name: controlData.name});
-            toast(`Contrôle "${controlData.name}" modifié avec succès`);
+            if (isDraftControl) {
+              toast('Contrôle incomplet enregistré en brouillon');
+            } else {
+              toast(`Contrôle "${controlData.name}" modifié avec succès`);
+            }
           }
         } else {
           const newControl = {
@@ -2634,7 +2650,11 @@ function applyPatch() {
           state.controls.push(newControl);
           resultingControlId = newControl.id;
           addHistoryItem("Nouveau contrôle", `Nouveau contrôle "${controlData.name}" créé (ID ${newControl.id}).`, {id: newControl.id, name: controlData.name});
-          toast(`Contrôle "${controlData.name}" créé avec succès`);
+          if (isDraftControl) {
+            toast('Contrôle incomplet enregistré en brouillon');
+          } else {
+            toast(`Contrôle "${controlData.name}" créé avec succès`);
+          }
         }
 
         if (context && resultingControlId != null) {

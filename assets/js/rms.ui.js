@@ -1046,10 +1046,12 @@ function saveRisk() {
     formData.probPost = formData.probNet;
     formData.impactPost = formData.impactNet;
 
-    // Validate form
-    if (!formData.processusAssocies.length || !formData.description || !formData.typesCorruption.length || !formData.statut) {
-        showNotification('error', 'Veuillez remplir tous les champs obligatoires');
-        return;
+    const isIncompleteRisk = !formData.processusAssocies.length
+        || !formData.description
+        || !formData.typesCorruption.length
+        || !formData.statut;
+    if (isIncompleteRisk) {
+        formData.statut = 'brouillon';
     }
 
     if (currentEditingRiskId) {
@@ -1087,7 +1089,11 @@ function saveRisk() {
             rms.saveData();
             rms.init();
             closeModal('riskModal');
-            showNotification('success', 'Risque mis à jour avec succès!');
+            if (isIncompleteRisk) {
+                showNotification('info', 'Risque incomplet enregistré en brouillon');
+            } else {
+                showNotification('success', 'Risque mis à jour avec succès!');
+            }
             currentEditingRiskId = null;
         }
     } else {
@@ -1116,7 +1122,11 @@ function saveRisk() {
         rms.saveData();
         rms.renderAll();
         closeModal('riskModal');
-        showNotification('success', 'Risque ajouté avec succès!');
+        if (isIncompleteRisk) {
+            showNotification('info', 'Risque incomplet enregistré en brouillon');
+        } else {
+            showNotification('success', 'Risque ajouté avec succès!');
+        }
     }
 
     if (rms) {
@@ -1584,15 +1594,22 @@ function saveActionPlan() {
     const form = document.getElementById('actionPlanForm');
     if (!form) return;
     const formData = new FormData(form);
+    const planTitle = String(formData.get('title') || '').trim();
     const planData = {
-        title: formData.get('title').trim(),
+        title: planTitle,
         owner: formData.get('owner').trim(),
         dueDate: formData.get('dueDate'),
         status: formData.get('status'),
         description: formData.get('description').trim(),
         risks: [...selectedRisksForPlan]
     };
-    if (!planData.title) { alert('Titre requis'); return; }
+    const isDraftPlan = !planData.title;
+    if (isDraftPlan) {
+        planData.title = `Brouillon sans titre (${new Date().toLocaleDateString('fr-FR')})`;
+    }
+    if (!planData.status || isDraftPlan) {
+        planData.status = 'brouillon';
+    }
 
     let resultingPlanId = currentEditingActionPlanId || null;
     const context = (actionPlanCreationContext && actionPlanCreationContext.fromRisk)
@@ -1613,7 +1630,11 @@ function saveActionPlan() {
                     risk.actionPlans = risk.actionPlans.filter(id => !idsEqual(id, currentEditingActionPlanId));
                 }
             });
-            showNotification('success', `Plan "${planData.title}" modifié`);
+            if (isDraftPlan) {
+                showNotification('info', 'Plan incomplet enregistré en brouillon');
+            } else {
+                showNotification('success', `Plan "${planData.title}" modifié`);
+            }
         }
     } else {
         const newPlan = { id: getNextSequentialId(rms.actionPlans), ...planData };
@@ -1626,7 +1647,11 @@ function saveActionPlan() {
                 if (!risk.actionPlans.some(id => idsEqual(id, newPlan.id))) risk.actionPlans.push(newPlan.id);
             }
         });
-        showNotification('success', `Plan "${planData.title}" créé`);
+        if (isDraftPlan) {
+            showNotification('info', 'Plan incomplet enregistré en brouillon');
+        } else {
+            showNotification('success', `Plan "${planData.title}" créé`);
+        }
     }
 
     if (context && resultingPlanId != null) {
