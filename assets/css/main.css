@@ -2756,6 +2756,38 @@ tbody tr:hover {
     gap: 10px;
 }
 
+.transverse-controls-section {
+    margin-top: 12px;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    padding: 10px 12px;
+    background: #f8fafc;
+}
+
+.transverse-controls-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin-bottom: 8px;
+}
+
+.transverse-controls-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.transverse-control-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 999px;
+    padding: 4px 10px;
+    font-size: 0.78rem;
+    color: #1f2937;
+    background: #ffffff;
+}
+
 .control-assignment-card {
     border: 1px solid var(--border-color);
     border-radius: 10px;
