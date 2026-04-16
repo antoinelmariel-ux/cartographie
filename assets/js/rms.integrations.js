@@ -2661,6 +2661,19 @@ function applyPatch() {
           if (!selectedControlsForRisk.some(id => idsEqual(id, resultingControlId))) {
             selectedControlsForRisk.push(resultingControlId);
           }
+          if (window.controlAssignmentsForRisk) {
+            const key = String(resultingControlId);
+            const baseAssignment = window.controlAssignmentsForRisk[key] || { transverse: true, avantagesIndus: [] };
+            const contextBenefit = typeof context.benefitLabel === 'string' ? context.benefitLabel.trim() : '';
+            const nextBenefits = Array.isArray(baseAssignment.avantagesIndus) ? [...baseAssignment.avantagesIndus] : [];
+            if (contextBenefit && !nextBenefits.includes(contextBenefit)) {
+              nextBenefits.push(contextBenefit);
+            }
+            window.controlAssignmentsForRisk[key] = {
+              transverse: contextBenefit ? false : (context.transverse !== false),
+              avantagesIndus: nextBenefits
+            };
+          }
           if (typeof window.updateSelectedControlsDisplay === 'function') {
             window.updateSelectedControlsDisplay();
           }

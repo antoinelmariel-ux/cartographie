@@ -525,17 +525,19 @@ function getRecommendedControlIdsForBenefit(label) {
     return Array.from(ids);
 }
 
-function getAssignedControlNamesForBenefit(label) {
+function getAssignedControlsForBenefit(label) {
     if (!label || !rms) return [];
-    const linked = selectedControlsForRisk.map(controlId => {
+    return selectedControlsForRisk.map(controlId => {
         const assignment = controlAssignmentsForRisk[String(controlId)] || {};
         if (!(assignment.avantagesIndus || []).includes(label)) {
             return null;
         }
         const control = rms.controls.find(ctrl => ctrl.id === controlId);
-        return control?.name || `#${controlId}`;
+        return {
+            id: controlId,
+            name: control?.name || `#${controlId}`
+        };
     }).filter(Boolean);
-    return linked;
 }
 
 function renderBenefitFirstAssignment() {
@@ -551,20 +553,26 @@ function renderBenefitFirstAssignment() {
         <div class="benefit-first-assignment-title">Attribution guidée par avantage indu</div>
         <div class="benefit-first-assignment-grid">
             ${undueBenefits.map(label => {
-                const linkedControls = getAssignedControlNamesForBenefit(label);
+                const linkedControls = getAssignedControlsForBenefit(label);
                 const recommendedCount = getRecommendedControlIdsForBenefit(label).length;
                 const summary = linkedControls.length
-                    ? linkedControls.slice(0, 2).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
+                    ? linkedControls.slice(0, 2).map(item => item.name).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
                     : 'Aucun contrôle lié';
+                const linkedHtml = linkedControls.length
+                    ? `<div class="benefit-first-linked-controls">
+                        ${linkedControls.map(item => `<span class="benefit-first-linked-chip">#${item.id} - ${item.name}</span>`).join('')}
+                    </div>`
+                    : '';
                 return `
                     <div class="benefit-first-card">
                         <div>
                             <div class="benefit-first-label">${label}</div>
                             <div class="benefit-first-meta">${summary}</div>
+                            ${linkedHtml}
                         </div>
                         <div class="benefit-first-actions">
                             <span class="benefit-first-reco">${recommendedCount} recommandé${recommendedCount > 1 ? 's' : ''}</span>
-                            <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Assigner des contrôles</button>
+                            <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Ajouter un contrôle</button>
                         </div>
                     </div>
                 `;
@@ -1192,9 +1200,12 @@ function openControlSelector() {
 window.openControlSelector = openControlSelector;
 
 function createControlFromRisk() {
+    const benefitLabel = currentBenefitFocusForControlSelector || null;
     controlCreationContext = {
         fromRisk: true,
-        riskId: currentEditingRiskId != null ? currentEditingRiskId : null
+        riskId: currentEditingRiskId != null ? currentEditingRiskId : null,
+        benefitLabel,
+        transverse: !benefitLabel
     };
     closeControlSelector();
     if (typeof addNewControl === 'function') {
@@ -1316,6 +1327,8 @@ function toggleControlSelection(controlId) {
             }
         }
     }
+    updateSelectedControlsDisplay();
+    renderControlSelectionList();
     if (rms && typeof rms.markUnsavedChange === 'function') {
         rms.markUnsavedChange('riskForm');
     }
@@ -1332,57 +1345,20 @@ window.confirmControlSelection = confirmControlSelection;
 function updateSelectedControlsDisplay() {
     const container = document.getElementById('riskControls');
     if (!container) return;
-    if (selectedControlsForRisk.length === 0) {
-        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle sélectionné</div>';
-        renderBenefitFirstAssignment();
-        return;
-    }
-    const undueBenefits = Array.isArray(riskBenefitsState.undue) ? riskBenefitsState.undue : [];
-    const cardsHtml = selectedControlsForRisk.map(id => {
-        const ctrl = rms.controls.find(c => c.id === id);
-        if (!ctrl) return '';
-        const name = ctrl.name || 'Sans nom';
-        const key = String(id);
-        if (!controlAssignmentsForRisk[key]) {
-            controlAssignmentsForRisk[key] = { transverse: true, avantagesIndus: [] };
-        }
-        const assignment = controlAssignmentsForRisk[key];
-        const tags = undueBenefits.length
-            ? undueBenefits.map(label => {
-                const isActive = assignment.avantagesIndus.includes(label);
-                return `<button type="button" class="control-assignment-chip ${isActive ? 'active' : ''}" onclick="toggleControlAssignmentBenefit(${id}, '${encodeURIComponent(label)}')">${label}</button>`;
-            }).join('')
-            : '<span style="font-size:0.78rem;color:#6b7280;">Ajoutez des avantages indus pour les relier aux contrôles.</span>';
-        return `
-            <div class="control-assignment-card">
-                <div class="control-assignment-header">
-                    <div class="control-assignment-title">#${id} - ${name.substring(0, 70)}${name.length > 70 ? '...' : ''}</div>
-                    <div class="control-assignment-actions">
-                        <label style="font-size:0.78rem;">
-                            <input type="checkbox" ${assignment.transverse ? 'checked' : ''} onchange="toggleControlTransverse(${id})"> Transverse
-                        </label>
-                        <button type="button" class="control-assignment-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Retirer le contrôle #${id}">
-                            Retirer
-                        </button>
-                    </div>
-                </div>
-                <div class="control-assignment-tags">${tags}</div>
-            </div>`;
-    }).join('');
     const transverseControls = selectedControlsForRisk.map(id => {
         const assignment = controlAssignmentsForRisk[String(id)];
         if (!assignment?.transverse) return null;
         const ctrl = rms.controls.find(c => c.id === id);
         if (!ctrl) return null;
-        return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Sans nom'}</span>`;
+        return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Sans nom'} <button type="button" class="transverse-control-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Retirer le contrôle transverse #${id}">×</button></span>`;
     }).filter(Boolean);
     const transverseSection = transverseControls.length
         ? `<div class="transverse-controls-section">
                 <div class="transverse-controls-title">Contrôles transverses</div>
                 <div class="transverse-controls-list">${transverseControls.join('')}</div>
            </div>`
-        : '';
-    container.innerHTML = `<div class="controls-assignment-list">${cardsHtml}</div>${transverseSection}`;
+        : '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle transverse sélectionné</div>';
+    container.innerHTML = transverseSection;
     renderBenefitFirstAssignment();
 }
 window.updateSelectedControlsDisplay = updateSelectedControlsDisplay;
@@ -1396,19 +1372,6 @@ function removeControlFromSelection(controlId) {
     }
 }
 window.removeControlFromSelection = removeControlFromSelection;
-
-function toggleControlTransverse(controlId) {
-    const key = String(controlId);
-    if (!controlAssignmentsForRisk[key]) {
-        controlAssignmentsForRisk[key] = { transverse: false, avantagesIndus: [] };
-    }
-    controlAssignmentsForRisk[key].transverse = !controlAssignmentsForRisk[key].transverse;
-    updateSelectedControlsDisplay();
-    if (rms && typeof rms.markUnsavedChange === 'function') {
-        rms.markUnsavedChange('riskForm');
-    }
-}
-window.toggleControlTransverse = toggleControlTransverse;
 
 function toggleControlAssignmentBenefit(controlId, encodedLabel) {
     const label = decodeURIComponent(encodedLabel);
