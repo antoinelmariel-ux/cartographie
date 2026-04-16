@@ -411,6 +411,17 @@ body.feedback-mode-paused .feedback-panel * {
     gap: 5px;
 }
 
+.filter-group-entities {
+    flex: 1 1 420px;
+    min-width: 280px;
+}
+
+.filter-chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
 .filter-label {
     font-size: 0.85em;
     color: var(--muted-text-color);

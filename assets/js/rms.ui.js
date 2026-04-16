@@ -75,9 +75,11 @@ function syncRiskFilterWidgets(filterKey, value, sourceElement) {
         return;
     }
 
-    const normalizedValue = value == null ? '' : String(value);
+    const normalizedValue = Array.isArray(value)
+        ? value
+        : (value == null ? '' : String(value));
 
-    if (sourceElement && typeof sourceElement.value !== 'undefined' && sourceElement.value !== normalizedValue) {
+    if (!Array.isArray(normalizedValue) && sourceElement && typeof sourceElement.value !== 'undefined' && sourceElement.value !== normalizedValue) {
         sourceElement.value = normalizedValue;
     }
 
@@ -86,6 +88,10 @@ function syncRiskFilterWidgets(filterKey, value, sourceElement) {
             return;
         }
         if (!('value' in element)) {
+            return;
+        }
+
+        if (Array.isArray(normalizedValue)) {
             return;
         }
 
@@ -121,11 +127,13 @@ function applyFilters(filterKeyOrEvent, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
 
     if (!rms.filters) {
-        rms.filters = { process: '', type: '', status: '', search: '' };
+        rms.filters = { process: '', type: '', status: '', search: '', entity: [] };
     }
 
     if (normalizedKey) {
-        const normalizedValue = filterValue == null ? '' : String(filterValue);
+        const normalizedValue = normalizedKey === 'entity'
+            ? (Array.isArray(filterValue) ? filterValue : [])
+            : (filterValue == null ? '' : String(filterValue));
         rms.filters[normalizedKey] = normalizedValue;
         syncRiskFilterWidgets(normalizedKey, normalizedValue, originElement);
     } else {
@@ -137,6 +145,9 @@ function applyFilters(filterKeyOrEvent, value, sourceElement) {
     rms.renderRiskPoints();
     rms.updateRiskDetailsList();
     rms.updateRisksList();
+    if (typeof rms.renderMatrixEntityFilterChips === 'function') {
+        rms.renderMatrixEntityFilterChips();
+    }
 }
 window.applyFilters = applyFilters;
 
@@ -154,7 +165,7 @@ function searchRisks(searchTermOrEvent, sourceElement) {
     const normalizedValue = searchTerm == null ? '' : String(searchTerm).trim();
 
     if (!rms.filters) {
-        rms.filters = { process: '', type: '', status: '', search: '' };
+        rms.filters = { process: '', type: '', status: '', search: '', entity: [] };
     }
 
     rms.filters.search = normalizedValue;
@@ -164,8 +175,27 @@ function searchRisks(searchTermOrEvent, sourceElement) {
     rms.renderRiskPoints();
     rms.updateRiskDetailsList();
     rms.updateRisksList();
+    if (typeof rms.renderMatrixEntityFilterChips === 'function') {
+        rms.renderMatrixEntityFilterChips();
+    }
 }
 window.searchRisks = searchRisks;
+
+function toggleEntityFilterChip(entityValue) {
+    if (!window.rms || !entityValue) return;
+
+    if (!rms.filters) {
+        rms.filters = { process: '', type: '', status: '', search: '', entity: [] };
+    }
+
+    const current = Array.isArray(rms.filters.entity) ? rms.filters.entity : [];
+    const next = current.includes(entityValue)
+        ? current.filter(value => value !== entityValue)
+        : [...current, entityValue];
+
+    applyFilters('entity', next, null);
+}
+window.toggleEntityFilterChip = toggleEntityFilterChip;
 
 function syncControlFilterWidgets(filterKey, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
