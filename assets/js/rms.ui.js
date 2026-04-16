@@ -1211,15 +1211,7 @@ function renderControlSelectionList() {
     const recommendedIds = getRecommendedControlIdsForBenefit(focusLabel);
     const recommendedSet = new Set(recommendedIds);
     if (focusContainer) {
-        focusContainer.innerHTML = focusLabel
-            ? `<div class="control-benefit-focus-card">
-                    <strong>Attribution pour :</strong> ${focusLabel}
-                    <div class="control-benefit-focus-actions">
-                        <button type="button" class="btn btn-outline" onclick="selectRecommendedControlsForFocusedBenefit()">Sélectionner les recommandés</button>
-                        <button type="button" class="btn btn-outline" onclick="clearControlBenefitFocus()">Voir tous les avantages</button>
-                    </div>
-               </div>`
-            : '';
+        focusContainer.innerHTML = '';
     }
     const query = controlFilterQueryForRisk.toLowerCase();
     const typeMap = Array.isArray(rms.config?.controlTypes)
