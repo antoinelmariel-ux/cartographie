@@ -331,6 +331,76 @@ var riskBenefitsState = {
     expected: []
 };
 
+function normalizeBenefitForMatching(value) {
+    const raw = typeof value === 'string' ? value : (value != null ? String(value) : '');
+    return raw
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/['’`"]/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .trim()
+        .split(/\s+/)
+        .map(token => (token.length > 3 && token.endsWith('s') ? token.slice(0, -1) : token))
+        .join(' ');
+}
+
+function buildUndueBenefitsDictionary() {
+    const dictionary = new Map();
+    const addValue = (candidate) => {
+        const label = typeof candidate === 'string' ? candidate.trim() : (candidate != null ? String(candidate).trim() : '');
+        if (!label) return;
+        const normalized = normalizeBenefitForMatching(label);
+        if (!normalized || dictionary.has(normalized)) return;
+        dictionary.set(normalized, label);
+    };
+
+    (riskBenefitsState.undue || []).forEach(addValue);
+    (rms?.risks || []).forEach(risk => {
+        (risk?.avantagesIndus || []).forEach(addValue);
+    });
+
+    return dictionary;
+}
+
+function findClosestExistingUndueBenefitLabel(value) {
+    const source = typeof value === 'string' ? value.trim() : '';
+    if (!source) return '';
+    const normalized = normalizeBenefitForMatching(source);
+    if (!normalized) return '';
+    const tokens = new Set(normalized.split(' ').filter(Boolean));
+    const dictionary = buildUndueBenefitsDictionary();
+
+    if (dictionary.has(normalized)) {
+        return dictionary.get(normalized) || '';
+    }
+
+    for (const [key, label] of dictionary.entries()) {
+        if (!key) continue;
+        if (key.includes(normalized) || normalized.includes(key)) {
+            return label;
+        }
+        const keyTokens = new Set(key.split(' ').filter(Boolean));
+        const intersection = [...tokens].filter(token => keyTokens.has(token)).length;
+        const union = new Set([...tokens, ...keyTokens]).size;
+        if (union > 0 && (intersection / union) >= 0.7) {
+            return label;
+        }
+    }
+
+    return '';
+}
+
+function refreshUndueBenefitsAutocomplete() {
+    const datalist = document.getElementById('undueBenefitsSuggestions');
+    if (!datalist) return;
+    const dictionary = buildUndueBenefitsDictionary();
+    const options = Array.from(dictionary.values()).sort((a, b) => a.localeCompare(b, 'fr', { sensitivity: 'base' }));
+    datalist.innerHTML = options
+        .map(label => `<option value="${label.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}"></option>`)
+        .join('');
+}
+
 function getSelectedValues(selectId) {
     const element = document.getElementById(selectId);
     if (!element) return [];
@@ -357,6 +427,7 @@ function renderRiskChipList(kind) {
         </span>
     `).join('');
     if (kind === 'undue') {
+        refreshUndueBenefitsAutocomplete();
         renderBenefitFirstAssignment();
         updateSelectedControlsDisplay();
     }
@@ -385,9 +456,12 @@ function addRiskChip(kind) {
     if (!input) return;
     const value = input.value.trim();
     if (!value) return;
+    const resolvedValue = kind === 'undue'
+        ? (findClosestExistingUndueBenefitLabel(value) || value)
+        : value;
     const existing = Array.isArray(riskBenefitsState[kind]) ? riskBenefitsState[kind] : [];
-    if (!existing.some(item => item.toLowerCase() === value.toLowerCase())) {
-        existing.push(value);
+    if (!existing.some(item => normalizeBenefitForMatching(item) === normalizeBenefitForMatching(resolvedValue))) {
+        existing.push(resolvedValue);
         riskBenefitsState[kind] = existing;
     }
     input.value = '';
@@ -1818,6 +1892,15 @@ function bindEvents() {
     ['undueBenefitsInput', 'expectedBenefitsInput'].forEach((inputId) => {
         const input = document.getElementById(inputId);
         if (!input) return;
+        if (inputId === 'undueBenefitsInput') {
+            input.addEventListener('blur', () => {
+                if (!input.value.trim()) return;
+                const existingLabel = findClosestExistingUndueBenefitLabel(input.value);
+                if (existingLabel) {
+                    input.value = existingLabel;
+                }
+            });
+        }
         input.addEventListener('keydown', (event) => {
             if (event.key === 'Enter') {
                 event.preventDefault();
@@ -1825,6 +1908,8 @@ function bindEvents() {
             }
         });
     });
+
+    refreshUndueBenefitsAutocomplete();
 
     document.addEventListener('click', (e) => {
         const editBtn = e.target.closest('.control-action-btn.edit');
