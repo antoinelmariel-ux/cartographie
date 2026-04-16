@@ -139,7 +139,8 @@ class RiskManagementSystem {
             process: '',
             type: '',
             status: '',
-            search: ''
+            search: '',
+            entity: []
         };
         this.controlFilters = {
             type: '',
@@ -601,6 +602,10 @@ class RiskManagementSystem {
         }
         this.config.countryColumns = normalizedCountryColumns;
 
+        if (this.applyEntityModelMigration()) {
+            updated = true;
+        }
+
         const templateSource = Array.isArray(baseConfig.interviewTemplates)
             ? baseConfig.interviewTemplates
             : Array.isArray(fallback.interviewTemplates)
@@ -654,6 +659,67 @@ class RiskManagementSystem {
         }
 
         return updated;
+    }
+
+    applyEntityModelMigration() {
+        const targetEntities = [
+            'HQ',
+            'France',
+            'Benelux',
+            'Germany',
+            'Spain',
+            'UK',
+            'Mexico',
+            'EuroPasma',
+            'LFB USA',
+            'HemaBiologics',
+            'Distributors'
+        ];
+
+        const targetColumns = [
+            { key: 'hq', label: 'HQ', countries: ['HQ'] },
+            {
+                key: 'pharma-affiliates-jv-plus-50',
+                label: 'Pharma Affiliates / JV > 50%',
+                countries: ['France', 'Benelux', 'Germany', 'Spain', 'UK', 'Mexico']
+            },
+            { key: 'europasma', label: 'EuroPasma', countries: ['EuroPasma'] },
+            { key: 'lfb-usa', label: 'LFB USA', countries: ['LFB USA'] },
+            {
+                key: 'distributors-jv-minus-50',
+                label: 'Distributors / JV < 50%',
+                countries: ['HemaBiologics', 'Distributors']
+            }
+        ];
+
+        const currentEntities = Array.isArray(this.config?.countries)
+            ? this.config.countries.map(entry => String(entry?.value || ''))
+            : [];
+        const currentSet = new Set(currentEntities);
+        const hasLegacySet = ['Allemagne', 'Belgique', 'Italie', 'République Tchèque', 'Turquie', 'USA']
+            .some(value => currentSet.has(value));
+        const looksLikeLegacyCountryModel = hasLegacySet && !currentSet.has('HQ');
+        const shouldMigrateEntities = !currentEntities.length || looksLikeLegacyCountryModel;
+
+        let changed = false;
+        if (shouldMigrateEntities) {
+            this.config.countries = targetEntities.map(value => ({ value, label: value }));
+            changed = true;
+        }
+
+        const normalizedTargets = this.normalizeCountryColumns(
+            targetColumns,
+            targetColumns,
+            this.config.countries
+        );
+        const existing = Array.isArray(this.config?.countryColumns) ? this.config.countryColumns : [];
+        const shouldMigrateColumns = !existing.length || looksLikeLegacyCountryModel;
+        if (shouldMigrateColumns) {
+            this.config.countryColumns = normalizedTargets;
+            changed = true;
+        }
+
+        return changed;
     }
 
     applyFeedbackButtonVisibility() {
@@ -2704,6 +2770,7 @@ class RiskManagementSystem {
             });
         }
         this.renderRiskCountryColumns();
+        this.renderMatrixEntityFilterChips();
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
         fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
         fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
@@ -3039,10 +3106,10 @@ class RiskManagementSystem {
                 renderer: (body) => this.renderMindMapModuleConfiguration(body)
             },
             { key: 'riskTypes', label: 'Types de corruption' },
-            { key: 'countries', label: 'Pays concernés' },
+            { key: 'countries', label: 'Entités concernées' },
             {
                 key: 'countryColumns',
-                label: 'Répartition des pays',
+                label: 'Répartition des entités',
                 renderer: (body) => this.renderCountryColumnManager(body)
             },
             { key: 'tiers', label: 'Tiers' },
@@ -3185,7 +3252,7 @@ class RiskManagementSystem {
 
             const title = document.createElement('div');
             title.className = 'risk-country-column-title';
-            title.textContent = column?.label || 'Pays';
+            title.textContent = column?.label || 'Entités';
             header.appendChild(title);
 
             const actions = document.createElement('div');
@@ -3222,7 +3289,7 @@ class RiskManagementSystem {
             if (!entries.length) {
                 const empty = document.createElement('div');
                 empty.className = 'risk-country-empty';
-                empty.textContent = 'Aucun pays configuré.';
+                empty.textContent = 'Aucune entité configurée.';
                 list.appendChild(empty);
             } else {
                 entries.forEach(entry => {
@@ -3277,14 +3344,14 @@ class RiskManagementSystem {
 
         const unassigned = options.filter(option => !assignedValues.has(option.value));
         if (unassigned.length) {
-            const column = { key: 'unassigned', label: 'Pays non attribués' };
+            const column = { key: 'unassigned', label: 'Entités non attribuées' };
             createColumnCard(column, unassigned, { highlight: true });
         }
 
         if (!container.children.length) {
             const empty = document.createElement('div');
             empty.className = 'risk-country-empty';
-            empty.textContent = 'Aucun pays disponible. Configurez-les dans l’administration.';
+            empty.textContent = 'Aucune entité disponible. Configurez-les dans l’administration.';
             container.appendChild(empty);
         }
 
@@ -3300,6 +3367,37 @@ class RiskManagementSystem {
         if (typeof syncRiskCountryCheckboxesFromSelect === 'function') {
             syncRiskCountryCheckboxesFromSelect();
         }
+    }
+
+    renderMatrixEntityFilterChips() {
+        const container = document.getElementById('matrixEntityFilterChips');
+        if (!container) {
+            return;
+        }
+
+        const options = Array.isArray(this.config?.countries) ? this.config.countries : [];
+        const selected = new Set(Array.isArray(this.filters?.entity) ? this.filters.entity : []);
+        container.innerHTML = '';
+
+        options.forEach(entry => {
+            if (!entry || entry.value == null) {
+                return;
+            }
+            const value = String(entry.value);
+            const label = entry.label || value;
+            const chip = document.createElement('button');
+            chip.type = 'button';
+            chip.className = 'btn btn-outline btn-small';
+            chip.textContent = label;
+            chip.classList.toggle('btn-primary', selected.has(value));
+            chip.classList.toggle('btn-outline', !selected.has(value));
+            chip.addEventListener('click', () => {
+                if (typeof window.toggleEntityFilterChip === 'function') {
+                    window.toggleEntityFilterChip(value);
+                }
+            });
+            container.appendChild(chip);
+        });
     }
 
     renderCountryColumnManager(container) {
@@ -3318,13 +3416,13 @@ class RiskManagementSystem {
 
         const intro = document.createElement('p');
         intro.className = 'country-config-helper';
-        intro.textContent = 'Répartissez les pays dans les colonnes utilisées lors de la création d’un risque.';
+        intro.textContent = 'Répartissez les entités dans les colonnes utilisées lors de la création d’un risque.';
         container.appendChild(intro);
 
         if (!countries.length) {
             const empty = document.createElement('div');
             empty.className = 'config-empty';
-            empty.textContent = 'Aucun pays n’est défini. Ajoutez des pays avant de gérer leur répartition.';
+            empty.textContent = 'Aucune entité n’est définie. Ajoutez des entités avant de gérer leur répartition.';
             container.appendChild(empty);
             return;
         }
@@ -3372,11 +3470,11 @@ class RiskManagementSystem {
             count.className = 'country-config-count';
             const total = Array.isArray(column.countries) ? column.countries.length : 0;
             if (total === 0) {
-                count.textContent = 'Aucun pays';
+                count.textContent = 'Aucune entité';
             } else if (total === 1) {
-                count.textContent = '1 pays';
+                count.textContent = '1 entité';
             } else {
-                count.textContent = `${total} pays`;
+                count.textContent = `${total} entités`;
             }
             header.appendChild(count);
 
@@ -3416,7 +3514,7 @@ class RiskManagementSystem {
         if (unassigned.length) {
             const notice = document.createElement('div');
             notice.className = 'country-config-notice';
-            notice.innerHTML = `Certains pays ne sont associés à aucune colonne : <span>${unassigned.map(country => country.label).join(', ')}</span>`;
+            notice.innerHTML = `Certaines entités ne sont associées à aucune colonne : <span>${unassigned.map(country => country.label).join(', ')}</span>`;
             container.appendChild(notice);
         }
 
@@ -7342,11 +7440,15 @@ class RiskManagementSystem {
             process = '',
             type = '',
             status = '',
-            search = ''
+            search = '',
+            entity = []
         } = this.filters || {};
 
         const processFilter = String(process || '').toLowerCase();
         const searchFilter = String(search || '').toLowerCase();
+        const entityFilters = Array.isArray(entity)
+            ? entity.map(value => String(value || '').toLowerCase()).filter(Boolean)
+            : [];
 
         return sourceRisks.filter(risk => {
             if (processFilter) {
@@ -7375,6 +7477,16 @@ class RiskManagementSystem {
             if (searchFilter) {
                 const description = risk?.description != null ? String(risk.description).toLowerCase() : '';
                 if (!description.includes(searchFilter)) {
+                    return false;
+                }
+            }
+
+            if (entityFilters.length) {
+                const riskEntities = Array.isArray(risk?.paysExposes)
+                    ? risk.paysExposes.map(value => String(value || '').toLowerCase()).filter(Boolean)
+                    : [];
+                const hasEntity = entityFilters.some(value => riskEntities.includes(value));
+                if (!hasEntity) {
                     return false;
                 }
             }

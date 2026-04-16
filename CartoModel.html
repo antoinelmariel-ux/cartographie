@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.25</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.27</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -376,17 +376,9 @@
                 </div>
 
                 <div class="filters-bar">
-                    <div class="filter-group">
-                        <label class="filter-label" for="matrixProcessFilter">Processus</label>
-                        <select class="filter-select" id="matrixProcessFilter" data-risk-filter="process" onchange="applyFilters('process', this.value, this)">
-                            <option value="">Tous les processus</option>
-                        </select>
-                    </div>
-                    <div class="filter-group">
-                        <label class="filter-label" for="matrixRiskTypeFilter">Type de Risque</label>
-                        <select class="filter-select" id="matrixRiskTypeFilter" data-risk-filter="type" onchange="applyFilters('type', this.value, this)">
-                            <option value="">Tous les types</option>
-                        </select>
+                    <div class="filter-group filter-group-entities">
+                        <label class="filter-label" for="matrixEntityFilterChips">Entités concernées</label>
+                        <div id="matrixEntityFilterChips" class="filter-chip-group" aria-label="Filtrer la matrice par entités"></div>
                     </div>
                     <div class="filter-group">
                         <label class="filter-label" for="matrixStatusFilter">Statut</label>
@@ -753,7 +745,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.26</span>
+            <span class="app-version">Version 2.14.27</span>
         </footer>
     </div>
 
@@ -1233,14 +1225,14 @@
                                 </div>
                             </div>
                             <div class="form-group" style="grid-column: 1 / -1;">
-                                <label class="form-label">Pays concernés</label>
+                                <label class="form-label">Entités concernées</label>
                                 <div class="multi-select-toolbar">
                                     <button type="button" class="btn btn-outline" onclick="selectAllRiskCountries()">Tout sélectionner</button>
                                     <button type="button" class="btn btn-outline" onclick="deselectAllRiskCountries()">Tout désélectionner</button>
                                 </div>
                                 <div id="riskCountryColumns" class="risk-country-columns"></div>
                                 <select class="form-select visually-hidden" id="riskCountries" multiple size="6" aria-hidden="true" tabindex="-1"></select>
-                                <div class="form-helper">Sélectionnez les pays via les cases à cocher ou utilisez les actions rapides ci-dessus.</div>
+                                <div class="form-helper">Sélectionnez les entités via les cases à cocher ou utilisez les actions rapides ci-dessus.</div>
                             </div>
                         </div>
                     </div>
