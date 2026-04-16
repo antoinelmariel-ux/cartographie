@@ -510,6 +510,9 @@ function getRecommendedControlIdsForBenefit(label) {
     if (!label || !rms || !Array.isArray(rms.risks)) return [];
     const ids = new Set();
     rms.risks.forEach(risk => {
+        if (currentEditingRiskId != null && idsEqual(risk?.id, currentEditingRiskId)) {
+            return;
+        }
         const assignments = Array.isArray(risk?.controlAssignments) ? risk.controlAssignments : [];
         assignments.forEach(entry => {
             if (!entry || entry.controlId == null) return;
@@ -1205,7 +1208,8 @@ function renderControlSelectionList() {
     if (!list || !rms) return;
     const focusContainer = document.getElementById('controlBenefitFocus');
     const focusLabel = currentBenefitFocusForControlSelector;
-    const recommendedSet = new Set(getRecommendedControlIdsForBenefit(focusLabel));
+    const recommendedIds = getRecommendedControlIdsForBenefit(focusLabel);
+    const recommendedSet = new Set(recommendedIds);
     if (focusContainer) {
         focusContainer.innerHTML = focusLabel
             ? `<div class="control-benefit-focus-card">
@@ -1232,12 +1236,17 @@ function renderControlSelectionList() {
             return acc;
         }, {})
         : {};
-    list.innerHTML = rms.controls.filter(ctrl => {
+    const availableControls = rms.controls.filter(ctrl => {
         const name = (ctrl.name || '').toLowerCase();
-        const matchesQuery = String(ctrl.id).includes(query) || name.includes(query);
-        const matchesFocus = !focusLabel || recommendedSet.has(ctrl.id) || selectedControlsForRisk.includes(ctrl.id);
-        return matchesQuery && matchesFocus;
-    }).map(ctrl => {
+        return String(ctrl.id).includes(query) || name.includes(query);
+    });
+    const recommendedControls = focusLabel
+        ? availableControls.filter(ctrl => recommendedSet.has(ctrl.id))
+        : [];
+    const otherControls = focusLabel
+        ? availableControls.filter(ctrl => !recommendedSet.has(ctrl.id))
+        : availableControls;
+    const renderControlItem = ctrl => {
         const isSelected = selectedControlsForRisk.includes(ctrl.id);
         const typeKey = ctrl?.type != null ? String(ctrl.type).toLowerCase() : '';
         const typeLabel = typeKey ? (typeMap[typeKey] || ctrl.type || '') : '';
@@ -1254,7 +1263,25 @@ function renderControlSelectionList() {
                 ${focusLabel && recommendedSet.has(ctrl.id) ? '<div class="risk-item-hint">Recommandé pour cet avantage indu</div>' : ''}
               </div>
             </div>`;
-    }).join('');
+    };
+    const sections = [];
+    if (focusLabel) {
+        sections.push(`
+            <div class="risk-list-section-title">
+                Contrôles déjà assignés à cet avantage dans d'autres risques (${recommendedControls.length})
+            </div>
+            ${recommendedControls.length ? recommendedControls.map(renderControlItem).join('') : '<div class="risk-list-empty">Aucun contrôle recommandé trouvé.</div>'}
+        `);
+        sections.push(`
+            <div class="risk-list-section-title">
+                Autres contrôles disponibles (${otherControls.length})
+            </div>
+            ${otherControls.length ? otherControls.map(renderControlItem).join('') : '<div class="risk-list-empty">Aucun autre contrôle disponible.</div>'}
+        `);
+    } else {
+        sections.push(otherControls.map(renderControlItem).join(''));
+    }
+    list.innerHTML = sections.join('');
 }
 
 function filterControlsForRisk(query) {
