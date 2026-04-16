@@ -248,10 +248,25 @@ Exemples:
       },
       'lfb-controleur': {
         controle: `**Quels sont les principaux mécanismes de prévention ou de contrôle que vous avez mis en place pour prévenir et détecter les risques de corruption sur les opérations ?**
-- Quelles validations existent avant un engagement ?
-- Quels contrôles existent sur les flux financiers ?
-- Y-a-t-il des séparations de tâches prévues pour éviter les prises de décisions isolées ?
-- Formation ?`,
+- Separation of medical and commercial roles
+- Segregation of duties
+- Collegial decision-making
+- Collegiality via committees/review bodies
+- Documentation of needs
+- Documentation of partner selection
+- Due diligence
+- Pricing structure / ceiling
+- Competitive tendering
+- Level 2 prior authorisation
+- Level 2 ex-post control
+- Reconciliation of invoice and purchase order
+- Proof of service rendered
+- Traceability of actions/flows
+- Traceability of the validation workflow
+- Contract with anti-corruption clause
+- Contract without anti-corruption clause
+- Anti-corruption training
+- Internal whistleblowing mechanism`,
         description: `**Pouvez-vous me décrire ce contrôle et la façon dont il est mis en œuvre ?**
 - Qui est responsable du contrôle ?
 - À quel moment intervient-il dans le processus ?
@@ -514,10 +529,25 @@ Examples:
       },
       'lfb-controleur': {
         controle: `**What are the main prevention or control mechanisms you have put in place to prevent and detect corruption risks in operations?**
-- What validations exist before a commitment?
-- What controls exist on financial flows?
-- Are there segregation-of-duties arrangements to avoid isolated decision-making?
-- Trainings?`,
+- Separation of medical and commercial roles
+- Segregation of duties
+- Collegial decision-making
+- Collegiality via committees/review bodies
+- Documentation of needs
+- Documentation of partner selection
+- Due diligence
+- Pricing structure / ceiling
+- Competitive tendering
+- Level 2 prior authorisation
+- Level 2 ex-post control
+- Reconciliation of invoice and purchase order
+- Proof of service rendered
+- Traceability of actions/flows
+- Traceability of the validation workflow
+- Contract with anti-corruption clause
+- Contract without anti-corruption clause
+- Anti-corruption training
+- Internal whistleblowing mechanism`,
         description: `**Can you describe this control and how it is implemented?**
 - Who is responsible for the control?
 - When does it take place in the process?
