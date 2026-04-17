@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.43</title>
+    <title>Cartographie des Risques Corruption - Sapin 2 v2.14.46</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Gestion des dépendances locales avec repli CDN -->
     <script>
@@ -745,7 +745,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.45</span>
+            <span class="app-version">Version 2.14.46</span>
         </footer>
     </div>
 
@@ -939,27 +939,24 @@
                         <div class="form-section-title">Paramètres du Contrôle</div>
                         <div class="form-grid">
                             <div class="form-group">
-                                <label class="form-label" for="controlType">Type de contrôle</label>
-                                <select class="form-select" id="controlType" name="type">
-                                    <option value="">Sélectionner...</option>
-                                </select>
+                                <label class="form-label" for="controlReference">Reference</label>
+                                <input class="form-input" type="text" id="controlReference" name="reference" placeholder="Ex. GEN.01">
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="controlOwner">Propriétaires</label>
-                                <input class="form-input" type="text" id="controlOwner" name="owner" placeholder="Nom ou fonction responsable" list="controlOwnerSuggestions">
-                                <datalist id="controlOwnerSuggestions"></datalist>
+                                <label class="form-label" for="controlGroupCode">Group Framework or Procedure CODE</label>
+                                <input class="form-input" type="text" id="controlGroupCode" name="groupCode" placeholder="Ex. VE13">
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="controlMode">Exécution</label>
+                                <label class="form-label" for="controlMode">Execution</label>
                                 <select class="form-select" id="controlMode" name="mode">
                                     <option value="">Sélectionner...</option>
                                 </select>
                             </div>
 
                             <div class="form-group">
-                                <label class="form-label" for="controlEffectiveness">Efficacité estimée</label>
+                                <label class="form-label" for="controlEffectiveness">Control evaluation</label>
                                 <select class="form-select" id="controlEffectiveness" name="effectiveness">
                                     <option value="">Sélectionner...</option>
                                 </select>

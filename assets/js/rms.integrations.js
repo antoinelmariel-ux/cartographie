@@ -2341,6 +2341,29 @@ function applyPatch() {
       let selectedRisksForControl = [];
       let riskFilterQueryForControl = '';
       let lastControlData = null;
+      function formatGenericControlReference(index) {
+        const safeIndex = Number.isFinite(Number(index)) ? Math.max(1, Number(index)) : 1;
+        return `GEN.${String(Math.trunc(safeIndex)).padStart(2, '0')}`;
+      }
+
+      function ensureControlReference(control, fallbackIndex) {
+        if (!control || typeof control !== 'object') {
+          return;
+        }
+        if (typeof control.reference === 'string' && control.reference.trim()) {
+          control.reference = control.reference.trim();
+          return;
+        }
+        control.reference = formatGenericControlReference(fallbackIndex);
+      }
+
+      function ensureAllControlReferences() {
+        if (!Array.isArray(state.controls)) {
+          return;
+        }
+        state.controls.forEach((control, index) => ensureControlReference(control, index + 1));
+      }
+
 
       function populateControlOwnerSuggestions() {
         const datalist = document.getElementById('controlOwnerSuggestions');
@@ -2379,6 +2402,7 @@ function applyPatch() {
       }
 
       window.addNewControl = function() {
+        ensureAllControlReferences();
         currentEditingControlId = null;
         const form = document.getElementById('controlForm');
         if (form) form.reset();
@@ -2387,10 +2411,8 @@ function applyPatch() {
 
         if (lastControlData) {
           setControlFieldValue('controlName', lastControlData.name);
-          setControlFieldValue('controlType', lastControlData.type);
-          setControlFieldValue('controlOrigin', lastControlData.origin);
-          setControlFieldValue('controlOwner', lastControlData.owner);
-          setControlFieldValue('controlFrequency', lastControlData.frequency);
+          setControlFieldValue('controlReference', lastControlData.reference);
+          setControlFieldValue('controlGroupCode', lastControlData.groupCode);
           setControlFieldValue('controlMode', lastControlData.mode);
           setControlFieldValue('controlEffectiveness', lastControlData.effectiveness);
           setControlFieldValue('controlStatus', lastControlData.status);
@@ -2419,6 +2441,7 @@ function applyPatch() {
       };
 
       window.editControl = function(controlId) {
+        ensureAllControlReferences();
         const control = state.controls.find(c => c.id == controlId);
         if (!control) {
           alert('Contrôle introuvable');
@@ -2429,10 +2452,9 @@ function applyPatch() {
         selectedRisksForControl = control.risks || [];
 
         setControlFieldValue('controlName', control.name);
-        setControlFieldValue('controlType', control.type);
-        setControlFieldValue('controlOrigin', control.origin);
-        setControlFieldValue('controlOwner', control.owner);
-        setControlFieldValue('controlFrequency', control.frequency);
+        ensureControlReference(control, control.id);
+        setControlFieldValue('controlReference', control.reference);
+        setControlFieldValue('controlGroupCode', control.groupCode);
         setControlFieldValue('controlMode', control.mode);
         setControlFieldValue('controlEffectiveness', control.effectiveness);
         setControlFieldValue('controlStatus', control.status);
@@ -2598,21 +2620,25 @@ function applyPatch() {
       };
 
       window.saveControl = function() {
+        ensureAllControlReferences();
         const form = document.getElementById('controlForm');
         if (!form) return;
         const formData = new FormData(form);
         const controlData = {
           name: String(formData.get('name') || '').trim(),
-          type: formData.get('type'),
-          origin: formData.get('origin'),
-          owner: formData.get('owner'),
-          frequency: formData.get('frequency'),
+          reference: String(formData.get('reference') || '').trim(),
+          groupCode: String(formData.get('groupCode') || '').trim(),
           mode: formData.get('mode'),
           effectiveness: formData.get('effectiveness'),
           status: formData.get('status'),
           description: formData.get('description'),
           risks: [...selectedRisksForControl]
         };
+        if (!controlData.reference) {
+          const fallbackIndex = currentEditingControlId || (state.controls.length + 1);
+          controlData.reference = formatGenericControlReference(fallbackIndex);
+        }
+
         const isDraftControl = !controlData.name;
         if (isDraftControl) {
           controlData.name = `Contrôle brouillon (${new Date().toLocaleDateString('fr-FR')})`;
@@ -2633,6 +2659,7 @@ function applyPatch() {
               ...state.controls[controlIndex],
               ...controlData
             };
+            ensureControlReference(state.controls[controlIndex], currentEditingControlId);
             addHistoryItem("Modification contrôle", `Contrôle "${controlData.name}" (ID ${currentEditingControlId}) mis à jour.`, {id: currentEditingControlId, name: controlData.name});
             if (isDraftControl) {
               toast('Contrôle incomplet enregistré en brouillon');
@@ -2646,6 +2673,7 @@ function applyPatch() {
             ...controlData,
             dateCreation: new Date().toISOString().split('T')[0]
           };
+          ensureControlReference(newControl, newControl.id);
 
           state.controls.push(newControl);
           resultingControlId = newControl.id;
