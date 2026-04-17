@@ -1252,7 +1252,7 @@ function renderControlSelectionList() {
         const assignment = controlAssignmentsForRisk[key] || {};
         const isSelected = focusLabel
             ? (assignment.avantagesIndus || []).includes(focusLabel)
-            : selectedControlsForRisk.includes(ctrl.id);
+            : !!assignment.transverse;
         const typeKey = ctrl?.type != null ? String(ctrl.type).toLowerCase() : '';
         const typeLabel = typeKey ? (typeMap[typeKey] || ctrl.type || '') : '';
         const originKey = ctrl?.origin != null ? String(ctrl.origin).toLowerCase() : '';
