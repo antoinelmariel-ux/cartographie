@@ -1131,6 +1131,47 @@ body.feedback-mode-paused .feedback-panel * {
     padding: 6px 2px;
 }
 
+.risk-multi-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.risk-multi-chip-option {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    font-size: 0.9rem;
+    font-weight: 600;
+    white-space: nowrap;
+    color: color-mix(in srgb, var(--risk-chip-color, #2563eb) 70%, #0f172a 30%);
+    background: color-mix(in srgb, var(--risk-chip-color, #2563eb) 14%, #ffffff 86%);
+    border: 1px solid color-mix(in srgb, var(--risk-chip-color, #2563eb) 34%, #ffffff 66%);
+    padding: 7px 12px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, background 0.18s ease, color 0.18s ease;
+}
+
+.risk-multi-chip-option:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 14px rgba(15, 23, 42, 0.12);
+}
+
+.risk-multi-chip-option.is-selected {
+    color: #ffffff;
+    background: var(--risk-chip-color, #2563eb);
+    border-color: color-mix(in srgb, var(--risk-chip-color, #2563eb) 72%, #0f172a 28%);
+}
+
+.risk-multi-chip-option input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
 .risk-matrix-editor {
     display: flex;
     flex-direction: column;
