@@ -758,7 +758,12 @@ function syncRiskCountryCheckboxesFromSelect() {
     const checkboxes = document.querySelectorAll('.risk-country-checkbox[data-country-value]');
     checkboxes.forEach(checkbox => {
         const value = checkbox.dataset.countryValue || checkbox.value;
-        checkbox.checked = selectedValues.has(value);
+        const isSelected = selectedValues.has(value);
+        checkbox.checked = isSelected;
+        const chip = checkbox.closest('.risk-country-option');
+        if (chip) {
+            chip.classList.toggle('is-selected', isSelected);
+        }
     });
 }
 window.syncRiskCountryCheckboxesFromSelect = syncRiskCountryCheckboxesFromSelect;
