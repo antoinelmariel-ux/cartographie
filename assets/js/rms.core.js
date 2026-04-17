@@ -1732,7 +1732,7 @@ class RiskManagementSystem {
         this.registerMindMapLinkListeners(workspaceWrapper);
 
         const columns = this.getMindMapColumns();
-        columns.forEach(column => {
+        columns.forEach((column, index) => {
             const columnElement = document.createElement('div');
             columnElement.className = 'mindmap-column';
             columnElement.dataset.column = column.key;
@@ -3237,7 +3237,25 @@ class RiskManagementSystem {
 
         const assignedValues = new Set();
 
-        const createColumnCard = (column, entries, { highlight } = {}) => {
+        const chipPalette = [
+            '#2563eb',
+            '#7c3aed',
+            '#db2777',
+            '#ea580c',
+            '#16a34a',
+            '#0891b2',
+            '#be123c',
+            '#4f46e5'
+        ];
+
+        const resolveColumnColor = (column, index) => {
+            if (column && typeof column.color === 'string' && column.color.trim()) {
+                return column.color.trim();
+            }
+            return chipPalette[index % chipPalette.length];
+        };
+
+        const createColumnCard = (column, entries, columnIndex, { highlight } = {}) => {
             const card = document.createElement('article');
             card.className = 'risk-country-column';
             if (highlight) {
@@ -3246,6 +3264,8 @@ class RiskManagementSystem {
             if (column?.key) {
                 card.dataset.columnKey = column.key;
             }
+            const columnColor = resolveColumnColor(column, columnIndex);
+            card.style.setProperty('--country-column-color', columnColor);
 
             const header = document.createElement('div');
             header.className = 'risk-country-column-header';
@@ -3295,6 +3315,10 @@ class RiskManagementSystem {
                 entries.forEach(entry => {
                     const optionLabel = document.createElement('label');
                     optionLabel.className = 'risk-country-option';
+                    optionLabel.dataset.countryValue = entry.value;
+                    if (selectedValues.has(entry.value)) {
+                        optionLabel.classList.add('is-selected');
+                    }
 
                     const checkbox = document.createElement('input');
                     checkbox.type = 'checkbox';
@@ -3330,7 +3354,7 @@ class RiskManagementSystem {
             container.appendChild(card);
         };
 
-        columns.forEach(column => {
+        columns.forEach((column, index) => {
             if (!column || typeof column !== 'object') {
                 return;
             }
@@ -3339,13 +3363,13 @@ class RiskManagementSystem {
                 .map(value => ({ value, label: labelMap.get(value) || value }))
                 .filter(entry => entry.label);
             entries.forEach(entry => assignedValues.add(entry.value));
-            createColumnCard(column, entries);
+            createColumnCard(column, entries, index);
         });
 
         const unassigned = options.filter(option => !assignedValues.has(option.value));
         if (unassigned.length) {
             const column = { key: 'unassigned', label: 'Entités non attribuées' };
-            createColumnCard(column, unassigned, { highlight: true });
+            createColumnCard(column, unassigned, columns.length, { highlight: true });
         }
 
         if (!container.children.length) {
