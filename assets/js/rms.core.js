@@ -2769,6 +2769,9 @@ class RiskManagementSystem {
                 opt.selected = targetValues.includes(opt.value);
             });
         }
+        if (typeof renderAllRiskMultiSelectChips === 'function') {
+            renderAllRiskMultiSelectChips();
+        }
         this.renderRiskCountryColumns();
         this.renderMatrixEntityFilterChips();
         fill('controlType', this.config.controlTypes, 'Sélectionner...');
@@ -6523,6 +6526,9 @@ class RiskManagementSystem {
                 sousSelect.appendChild(opt);
             });
         });
+        if (typeof renderRiskMultiSelectChips === 'function') {
+            renderRiskMultiSelectChips('sousProcessus');
+        }
     }
 
     getInterviewFilePath(fileName) {

@@ -884,6 +884,182 @@ function deselectAllRiskCountries() {
 }
 window.deselectAllRiskCountries = deselectAllRiskCountries;
 
+const RISK_MULTI_SELECT_CHIP_CONFIG = {
+    processus: { containerId: 'processusChips', defaultColor: '#2563eb' },
+    sousProcessus: { containerId: 'sousProcessusChips', defaultColor: '#2563eb' },
+    typeCorruption: { containerId: 'typeCorruptionChips', defaultColor: '#db2777' },
+    tiers: { containerId: 'tiersChips', defaultColor: '#16a34a' }
+};
+
+function getRiskMultiSelectConfig(selectId) {
+    return RISK_MULTI_SELECT_CHIP_CONFIG[selectId] || null;
+}
+
+const RISK_PROCESS_CHIP_PALETTE = [
+    '#2563eb',
+    '#7c3aed',
+    '#db2777',
+    '#ea580c',
+    '#16a34a',
+    '#0891b2',
+    '#be123c',
+    '#4f46e5'
+];
+
+function buildRiskProcessChipColorMap() {
+    const map = new Map();
+    const processSelect = document.getElementById('processus');
+    if (!processSelect) {
+        return map;
+    }
+
+    Array.from(processSelect.options).forEach((option, index) => {
+        map.set(option.value, RISK_PROCESS_CHIP_PALETTE[index % RISK_PROCESS_CHIP_PALETTE.length]);
+    });
+
+    return map;
+}
+
+function resolveParentProcessForSubProcess(subProcessValue) {
+    if (!subProcessValue || !window.rms || !rms.config || !rms.config.subProcesses) {
+        return '';
+    }
+
+    const entries = Object.entries(rms.config.subProcesses);
+    for (const [processValue, subProcesses] of entries) {
+        if (!Array.isArray(subProcesses)) {
+            continue;
+        }
+        const match = subProcesses.some(item => item && item.value === subProcessValue);
+        if (match) {
+            return processValue;
+        }
+    }
+
+    return '';
+}
+
+function resolveRiskMultiChipColor(selectId, optionValue, processColorMap) {
+    const config = getRiskMultiSelectConfig(selectId);
+    const defaultColor = config?.defaultColor || '#2563eb';
+
+    if (selectId === 'processus') {
+        return processColorMap.get(optionValue) || defaultColor;
+    }
+
+    if (selectId === 'sousProcessus') {
+        const parentProcess = resolveParentProcessForSubProcess(optionValue);
+        return processColorMap.get(parentProcess) || defaultColor;
+    }
+
+    return defaultColor;
+}
+
+function applyRiskMultiSelectValue(selectId, value, isSelected) {
+    const select = document.getElementById(selectId);
+    if (!select) {
+        return;
+    }
+    const option = Array.from(select.options).find(opt => opt.value === value);
+    if (!option) {
+        return;
+    }
+    option.selected = !!isSelected;
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
+function syncRiskMultiSelectChipsFromSelect(selectId) {
+    const config = getRiskMultiSelectConfig(selectId);
+    const select = document.getElementById(selectId);
+    if (!config || !select) {
+        return;
+    }
+
+    const container = document.getElementById(config.containerId);
+    if (!container) {
+        return;
+    }
+
+    const selectedValues = new Set(Array.from(select.selectedOptions).map(option => option.value));
+    const checkboxes = container.querySelectorAll('input[type="checkbox"][data-risk-multi-value]');
+    checkboxes.forEach(checkbox => {
+        const value = checkbox.dataset.riskMultiValue || checkbox.value;
+        const isSelected = selectedValues.has(value);
+        checkbox.checked = isSelected;
+        const chip = checkbox.closest('.risk-multi-chip-option');
+        if (chip) {
+            chip.classList.toggle('is-selected', isSelected);
+        }
+    });
+}
+window.syncRiskMultiSelectChipsFromSelect = syncRiskMultiSelectChipsFromSelect;
+
+function renderRiskMultiSelectChips(selectId) {
+    const config = getRiskMultiSelectConfig(selectId);
+    const select = document.getElementById(selectId);
+    if (!config || !select) {
+        return;
+    }
+
+    const container = document.getElementById(config.containerId);
+    if (!container) {
+        return;
+    }
+
+    const selectedValues = new Set(Array.from(select.selectedOptions).map(option => option.value));
+    const options = Array.from(select.options).map(option => ({
+        value: option.value,
+        label: option.textContent || option.value
+    }));
+
+    container.innerHTML = '';
+    const processColorMap = buildRiskProcessChipColorMap();
+
+    options.forEach(entry => {
+        const optionLabel = document.createElement('label');
+        optionLabel.className = 'risk-multi-chip-option';
+        optionLabel.dataset.riskMultiValue = entry.value;
+        optionLabel.style.setProperty('--risk-chip-color', resolveRiskMultiChipColor(selectId, entry.value, processColorMap));
+        if (selectedValues.has(entry.value)) {
+            optionLabel.classList.add('is-selected');
+        }
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.value = entry.value;
+        checkbox.dataset.riskMultiValue = entry.value;
+        checkbox.checked = selectedValues.has(entry.value);
+        checkbox.addEventListener('change', () => {
+            applyRiskMultiSelectValue(selectId, entry.value, checkbox.checked);
+            syncRiskMultiSelectChipsFromSelect(selectId);
+        });
+        optionLabel.appendChild(checkbox);
+
+        const text = document.createElement('span');
+        text.textContent = entry.label;
+        optionLabel.appendChild(text);
+
+        container.appendChild(optionLabel);
+    });
+
+    if (!select.dataset.riskMultiSyncAttached) {
+        select.addEventListener('change', () => {
+            syncRiskMultiSelectChipsFromSelect(selectId);
+        });
+        select.dataset.riskMultiSyncAttached = 'true';
+    }
+
+    syncRiskMultiSelectChipsFromSelect(selectId);
+}
+window.renderRiskMultiSelectChips = renderRiskMultiSelectChips;
+
+function renderAllRiskMultiSelectChips() {
+    Object.keys(RISK_MULTI_SELECT_CHIP_CONFIG).forEach(selectId => {
+        renderRiskMultiSelectChips(selectId);
+    });
+}
+window.renderAllRiskMultiSelectChips = renderAllRiskMultiSelectChips;
+
 function addNewRisk() {
     currentEditingRiskId = null;
     const form = document.getElementById('riskForm');
@@ -896,11 +1072,7 @@ function addNewRisk() {
             rms.updateSousProcessusOptions();
             setSelectedValues('sousProcessus', lastRiskData.sousProcessusAssocies || (lastRiskData.sousProcessus ? [lastRiskData.sousProcessus] : []));
             setSelectedValues('typeCorruption', lastRiskData.typesCorruption || (lastRiskData.typeCorruption ? [lastRiskData.typeCorruption] : []));
-
-            const tiersSelect = document.getElementById('tiers');
-            Array.from(tiersSelect.options).forEach(opt => {
-                opt.selected = lastRiskData.tiers?.includes(opt.value);
-            });
+            setSelectedValues('tiers', lastRiskData.tiers || []);
 
             setRiskCountriesSelection(lastRiskData.paysExposes || []);
 
@@ -954,6 +1126,7 @@ function addNewRisk() {
                 impactNetInput.value = impactNetInput.value || 1;
             }
         }
+        renderAllRiskMultiSelectChips();
 
         if (statutSelect) {
             const defaultStatus = rms?.config?.riskStatuses?.[0]?.value || '';
