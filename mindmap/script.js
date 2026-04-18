@@ -603,7 +603,7 @@ Examples:
 
 const templateOrder = ['lfb-fournisseur', 'lfb-client', 'lfb-controleur'];
 const localeByLanguage = { fr: 'fr', en: 'en' };
-const defaultLanguage = 'fr';
+const defaultLanguage = 'en';
 let activeLanguage = defaultLanguage;
 let mapTemplates = buildMapTemplates(activeLanguage);
 let activeTemplateKey = templateOrder[0];

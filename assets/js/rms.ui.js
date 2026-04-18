@@ -55,7 +55,7 @@ function toggleMatrixEditMode(forceState = null) {
     if (button) {
         button.classList.toggle('btn-primary', nextState);
         button.classList.toggle('btn-secondary', !nextState);
-        button.textContent = nextState ? 'Édition active' : 'Édition';
+        button.textContent = nextState ? 'Edit mode active' : 'Edit mode';
     }
     document.body.classList.toggle('matrix-edit-mode', nextState);
     if (window.rms) {
@@ -63,8 +63,8 @@ function toggleMatrixEditMode(forceState = null) {
     }
     if (typeof showNotification === 'function') {
         showNotification('info', nextState
-            ? 'Mode édition activé : faites glisser un risque dans la matrice brute.'
-            : 'Mode édition désactivé.');
+            ? 'Edit mode enabled: drag a risk in the gross risk matrix.'
+            : 'Edit mode disabled.');
     }
 }
 window.toggleMatrixEditMode = toggleMatrixEditMode;
@@ -426,7 +426,7 @@ function renderRiskChipList(kind) {
     container.innerHTML = chips.map((chip, index) => `
         <span class="risk-chip-item">
             ${chip}
-            <button type="button" class="risk-chip-remove" onclick="removeRiskChip('${kind}', ${index})" aria-label="Supprimer ${chip}">×</button>
+            <button type="button" class="risk-chip-remove" onclick="removeRiskChip('${kind}', ${index})" aria-label="Delete ${chip}">×</button>
         </span>
     `).join('');
     if (kind === 'undue' || kind === 'expected') {
@@ -1277,9 +1277,9 @@ function saveRisk() {
             rms.init();
             closeModal('riskModal');
             if (isIncompleteRisk) {
-                showNotification('info', 'Risque incomplet enregistré en brouillon');
+                showNotification('info', 'Incomplete risk saved as draft');
             } else {
-                showNotification('success', 'Risque mis à jour avec succès!');
+                showNotification('success', 'Risk updated successfully!');
             }
             currentEditingRiskId = null;
         }
@@ -1310,9 +1310,9 @@ function saveRisk() {
         rms.renderAll();
         closeModal('riskModal');
         if (isIncompleteRisk) {
-            showNotification('info', 'Risque incomplet enregistré en brouillon');
+            showNotification('info', 'Incomplete risk saved as draft');
         } else {
-            showNotification('success', 'Risque ajouté avec succès!');
+            showNotification('success', 'Risk added successfully!');
         }
     }
 
@@ -1753,7 +1753,7 @@ function editActionPlan(planId) {
         selectedRisksForPlan = plan.risks ? [...plan.risks] : [];
         updateSelectedRisksForPlanDisplay();
     }
-    document.getElementById('actionPlanModalTitle').textContent = "Modifier le Plan d'action";
+    document.getElementById('actionPlanModalTitle').textContent = "Edit le Plan d'action";
     populatePlanOwnerSuggestions();
     const modal = document.getElementById('actionPlanModal');
     if (modal) {
@@ -1960,7 +1960,7 @@ function updateSelectedRisksForPlanDisplay() {
     const container = document.getElementById('selectedRisksForPlan');
     if (!container) return;
     if (selectedRisksForPlan.length === 0) {
-        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun risque sélectionné</div>';
+        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">No selected risk</div>';
         return;
     }
     container.innerHTML = selectedRisksForPlan.map(riskId => {
@@ -2014,7 +2014,7 @@ window.generateReport = generateReport;
 function refreshDashboard() {
     if (rms) {
         rms.renderAll();
-        showNotification('success', 'Tableau de bord actualisé');
+        showNotification('success', 'Dashboard refreshed');
     }
 }
 window.refreshDashboard = refreshDashboard;
@@ -2215,7 +2215,7 @@ function registerBeforeUnloadWarning() {
         }
 
         if (hasChanges) {
-            const message = 'Vous avez des modifications non enregistrées. Êtes-vous sûr de vouloir quitter ?';
+            const message = 'You have unsaved changes. Are you sure you want to leave?';
             event.preventDefault();
             event.returnValue = message;
             return message;
