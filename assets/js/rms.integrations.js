@@ -13,7 +13,7 @@ async function exportDashboard() {
     }
 
     if (typeof rms.getDashboardExportData !== 'function') {
-        const message = 'Export du tableau de bord indisponible avec la version actuelle';
+        const message = 'Dashboard export unavailable with current version';
         console.error(message);
         if (typeof showNotification === 'function') {
             showNotification('error', message);
@@ -25,7 +25,7 @@ async function exportDashboard() {
 
     const writer = createDashboardPdfWriter();
     if (!writer) {
-        const message = 'Génération du PDF impossible : aucun moteur disponible';
+        const message = 'Unable to generate PDF: no engine available';
         console.error(message);
         if (typeof showNotification === 'function') {
             showNotification('error', message);
@@ -46,7 +46,7 @@ async function exportDashboard() {
         }
 
         if (!data || !data.metrics || !data.metrics.stats) {
-            const message = 'Aucune donnée valide à exporter pour le tableau de bord';
+            const message = 'No valid data to export for the dashboard';
             console.warn(message, data);
             if (typeof showNotification === 'function') {
                 showNotification('warning', message);
@@ -62,12 +62,12 @@ async function exportDashboard() {
         if (typeof showNotification === 'function') {
             const successMessage = writer.isFallback
                 ? 'Export PDF généré (mode simplifié)'
-                : 'Export PDF du tableau de bord généré';
+                : 'Dashboard PDF export generated';
             showNotification('success', successMessage);
         }
     } catch (error) {
         console.error('Erreur lors de la génération du PDF du tableau de bord', error);
-        const message = "Échec de la génération du PDF du tableau de bord";
+        const message = "Dashboard PDF generation failed";
         if (typeof showNotification === 'function') {
             showNotification('error', `${message} : ${error.message}`);
         } else {
@@ -486,7 +486,7 @@ class JsPdfDashboardWriter {
 
         this.drawPanel(this.margin, panelY, columnWidth, panelHeight, 'Répartition des risques', ({ x, y, width }) => {
             if (!distribution.length) {
-                this.doc.text('Aucune donnée disponible', x + 15, y + 40);
+                this.doc.text('No data available', x + 15, y + 40);
                 return;
             }
 
@@ -1499,7 +1499,7 @@ function exportOperationalData() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Sauvegarde impossible : instance non initialisée");
+            showNotification('error', "Save failed: instance not initialized");
         }
         return;
     }
@@ -1530,7 +1530,7 @@ function exportOperationalData() {
         }
     } catch (error) {
         console.error('Erreur lors de la sauvegarde JSON', error);
-        const message = "Erreur lors de l'export des données opérationnelles";
+        const message = "Error while exporting operational data";
         if (typeof showNotification === 'function') {
             showNotification('error', message);
         } else {
@@ -1545,7 +1545,7 @@ function exportProcessConfiguration() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour exporter les processus.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Export impossible : instance non initialisée");
+            showNotification('error', "Export failed: instance not initialized");
         }
         return;
     }
@@ -1565,7 +1565,7 @@ function exportProcessConfiguration() {
         triggerBlobDownload(blob, 'rms.data.processes.js');
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Export des processus généré');
+            showNotification('success', 'Process export generated');
         }
     } catch (error) {
         console.error('Erreur lors de l\'export des processus', error);
@@ -1583,7 +1583,7 @@ function exportOtherParameters() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour exporter les paramètres.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Export impossible : instance non initialisée");
+            showNotification('error', "Export failed: instance not initialized");
         }
         return;
     }
@@ -1618,7 +1618,7 @@ function handleConfigExport() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour exporter la configuration.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Export impossible : instance non initialisée");
+            showNotification('error', "Export failed: instance not initialized");
         }
         return;
     }
@@ -1647,7 +1647,7 @@ function loadRmsDataFromFile() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour le chargement.');
         if (typeof showNotification === 'function') {
-            showNotification('error', "Chargement impossible : instance non initialisée");
+            showNotification('error', "Load failed: instance not initialized");
         }
         return;
     }
@@ -2237,7 +2237,7 @@ function applyPatch() {
               }
               state.save("après import");
               state.renderAll();
-              toast && toast("Import réussi");
+              toast && toast("Import successful");
             } catch(err){
               console.error(err);
               alert("Erreur à l'import : " + err.message);
@@ -2444,7 +2444,7 @@ function applyPatch() {
         ensureAllControlReferences();
         const control = state.controls.find(c => c.id == controlId);
         if (!control) {
-          alert('Contrôle introuvable');
+          alert('Control not found');
           return;
         }
 
@@ -2460,7 +2460,7 @@ function applyPatch() {
         setControlFieldValue('controlStatus', control.status);
         setControlFieldValue('controlDescription', control.description);
 
-        document.getElementById('controlModalTitle').textContent = 'Modifier le Contrôle';
+        document.getElementById('controlModalTitle').textContent = 'Edit le Contrôle';
         updateSelectedRisksDisplay();
         populateControlOwnerSuggestions();
         const modal = document.getElementById('controlModal');
@@ -2474,13 +2474,13 @@ function applyPatch() {
       };
 
       window.deleteControl = function(controlId) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce contrôle ?')) {
+        if (!confirm('Are you sure you want to delete this control?')) {
           return;
         }
 
         const controlIndex = state.controls.findIndex(c => c.id == controlId);
         if (controlIndex === -1) {
-          alert('Contrôle introuvable');
+          alert('Control not found');
           return;
         }
 
@@ -2593,7 +2593,7 @@ function applyPatch() {
         const container = document.getElementById('selectedRisks');
 
         if (selectedRisksForControl.length === 0) {
-          container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun risque sélectionné</div>';
+          container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">No selected risk</div>';
           return;
         }
 
@@ -2662,7 +2662,7 @@ function applyPatch() {
             ensureControlReference(state.controls[controlIndex], currentEditingControlId);
             addHistoryItem("Modification contrôle", `Contrôle "${controlData.name}" (ID ${currentEditingControlId}) mis à jour.`, {id: currentEditingControlId, name: controlData.name});
             if (isDraftControl) {
-              toast('Contrôle incomplet enregistré en brouillon');
+              toast('Incomplete control saved as draft');
             } else {
               toast(`Contrôle "${controlData.name}" modifié avec succès`);
             }
@@ -2679,7 +2679,7 @@ function applyPatch() {
           resultingControlId = newControl.id;
           addHistoryItem("Nouveau contrôle", `Nouveau contrôle "${controlData.name}" créé (ID ${newControl.id}).`, {id: newControl.id, name: controlData.name});
           if (isDraftControl) {
-            toast('Contrôle incomplet enregistré en brouillon');
+            toast('Incomplete control saved as draft');
           } else {
             toast(`Contrôle "${controlData.name}" créé avec succès`);
           }

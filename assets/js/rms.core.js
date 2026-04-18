@@ -17,7 +17,7 @@ function ensureEmptyChartMessagePlugin() {
         id: 'emptyChartMessage',
         defaults: {
             display: false,
-            message: 'Aucune donnée disponible',
+            message: 'No data available',
             color: '#95a5a6',
             font: {
                 family: 'Inter, Arial, sans-serif',
@@ -45,7 +45,7 @@ function ensureEmptyChartMessagePlugin() {
             const { left, top, width, height } = chartArea;
             const message = typeof options.message === 'string' && options.message.trim()
                 ? options.message.trim()
-                : 'Aucune donnée disponible';
+                : 'No data available';
             const fontFamily = options.font?.family || 'Inter, Arial, sans-serif';
             const fontSize = options.font?.size || 14;
             const fontStyle = options.font?.style || '600';
@@ -2213,7 +2213,7 @@ class RiskManagementSystem {
         deleteButton.type = 'button';
         deleteButton.className = 'mindmap-node-action';
         deleteButton.textContent = '✕';
-        deleteButton.title = 'Supprimer ce nœud';
+        deleteButton.title = 'Delete ce nœud';
         deleteButton.addEventListener('click', () => {
             this.deleteMindMapNode(columnKey, node.id);
         });
@@ -4001,7 +4001,7 @@ class RiskManagementSystem {
                     const editButton = document.createElement('button');
                     editButton.type = 'button';
                     editButton.className = 'btn btn-outline';
-                    editButton.textContent = 'Modifier';
+                    editButton.textContent = 'Edit';
                     editButton.addEventListener('click', () => renderEdit());
                     actions.appendChild(editButton);
 
@@ -4015,7 +4015,7 @@ class RiskManagementSystem {
                     const deleteButton = document.createElement('button');
                     deleteButton.type = 'button';
                     deleteButton.className = 'btn btn-outline';
-                    deleteButton.textContent = 'Supprimer';
+                    deleteButton.textContent = 'Delete';
                     deleteButton.disabled = themes.length <= 1;
                     deleteButton.addEventListener('click', () => {
                         if (themes.length <= 1) {
@@ -4105,7 +4105,7 @@ class RiskManagementSystem {
                             const deleteButton = document.createElement('button');
                             deleteButton.type = 'button';
                             deleteButton.className = 'btn btn-outline btn-small';
-                            deleteButton.textContent = 'Supprimer';
+                            deleteButton.textContent = 'Delete';
                             deleteButton.disabled = theme.columns.length <= 1;
                             deleteButton.addEventListener('click', () => {
                                 this.removeMindMapThemeColumn(theme.id, index);
@@ -4400,7 +4400,7 @@ class RiskManagementSystem {
                     const editButton = document.createElement('button');
                     editButton.type = 'button';
                     editButton.className = 'btn btn-secondary';
-                    editButton.textContent = 'Modifier';
+                    editButton.textContent = 'Edit';
                     editButton.addEventListener('click', () => {
                         renderEditForm();
                     });
@@ -4409,7 +4409,7 @@ class RiskManagementSystem {
                     const deleteButton = document.createElement('button');
                     deleteButton.type = 'button';
                     deleteButton.className = 'btn btn-outline';
-                    deleteButton.textContent = 'Supprimer';
+                    deleteButton.textContent = 'Delete';
                     deleteButton.addEventListener('click', () => {
                         this.removeInterviewTemplate(index);
                     });
@@ -5248,7 +5248,7 @@ class RiskManagementSystem {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button danger';
-        deleteButton.setAttribute('aria-label', `Supprimer le processus ${processLabel}`);
+        deleteButton.setAttribute('aria-label', `Delete le processus ${processLabel}`);
         deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
         deleteButton.addEventListener('click', () => {
             this.deleteProcess(index);
@@ -5364,7 +5364,7 @@ class RiskManagementSystem {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button danger';
-        deleteButton.setAttribute('aria-label', `Supprimer le sous-processus ${subProcess.label}`);
+        deleteButton.setAttribute('aria-label', `Delete le sous-processus ${subProcess.label}`);
         deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
         deleteButton.addEventListener('click', () => {
             this.deleteSubProcess(parentProcess.value, subIndex);
@@ -5683,7 +5683,7 @@ class RiskManagementSystem {
         }
 
         if (typeof confirm === 'function') {
-            const confirmed = confirm(`Supprimer le processus "${target.label || target.value}" et ses sous-processus ?`);
+            const confirmed = confirm(`Delete le processus "${target.label || target.value}" et ses sous-processus ?`);
             if (!confirmed) {
                 return;
             }
@@ -5724,7 +5724,7 @@ class RiskManagementSystem {
 
         const target = list[subIndex];
         if (typeof confirm === 'function') {
-            const confirmed = confirm(`Supprimer le sous-processus "${target.label || target.value}" ?`);
+            const confirmed = confirm(`Delete le sous-processus "${target.label || target.value}" ?`);
             if (!confirmed) {
                 return;
             }
@@ -6044,7 +6044,7 @@ class RiskManagementSystem {
                     const editButton = document.createElement('button');
                     editButton.type = 'button';
                     editButton.className = 'btn btn-secondary';
-                    editButton.textContent = 'Modifier';
+                    editButton.textContent = 'Edit';
                     editButton.addEventListener('click', () => {
                         renderEditForm();
                     });
@@ -6052,7 +6052,7 @@ class RiskManagementSystem {
                     const removeButton = document.createElement('button');
                     removeButton.type = 'button';
                     removeButton.className = 'btn btn-outline';
-                    removeButton.textContent = 'Supprimer';
+                    removeButton.textContent = 'Delete';
                     removeButton.addEventListener('click', () => {
                         this.removeConfigOption(key, idx);
                     });
@@ -6369,7 +6369,7 @@ class RiskManagementSystem {
                     const editButton = document.createElement('button');
                     editButton.type = 'button';
                     editButton.className = 'btn btn-secondary';
-                    editButton.textContent = 'Modifier';
+                    editButton.textContent = 'Edit';
                     editButton.addEventListener('click', () => {
                         renderEditForm();
                     });
@@ -6377,7 +6377,7 @@ class RiskManagementSystem {
                     const removeButton = document.createElement('button');
                     removeButton.type = 'button';
                     removeButton.className = 'btn btn-outline';
-                    removeButton.textContent = 'Supprimer';
+                    removeButton.textContent = 'Delete';
                     removeButton.addEventListener('click', () => {
                         this.removeSubProcess(proc.value, idx);
                     });
@@ -7064,7 +7064,7 @@ class RiskManagementSystem {
         }
         const interview = this.interviews.find(entry => idsEqual(entry?.id, interviewId));
         if (!interview) {
-            alert('Compte-rendu introuvable.');
+            alert('Interview report not found.');
             return;
         }
         this.saveInterviewFile(interview, format);
@@ -7670,8 +7670,8 @@ class RiskManagementSystem {
 
             if (!scoredRisks.length) {
                 const message = baseRisks.length
-                    ? 'Aucun risque ne correspond aux filtres appliqués.'
-                    : 'Aucun risque enregistré. Ajoutez un risque pour visualiser les détails ici.';
+                    ? 'No risk matches the filters appliqués.'
+                    : 'No risk recorded. Ajoutez un risque pour visualiser les détails ici.';
 
                 container.innerHTML = `
                     <div class="matrix-description-empty" style="text-align: center; padding: 16px 12px;">
@@ -9034,7 +9034,7 @@ class RiskManagementSystem {
         if (!allRisks.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="table-empty">Aucun risque enregistré</td>
+                    <td colspan="10" class="table-empty">No risk recorded</td>
                 </tr>
             `;
             return;
@@ -9043,7 +9043,7 @@ class RiskManagementSystem {
         if (!filteredRisks.length) {
             tbody.innerHTML = `
                 <tr>
-                    <td colspan="10" class="table-empty">Aucun risque ne correspond aux filtres</td>
+                    <td colspan="10" class="table-empty">No risk matches the filters</td>
                 </tr>
             `;
             return;
@@ -9148,7 +9148,7 @@ class RiskManagementSystem {
         if (!allControls.length) {
             container.innerHTML = `
                 <div class="controls-empty-state">
-                    <div class="controls-empty-title">Aucun contrôle enregistré</div>
+                    <div class="controls-empty-title">No control recorded</div>
                     <div class="controls-empty-text">Ajoutez votre premier contrôle pour suivre vos mesures de mitigation.</div>
                     <button class="btn btn-secondary" onclick="addNewControl()">+ Ajouter un contrôle</button>
                 </div>
@@ -9159,7 +9159,7 @@ class RiskManagementSystem {
         if (!filteredControls.length) {
             container.innerHTML = `
                 <div class="controls-empty-state">
-                    <div class="controls-empty-title">Aucun contrôle ne correspond aux filtres</div>
+                    <div class="controls-empty-title">No control matches the filters</div>
                     <div class="controls-empty-text">Modifiez vos filtres ou réinitialisez-les pour afficher les contrôles disponibles.</div>
                 </div>
             `;
@@ -9221,8 +9221,8 @@ class RiskManagementSystem {
                         ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
                     <div class="controls-table-cell controls-table-actions">
-                        <button class="action-btn" onclick="editControl(${control.id})" title="Modifier">✏️</button>
-                        <button class="action-btn" onclick="deleteControl(${control.id})" title="Supprimer">🗑️</button>
+                        <button class="action-btn" onclick="editControl(${control.id})" title="Edit">✏️</button>
+                        <button class="action-btn" onclick="deleteControl(${control.id})" title="Delete">🗑️</button>
                     </div>
                 </div>
             `;
@@ -9328,7 +9328,7 @@ class RiskManagementSystem {
         if (!allPlans.length) {
             container.innerHTML = `
                 <div class="controls-empty-state">
-                    <div class="controls-empty-title">Aucun plan d'action enregistré</div>
+                    <div class="controls-empty-title">No action plan recorded</div>
                     <div class="controls-empty-text">Créez votre premier plan pour piloter vos actions correctives.</div>
                     <button class="btn btn-secondary" onclick="addNewActionPlan()">+ Ajouter un plan</button>
                 </div>
@@ -9339,7 +9339,7 @@ class RiskManagementSystem {
         if (!filteredPlans.length) {
             container.innerHTML = `
                 <div class="controls-empty-state">
-                    <div class="controls-empty-title">Aucun plan ne correspond aux filtres</div>
+                    <div class="controls-empty-title">No plan matches the filters</div>
                     <div class="controls-empty-text">Ajustez votre recherche ou réinitialisez les filtres pour afficher les plans disponibles.</div>
                 </div>
             `;
@@ -9395,8 +9395,8 @@ class RiskManagementSystem {
                         ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
                     </div>
                     <div class="controls-table-cell controls-table-actions">
-                        <button class="action-btn" onclick="editActionPlan(${plan.id})" title="Modifier">✏️</button>
-                        <button class="action-btn" onclick="deleteActionPlan(${plan.id})" title="Supprimer">🗑️</button>
+                        <button class="action-btn" onclick="editActionPlan(${plan.id})" title="Edit">✏️</button>
+                        <button class="action-btn" onclick="deleteActionPlan(${plan.id})" title="Delete">🗑️</button>
                     </div>
                 </div>
             `;
@@ -9780,8 +9780,8 @@ class RiskManagementSystem {
         const preserveSelection = Boolean(options.preserveSelection);
 
         if (!referents.length) {
-            helper.textContent = 'Sélectionnez un ou plusieurs référents pour afficher les sous-processus correspondants.';
-            container.innerHTML = '<div class="interview-scope-empty">Aucun référent sélectionné.</div>';
+            helper.textContent = 'Select one or more referents to display matching sub-processes.';
+            container.innerHTML = '<div class="interview-scope-empty">No referent selected.</div>';
             state.availableScopes = [];
             return;
         }
@@ -9794,8 +9794,8 @@ class RiskManagementSystem {
         state.availableScopes = availableScopes;
 
         if (!availableScopes.length) {
-            helper.textContent = 'Aucun processus ou sous-processus n’est associé aux référents sélectionnés.';
-            container.innerHTML = '<div class="interview-scope-empty">Aucun élément disponible pour ces référents.</div>';
+            helper.textContent = 'No process or sub-process is associated with selected referents.';
+            container.innerHTML = '<div class="interview-scope-empty">No item available for these referents.</div>';
             state.selectedScopeKeys.clear();
             return;
         }
@@ -9815,9 +9815,9 @@ class RiskManagementSystem {
         const totalCount = availableScopes.length;
 
         if (selectedCount === 0) {
-            helper.textContent = 'Aucun élément sélectionné. Sélectionnez au moins un sous-processus.';
+            helper.textContent = 'No item selected. Select at least one sub-process.';
         } else if (selectedCount === totalCount) {
-            helper.textContent = 'Tous les sous-processus correspondant aux référents sont sélectionnés.';
+            helper.textContent = 'All matching sub-processes are selected.';
         } else {
             helper.textContent = `${selectedCount} élément${selectedCount > 1 ? 's' : ''} sélectionné${selectedCount > 1 ? 's' : ''} sur ${totalCount}.`;
         }
@@ -10099,7 +10099,7 @@ class RiskManagementSystem {
         this.closeInterviewTemplateModal();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Trame appliquée au compte-rendu');
+            showNotification('success', 'Template applied to the interview report');
         }
     }
 
@@ -10166,7 +10166,7 @@ class RiskManagementSystem {
         this.interviewMindMapState = this.normalizeMindMapState(targetInterview?.mindMap);
 
         if (modalTitle) {
-            modalTitle.textContent = targetInterview ? 'Modifier le compte-rendu' : 'Nouveau compte-rendu';
+            modalTitle.textContent = targetInterview ? 'Edit interview report' : 'New interview report';
         }
 
         this.renderInterviewScopeSelection();
@@ -10194,7 +10194,7 @@ class RiskManagementSystem {
         }
 
         if (this.hasUnsavedContext('interviewForm')) {
-            const confirmed = window.confirm('Vous avez des modifications non enregistrées. Fermer sans enregistrer ?');
+            const confirmed = window.confirm('You have unsaved changes. Close without saving?');
             if (!confirmed) {
                 return;
             }
@@ -10618,7 +10618,7 @@ class RiskManagementSystem {
         const interview = (this.interviews || []).find(entry => idsEqual(entry?.id, interviewId));
 
         if (!interview) {
-            titleElement.textContent = 'Compte-rendu introuvable';
+            titleElement.textContent = 'Interview report not found';
             if (dateElement) {
                 dateElement.textContent = '';
             }
@@ -10626,14 +10626,14 @@ class RiskManagementSystem {
                 updatedElement.textContent = '';
             }
             if (referentsContainer) {
-                referentsContainer.innerHTML = '<span class="interview-card-empty-selection">Interview non disponible.</span>';
+                referentsContainer.innerHTML = '<span class="interview-card-empty-selection">Interview unavailable.</span>';
             }
             if (tagsContainer) {
                 tagsContainer.innerHTML = '';
             }
-            notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu à afficher.</p>';
+            notesContainer.innerHTML = '<p class="interview-card-empty-selection">No content to display.</p>';
             if (mentionsContainer) {
-                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">Aucune mention @ détectée.</span>';
+                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">No @ mention detected.</span>';
             }
             if (mindmapButton) {
                 mindmapButton.disabled = true;
@@ -10651,23 +10651,23 @@ class RiskManagementSystem {
             "'": '&#39;'
         }[match] || match));
 
-        const title = interview.title ? escapeHtml(interview.title) : 'Compte-rendu sans titre';
+        const title = interview.title ? escapeHtml(interview.title) : 'Untitled interview report';
         const dateLabel = this.formatInterviewDate(interview.date);
         const updatedLabel = this.formatInterviewDateTime(interview.updatedAt || interview.createdAt);
 
         titleElement.textContent = title;
         if (dateElement) {
-            dateElement.textContent = dateLabel ? `Interview réalisée le ${dateLabel}` : '';
+            dateElement.textContent = dateLabel ? `Interview held on ${dateLabel}` : '';
         }
         if (updatedElement) {
-            updatedElement.textContent = updatedLabel ? `Dernière mise à jour : ${updatedLabel}` : '';
+            updatedElement.textContent = updatedLabel ? `Last updated: ${updatedLabel}` : '';
         }
 
         if (referentsContainer) {
             const referentsChips = Array.isArray(interview.referents)
                 ? interview.referents.map(ref => `<span class="interview-referent-chip">${escapeHtml(ref)}</span>`).join('')
                 : '';
-            referentsContainer.innerHTML = referentsChips || '<span class="interview-card-empty-selection">Aucun référent renseigné.</span>';
+            referentsContainer.innerHTML = referentsChips || '<span class="interview-card-empty-selection">No referent provided.</span>';
         }
 
         if (tagsContainer) {
@@ -10680,7 +10680,7 @@ class RiskManagementSystem {
                     return `<span class="interview-tag ${colorClass}">${escapeHtml(label)}</span>`;
                 }).join('')
                 : '';
-            tagsContainer.innerHTML = tags || '<span class="interview-card-empty-selection">Aucun processus associé.</span>';
+            tagsContainer.innerHTML = tags || '<span class="interview-card-empty-selection">No associated process.</span>';
         }
 
         if (interview.notes && String(interview.notes).trim()) {
@@ -10697,10 +10697,10 @@ class RiskManagementSystem {
             if (hasVisibleContent) {
                 notesContainer.innerHTML = `<div class="interview-notes-content">${sanitizedNotes}</div>`;
             } else {
-                notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+                notesContainer.innerHTML = '<p class="interview-card-empty-selection">No content provided.</p>';
             }
         } else {
-            notesContainer.innerHTML = '<p class="interview-card-empty-selection">Aucun contenu renseigné.</p>';
+            notesContainer.innerHTML = '<p class="interview-card-empty-selection">No content provided.</p>';
         }
 
         if (mentionsContainer) {
@@ -10710,7 +10710,7 @@ class RiskManagementSystem {
                     .map(mention => `<span class="interview-mention-chip">@${escapeHtml(mention)}</span>`)
                     .join('');
             } else {
-                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">Aucune mention @ détectée.</span>';
+                mentionsContainer.innerHTML = '<span class="interview-card-empty-selection">No @ mention detected.</span>';
             }
         }
 
@@ -10842,7 +10842,7 @@ class RiskManagementSystem {
             : [];
 
         if (!referents.length) {
-            alert('Sélectionnez au moins un référent pour le compte-rendu.');
+            alert('Select at least one referent for the interview report.');
             return;
         }
 
@@ -10883,7 +10883,7 @@ class RiskManagementSystem {
         const selectedScopes = selectedKeys.map(key => scopeMap.get(key)).filter(Boolean);
 
         if (!selectedScopes.length) {
-            alert('Sélectionnez au moins un processus ou sous-processus lié à cette interview.');
+            alert('Select at least one process or sub-process linked to this interview.');
             return;
         }
 
@@ -10969,7 +10969,7 @@ class RiskManagementSystem {
         this.closeInterviewModal();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', existingInterview ? 'Compte-rendu mis à jour avec succès' : 'Compte-rendu créé avec succès');
+            showNotification('success', existingInterview ? 'Interview report updated successfully' : 'Interview report created successfully');
         }
     }
 
@@ -10980,7 +10980,7 @@ class RiskManagementSystem {
 
         const targetIndex = this.interviews.findIndex(interview => idsEqual(interview.id, interviewId));
         if (targetIndex === -1) {
-            alert('Compte-rendu introuvable.');
+            alert('Interview report not found.');
             return;
         }
 
@@ -10993,7 +10993,7 @@ class RiskManagementSystem {
         this.updateInterviewsList();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Compte-rendu supprimé.');
+            showNotification('success', 'Interview report deleted.');
         }
     }
 
@@ -11028,8 +11028,8 @@ class RiskManagementSystem {
                 ? '<button class="btn btn-outline" type="button" onclick="rms.openInterviewFolderPicker()">📂 Charger un dossier d\'interviews</button>'
                 : '';
             const message = this.supportsInterviewFolderPicker()
-                ? 'Aucun compte-rendu chargé. Sélectionnez le dossier contenant vos fichiers interviewX.json.'
-                : 'Aucun compte-rendu chargé.';
+                ? 'No interview report loaded. Select the folder containing your interviewX.json files.'
+                : 'No interview report loaded.';
             container.innerHTML = `<div class="interview-empty">${message}${button}</div>`;
             return;
         }
@@ -11176,7 +11176,7 @@ class RiskManagementSystem {
         }
 
         if (!filtered.length) {
-            container.innerHTML = '<div class="interview-empty">Aucun compte-rendu ne correspond aux filtres sélectionnés.</div>';
+            container.innerHTML = '<div class="interview-empty">No interview report matches selected filters.</div>';
             return;
         }
 
@@ -11189,7 +11189,7 @@ class RiskManagementSystem {
         }[match] || match));
 
         container.innerHTML = filtered.map(interview => {
-            const title = interview.title ? escapeHtml(interview.title) : 'Compte-rendu sans titre';
+            const title = interview.title ? escapeHtml(interview.title) : 'Untitled interview report';
             const dateLabel = this.formatInterviewDate(interview.date);
             const referentsChips = Array.isArray(interview.referents)
                 ? interview.referents.map(ref => `<span class="interview-referent-chip">${escapeHtml(ref)}</span>`).join('')
@@ -11219,12 +11219,12 @@ class RiskManagementSystem {
                     <div class="interview-card-meta interview-referents">${referentsChips}</div>
                     <div class="interview-card-tags">${tags}</div>
                     <footer class="interview-card-footer">
-                        <div class="interview-card-meta">Dernière mise à jour : ${escapeHtml(updatedLabel || 'Date inconnue')}</div>
+                        <div class="interview-card-meta">Last updated: ${escapeHtml(updatedLabel || 'Unknown date')}</div>
                         <div class="interview-card-actions">
-                            <button class="interview-action-btn view" onclick="rms.openInterviewViewer(${idAttribute})">Lire</button>
-                            <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Modifier</button>
+                            <button class="interview-action-btn view" onclick="rms.openInterviewViewer(${idAttribute})">View</button>
+                            <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Edit</button>
                             <button class="interview-action-btn download" onclick="rms.downloadInterviewFile(${idAttribute})">Exporter</button>
-                            <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Supprimer</button>
+                            <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Delete</button>
                         </div>
                     </footer>
                 </article>
@@ -11282,7 +11282,7 @@ class RiskManagementSystem {
         this.init();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Risque dupliqué en brouillon');
+            showNotification('success', 'Risk duplicated as draft');
         }
 
         return normalizedRisk;
@@ -11410,7 +11410,7 @@ class RiskManagementSystem {
     }
 
     deleteRisk(riskId) {
-        if (!confirm('Êtes-vous sûr de vouloir supprimer ce risque?')) return;
+        if (!confirm('Are you sure you want to delete this risk?')) return;
 
         const index = this.risks.findIndex(r => idsEqual(r.id, riskId));
         if (index > -1) {
@@ -11444,7 +11444,7 @@ class RiskManagementSystem {
             }, 0);
 
             if (typeof showNotification === 'function') {
-                showNotification('success', 'Données exportées avec succès');
+                showNotification('success', 'Data exported successfully');
             }
 
             return;
@@ -11455,7 +11455,7 @@ class RiskManagementSystem {
 
             if (!csv) {
                 if (typeof showNotification === 'function') {
-                    showNotification('warning', "Aucune donnée disponible pour l'export CSV.");
+                    showNotification('warning', "No data available for CSV export.");
                 }
                 return;
             }
@@ -11473,7 +11473,7 @@ class RiskManagementSystem {
             }, 0);
 
             if (typeof showNotification === 'function') {
-                showNotification('success', 'Export CSV réussi!');
+                showNotification('success', 'CSV export successful!');
             }
         }
     }
