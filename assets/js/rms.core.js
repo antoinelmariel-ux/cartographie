@@ -3143,7 +3143,7 @@ class RiskManagementSystem {
             const helper = document.createElement('div');
             helper.className = 'config-helper';
             const helperText = document.createElement('p');
-            helperText.textContent = "💡 Utilisez le bouton d'enregistrement de l'en-tête pour sauvegarder les risques, contrôles et plans d'actions. Depuis cet espace, exportez spécifiquement vos processus ou les autres paramètres pour les partager ou les archiver.";
+            helperText.textContent = "💡 Use the save button in the header to store risks, controls, and action plans. From this section, export your processes or other settings to share or archive them.";
             helper.appendChild(helperText);
             container.appendChild(helper);
         }
@@ -8211,7 +8211,7 @@ class RiskManagementSystem {
                 return {
                     rank: index + 1,
                     id: risk.id,
-                    titre: risk.titre || risk.description || 'Risque sans titre',
+                    titre: risk.titre || risk.description || 'Untitled risk',
                     processus: this.getProcessLabel(risk.processus) || 'Not defined',
                     sousProcessus: subProcessLabel,
                     score: Number.isFinite(entry.score) ? entry.score : 0,
@@ -8306,7 +8306,7 @@ class RiskManagementSystem {
             const signedValue = `${delta > 0 ? '+' : ''}${delta}`;
             const message = formatter
                 ? formatter({ arrow, signedValue, delta })
-                : `${arrow} ${signedValue} vs dernière mesure`;
+                : `${arrow} ${signedValue} vs previous snapshot`;
             element.textContent = message;
 
             const isPositiveChange = inverted ? delta < 0 : delta > 0;
@@ -8353,8 +8353,8 @@ class RiskManagementSystem {
             const changeEl = card.querySelector('.stat-change');
             applyTrend(changeEl, delta, {
                 inverted: true,
-                stableLabel: () => `${share}% du total`,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% du total)`
+                stableLabel: () => `${share}% of total`,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% of total)`
             });
         });
 
@@ -8369,8 +8369,8 @@ class RiskManagementSystem {
             const changeEl = card.querySelector('.stat-change');
             applyTrend(changeEl, delta, {
                 inverted: true,
-                stableLabel: () => `${share}% du total`,
-                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% du total)`
+                stableLabel: () => `${share}% of total`,
+                formatter: ({ arrow, signedValue }) => `${arrow} ${signedValue} (${share}% of total)`
             });
         });
 
@@ -8387,7 +8387,7 @@ class RiskManagementSystem {
                 inverted: false,
                 stableLabel: () => distributionLabel,
                 formatter: ({ arrow, signedValue }) => {
-                    const base = `${arrow} ${signedValue} vs dernière mesure`;
+                    const base = `${arrow} ${signedValue} vs previous snapshot`;
                     return distributionLabel ? `${base} (${distributionLabel})` : base;
                 }
             });
@@ -8405,7 +8405,7 @@ class RiskManagementSystem {
 
             if (totalElement) {
                 totalElement.textContent = totalPlans > 0
-                    ? `${totalPlans} plan${totalPlans > 1 ? 's' : ''} d'action`
+                    ? `${totalPlans} action plan${totalPlans > 1 ? 's' : ''}`
                     : "No action plan";
             }
 
@@ -8498,7 +8498,7 @@ class RiskManagementSystem {
                                     const value = Number(context.raw) || 0;
                                     const plural = value > 1 ? 'plans' : 'plan';
                                     const label = context.label || 'Not defined';
-                                    return `${label}: ${value} ${plural} d'action`;
+                                    return `${label}: ${value} action ${plural}`;
                                 }
                             }
                         },
@@ -8537,7 +8537,7 @@ class RiskManagementSystem {
             if (Number.isNaN(date.getTime())) {
                 return '-';
             }
-            return date.toLocaleDateString('fr-FR');
+            return date.toLocaleDateString('en-GB');
         };
 
         const normalizeValue = (value) => {
@@ -8674,9 +8674,9 @@ class RiskManagementSystem {
         };
 
         const severityLabels = {
-            critique: 'Critique',
-            fort: 'Fort',
-            modere: 'Modéré'
+            critique: 'Critical',
+            fort: 'High',
+            modere: 'Moderate'
         };
 
         const acceptableSeverities = new Set(['modere', 'fort', 'critique']);
@@ -8721,7 +8721,7 @@ class RiskManagementSystem {
                     id: risk.id,
                     description: risk.description || risk.titre || 'Sans description',
                     process: this.getProcessLabel(risk.processus || risk.process) || '-',
-                    level: severityLabels[severityKey] || 'Modéré',
+                    level: severityLabels[severityKey] || 'Moderate',
                     severity: severityKey,
                     score,
                     date: dateValue || null,
@@ -8767,11 +8767,11 @@ class RiskManagementSystem {
             })
             .sort((a, b) => a.dueDate.getTime() - b.dueDate.getTime())
             .map(({ plan, dueDate, statusLabel }) => ({
-                title: plan?.title || 'Plan sans titre',
+                title: plan?.title || 'Untitled plan',
                 owner: plan?.owner || '-',
                 statusLabel,
                 dueDate: dueDate ? dueDate.toISOString() : null,
-                formattedDueDate: dueDate ? dueDate.toLocaleDateString('fr-FR') : (plan?.dueDate || '-')
+                formattedDueDate: dueDate ? dueDate.toLocaleDateString('en-GB') : (plan?.dueDate || '-')
             }));
 
         return { severeRisks, overdueActionPlans };
@@ -8907,20 +8907,20 @@ class RiskManagementSystem {
                 topRisksBody.innerHTML = topRisks.map((entry, index) => {
                     const risk = entry.risk || {};
                     const rank = index + 1;
-                    const title = risk.titre || risk.description || 'Risque sans titre';
+                    const title = risk.titre || risk.description || 'Untitled risk';
                     const processLabel = this.getProcessLabel(risk.processus) || 'Not defined';
                     const subProcessRaw = risk.sousProcessus;
                     const subProcessLabel = subProcessRaw && String(subProcessRaw).trim()
                         ? this.getSubProcessLabel(risk.processus, String(subProcessRaw).trim())
                         : '—';
                     const scoreLabel = Number.isFinite(entry.score)
-                        ? entry.score.toLocaleString('fr-FR')
+                        ? entry.score.toLocaleString('en-GB')
                         : '0';
                     const brutLabel = Number.isFinite(entry.brutScore)
-                        ? entry.brutScore.toLocaleString('fr-FR')
+                        ? entry.brutScore.toLocaleString('en-GB')
                         : '0';
                     const reductionLabel = `${entry.reduction ?? 0}%${entry.label ? ` (${entry.label})` : ''}`;
-                    const meta = `Brut ${brutLabel} → Net ${scoreLabel} • Réduction ${reductionLabel}`;
+                    const meta = `Gross ${brutLabel} → Net ${scoreLabel} • Reduction ${reductionLabel}`;
 
                     return `
                         <tr>
@@ -9053,7 +9053,7 @@ class RiskManagementSystem {
                     share: totalCount > 0 ? entry.count / totalCount : 0
                 }));
 
-                const scoreLabel = scoreMode === 'brut' ? 'Score médian brut' : 'Score médian net';
+                const scoreLabel = scoreMode === 'brut' ? 'Median gross score' : 'Median net score';
                 const maxTheoreticalScore = 16;
 
                 const combinedData = {
@@ -9061,7 +9061,7 @@ class RiskManagementSystem {
                     datasets: [
                         {
                             type: 'bar',
-                            label: 'Nombre de risques',
+                            label: 'Number of risks',
                             data: counts,
                             backgroundColor: counts.map(() => 'rgba(52, 152, 219, 0.6)'),
                             borderColor: counts.map(() => 'rgba(52, 152, 219, 1)'),
@@ -9103,7 +9103,7 @@ class RiskManagementSystem {
                             beginAtZero: true,
                             title: {
                                 display: true,
-                                text: 'Nombre de risques'
+                                text: 'Number of risks'
                             },
                             ticks: {
                                 precision: 0
@@ -9140,7 +9140,7 @@ class RiskManagementSystem {
                                     }
                                     if (context.dataset.type === 'bar') {
                                         const value = Number(context.raw) || 0;
-                                        const plural = value > 1 ? 'risques' : 'risque';
+                                        const plural = value > 1 ? 'risks' : 'risk';
                                         const share = entry ? Math.round(entry.share * 100) : (totalCount > 0 ? Math.round((value / totalCount) * 100) : 0);
                                         return `${value} ${plural} (${share}%)`;
                                     }
@@ -9161,7 +9161,7 @@ class RiskManagementSystem {
                             this.charts.processSeverity.destroy();
                         }
                     } catch (error) {
-                        console.warn('Erreur lors de la destruction du graphique de sévérité :', error);
+                        console.warn('Error while destroying process severity chart:', error);
                     }
                     delete this.charts.processSeverity;
                 }
@@ -9185,17 +9185,17 @@ class RiskManagementSystem {
                 const totalCount = sortedEntries.reduce((sum, entry) => sum + entry.count, 0);
                 const nonZeroEntries = sortedEntries.filter(entry => entry.count > 0);
                 const formatScore = (value) => Number(value || 0).toFixed(1).replace('.', ',');
-                const scoreDescriptor = scoreMode === 'brut' ? 'brut' : 'net';
+                const scoreDescriptor = scoreMode === 'brut' ? 'gross' : 'net';
 
                 if (!totalCount || nonZeroEntries.length === 0) {
                     summaryElement.textContent = 'No filtered risks to analyze.';
                 } else if (nonZeroEntries.length === 1) {
                     const [top] = nonZeroEntries;
-                    summaryElement.textContent = `Le processus ${top.label} concentre 100 % des risques filtrés avec un score médian (${scoreDescriptor}) de ${formatScore(top.median)}.`;
+                    summaryElement.textContent = `Process ${top.label} accounts for 100% of filtered risks with a median ${scoreDescriptor} score of ${formatScore(top.median)}.`;
                 } else {
                     const [first, second] = nonZeroEntries;
                     const share = Math.round(((first.count + second.count) / totalCount) * 100);
-                    summaryElement.textContent = `Les processus ${first.label} et ${second.label} regroupent ${share}% des risques filtrés avec des scores médians (${scoreDescriptor}) de ${formatScore(first.median)} et ${formatScore(second.median)}.`;
+                    summaryElement.textContent = `Processes ${first.label} and ${second.label} account for ${share}% of filtered risks with median ${scoreDescriptor} scores of ${formatScore(first.median)} and ${formatScore(second.median)}.`;
                 }
             }
         }
@@ -9297,7 +9297,7 @@ class RiskManagementSystem {
                     <td>${typeLabel}</td>
                     <td>${tierLabels.join(', ')}</td>
                     <td>${brutLabel}</td>
-                    <td title="Réduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
+                    <td title="Reduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
                     <td><span class="table-badge badge-${riskBadgeClass}">${riskStatusLabel || 'Not defined'}</span></td>
                     <td class="table-actions-cell">
                         <div class="table-actions">
@@ -9590,7 +9590,7 @@ class RiskManagementSystem {
         };
 
         container.innerHTML = filteredPlans.map(plan => {
-            const planTitle = plan?.title || 'Plan sans titre';
+            const planTitle = plan?.title || 'Untitled plan';
             const rawStatus = plan?.status ?? plan?.statut ?? plan?.statusLabel ?? '';
             const normalizedStatus = this.normalizeStatusValue('actionPlan', rawStatus);
             const statusLabel = normalizedStatus
