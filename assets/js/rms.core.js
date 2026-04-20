@@ -677,7 +677,7 @@ class RiskManagementSystem {
         ];
 
         const targetColumns = [
-            { key: 'hq', label: 'Entités transverses', countries: ['HQ', 'LFB USA', 'EuroPlasma'] },
+            { key: 'hq', label: 'Transversal entities', countries: ['HQ', 'LFB USA', 'EuroPlasma'] },
             {
                 key: 'pharma-affiliates-jv-plus-50',
                 label: 'Pharma Affiliates / JV > 50%',
@@ -748,6 +748,23 @@ class RiskManagementSystem {
 
         const availableSet = new Set(availableValues);
 
+        const normalizeLabel = (key, label) => {
+            if (key !== 'hq' || !label) {
+                return label;
+            }
+
+            const normalized = label
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase();
+
+            if (['hq', 'entites transverses', 'transversal entities'].includes(normalized)) {
+                return 'Transversal entities';
+            }
+
+            return label;
+        };
+
         const sanitize = (source) => {
             const normalized = [];
             const usedCountries = new Set();
@@ -759,7 +776,8 @@ class RiskManagementSystem {
                 }
 
                 const key = typeof entry.key === 'string' ? entry.key.trim() : '';
-                const label = typeof entry.label === 'string' ? entry.label.trim() : '';
+                const rawLabel = typeof entry.label === 'string' ? entry.label.trim() : '';
+                const label = normalizeLabel(key, rawLabel);
                 if (!key || !label || seenKeys.has(key)) {
                     return;
                 }
