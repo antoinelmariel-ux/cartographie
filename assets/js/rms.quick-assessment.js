@@ -76,13 +76,15 @@
     const state = {
         view: 'scenarios',
         data: {
-            version: '2.14.54',
+            version: '2.14.55',
             scenarios: [],
             selectedId: null
         }
     };
 
     const dom = {};
+    let qaMatrixDragPointerId = null;
+    let qaMatrixLastCell = null;
 
     function uid() {
         return `qa_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -242,15 +244,87 @@
         for (let impact = 4; impact >= 1; impact -= 1) {
             for (let prob = 1; prob <= 4; prob += 1) {
                 const score = prob * impact;
-                const cell = document.createElement('button');
-                cell.type = 'button';
+                const cell = document.createElement('div');
                 cell.className = `matrix-cell qa-cell level-${scoreToLevel(score)}`;
                 cell.dataset.prob = String(prob);
                 cell.dataset.impact = String(impact);
-                cell.addEventListener('click', () => updateCurrentScenario({ raw: { prob, impact } }));
                 dom.matrix.appendChild(cell);
             }
         }
+
+        const dot = document.createElement('div');
+        dot.className = 'qa-matrix-dot';
+        dot.id = 'qaMatrixDot';
+        dot.setAttribute('role', 'button');
+        dot.setAttribute('aria-label', 'Move risk point');
+        dot.addEventListener('pointerdown', startQaMatrixDrag);
+        dot.addEventListener('pointermove', moveQaMatrixDrag);
+        dot.addEventListener('pointerup', endQaMatrixDrag);
+        dot.addEventListener('pointercancel', endQaMatrixDrag);
+        dom.matrix.appendChild(dot);
+        dom.matrixDot = dot;
+
+        if (!dom.matrix.dataset.pointerListener) {
+            dom.matrix.addEventListener('pointerdown', handleQaMatrixPointerDown);
+            dom.matrix.dataset.pointerListener = 'true';
+        }
+    }
+
+    function getQaMatrixCellFromEvent(event) {
+        if (!dom.matrix) return null;
+        const rect = dom.matrix.getBoundingClientRect();
+        if (!rect.width || !rect.height) return null;
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        if (x < 0 || y < 0 || x > rect.width || y > rect.height) return null;
+        const prob = Math.min(4, Math.max(1, Math.ceil(x / (rect.width / 4))));
+        const rowIndex = Math.min(3, Math.max(0, Math.floor(y / (rect.height / 4))));
+        const impact = 4 - rowIndex;
+        return { prob, impact };
+    }
+
+    function setQaMatrixValue(prob, impact) {
+        updateCurrentScenario({ raw: { prob, impact } });
+    }
+
+    function startQaMatrixDrag(event) {
+        const scenario = getCurrentScenario();
+        if (!scenario) return;
+        qaMatrixDragPointerId = event.pointerId;
+        qaMatrixLastCell = null;
+        dom.matrixDot.classList.add('dragging');
+        dom.matrixDot.setPointerCapture(event.pointerId);
+        event.preventDefault();
+    }
+
+    function moveQaMatrixDrag(event) {
+        if (qaMatrixDragPointerId !== event.pointerId) return;
+        const cell = getQaMatrixCellFromEvent(event);
+        if (!cell) return;
+        if (!qaMatrixLastCell || qaMatrixLastCell.prob !== cell.prob || qaMatrixLastCell.impact !== cell.impact) {
+            qaMatrixLastCell = cell;
+            setQaMatrixValue(cell.prob, cell.impact);
+        }
+    }
+
+    function endQaMatrixDrag(event) {
+        if (qaMatrixDragPointerId !== event.pointerId) return;
+        if (dom.matrixDot?.hasPointerCapture(event.pointerId)) {
+            dom.matrixDot.releasePointerCapture(event.pointerId);
+        }
+        dom.matrixDot.classList.remove('dragging');
+        const fallback = getCurrentScenario()?.raw || { prob: 1, impact: 1 };
+        const cell = getQaMatrixCellFromEvent(event) || qaMatrixLastCell || fallback;
+        setQaMatrixValue(cell.prob, cell.impact);
+        qaMatrixDragPointerId = null;
+        qaMatrixLastCell = null;
+    }
+
+    function handleQaMatrixPointerDown(event) {
+        if (!getCurrentScenario()) return;
+        if (event.target === dom.matrixDot) return;
+        const cell = getQaMatrixCellFromEvent(event);
+        if (cell) setQaMatrixValue(cell.prob, cell.impact);
     }
 
     function renderAggravatingFactors(scenario) {
@@ -300,6 +374,9 @@
             dom.effectivenessLegend.textContent = '0% - Ineffective';
             dom.comment.value = '';
             dom.matrix.querySelectorAll('.qa-cell').forEach((cell) => cell.classList.remove('active-cell'));
+            if (dom.matrixDot) {
+                dom.matrixDot.style.display = 'none';
+            }
             return;
         }
 
@@ -318,6 +395,13 @@
             const active = Number(cell.dataset.prob) === prob && Number(cell.dataset.impact) === impact;
             cell.classList.toggle('active-cell', active);
         });
+        if (dom.matrixDot) {
+            const left = ((prob - 0.5) / 4) * 100;
+            const top = ((4 - impact + 0.5) / 4) * 100;
+            dom.matrixDot.style.left = `${left}%`;
+            dom.matrixDot.style.top = `${top}%`;
+            dom.matrixDot.style.display = 'block';
+        }
 
         const snapped = nearestEffectivenessLevel(scenario.effectiveness);
         dom.effectiveness.value = snapped;

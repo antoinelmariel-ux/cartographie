@@ -5937,6 +5937,17 @@ tbody tr:hover {
 .qa-selected-caption { color: var(--text-secondary); font-size: 12px; }
 .qa-current-scenario { font-weight: 700; margin: 6px 0 10px; }
 .qa-actions-row, .qa-nav-actions { display: flex; gap: 8px; margin-top: 10px; }
+.qa-actions-row { justify-content: flex-end; }
+.btn.btn-icon {
+    width: 44px;
+    min-width: 44px;
+    height: 40px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+}
 .qa-progress { margin-top: 10px; height: 6px; background: #e9ecef; border-radius: 99px; overflow: hidden; }
 #qaAssessmentProgressFill { height: 100%; width: 0; background: var(--primary-color); }
 
@@ -5952,6 +5963,11 @@ tbody tr:hover {
     grid-template-columns: repeat(4, 1fr);
     gap: 6px;
 }
+.qa-matrix {
+    position: relative;
+    touch-action: none;
+    user-select: none;
+}
 
 .qa-cell {
     min-height: 56px;
@@ -5963,6 +5979,21 @@ tbody tr:hover {
 .qa-cell.active-cell {
     outline: 3px solid #2c3e50;
     outline-offset: -3px;
+}
+.qa-matrix-dot {
+    position: absolute;
+    width: 24px;
+    height: 24px;
+    border-radius: 999px;
+    border: 3px solid #fff;
+    background: linear-gradient(135deg, #4b91c5, #0061af);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+    z-index: 3;
+    transform: translate(-50%, -50%);
+    cursor: grab;
+}
+.qa-matrix-dot.dragging {
+    cursor: grabbing;
 }
 
 .qa-legend { margin-top: 10px; font-weight: 600; }
@@ -5988,6 +6019,14 @@ tbody tr:hover {
 }
 .qa-aggravating-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
 .qa-aggravating-item { display: flex; gap: 8px; align-items: flex-start; font-size: 14px; }
+.qa-card-comment .form-label {
+    display: block;
+    margin-bottom: 8px;
+}
+.qa-card-comment .form-textarea {
+    width: 100%;
+    min-height: 120px;
+}
 
 .qa-overview-grid {
     display: grid;
