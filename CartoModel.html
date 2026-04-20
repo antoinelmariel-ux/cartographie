@@ -881,7 +881,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.63</span>
+            <span class="app-version">Version 2.14.64</span>
         </footer>
     </div>
 
@@ -1323,7 +1323,7 @@
                                 <div class="form-helper">Multiple selection allowed.</div>
                             </div>
                             <div class="form-group">
-                                <label class="form-label required">Status du risque</label>
+                                <label class="form-label required">Risk status</label>
                                 <select class="form-select" id="statut" required>
                                     <option value="">Select...</option>
                                 </select>
@@ -1355,9 +1355,9 @@
                                     <div class="risk-chip-list" id="undueBenefitsChips"></div>
                                 </div>
                                 <div class="form-group">
-                                    <label class="form-label">Expected benefits</label>
+                                    <label class="form-label">Expected Outcomes</label>
                                     <div class="chip-input-wrapper">
-                                        <input class="form-input" id="expectedBenefitsInput" type="text" list="expectedBenefitsSuggestions" placeholder="Enter an expected benefit">
+                                        <input class="form-input" id="expectedBenefitsInput" type="text" list="expectedBenefitsSuggestions" placeholder="Enter an expected outcome">
                                         <datalist id="expectedBenefitsSuggestions"></datalist>
                                         <button class="btn btn-outline" type="button" onclick="addRiskChip('expected')">Add</button>
                                     </div>
@@ -1402,17 +1402,17 @@
                             </div>
                             <div class="aggravating-factors" id="aggravatingFactorsBlock">
                                 <div class="aggravating-factors-header">
-                                    <h4>Facteurs aggravants potentiels</h4>
+                                    <h4>Potential aggravating factors</h4>
                                     <p>Select relevant factors to automatically adjust gross risk likelihood.</p>
                                     <div class="aggravating-coefficient-summary">
-                                        Applied coefficient: <strong id="aggravatingCoefficientDisplay">1,0</strong>
+                                        Applied coefficient: <strong id="aggravatingCoefficientDisplay">1.0</strong>
                                     </div>
                                 </div>
                                 <div class="aggravating-factor-groups">
                                     <div class="aggravating-factor-group" data-group="group1">
                                         <div class="aggravating-factor-group-title">
-                                            <span>Critiques</span>
-                                            <span class="aggravating-factor-coefficient">Coef. 1,4</span>
+                                            <span>Critical</span>
+                                            <span class="aggravating-factor-coefficient">Coeff. 1.4</span>
                                         </div>
                                         <label class="aggravating-factor-option" for="aggravating-group1-cpi">
                                             <input type="checkbox" id="aggravating-group1-cpi" name="aggravatingGroup1" value="pays-risque-cpi-40">
@@ -1429,8 +1429,8 @@
                                     </div>
                                     <div class="aggravating-factor-group" data-group="group2">
                                         <div class="aggravating-factor-group-title">
-                                            <span>Majeurs</span>
-                                            <span class="aggravating-factor-coefficient">Coef. 1,2</span>
+                                            <span>Major</span>
+                                            <span class="aggravating-factor-coefficient">Coeff. 1.2</span>
                                         </div>
                                         <label class="aggravating-factor-option" for="aggravating-group2-cpi">
                                             <input type="checkbox" id="aggravating-group2-cpi" name="aggravatingGroup2" value="pays-risque-cpi-60">
