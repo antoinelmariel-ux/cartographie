@@ -547,6 +547,10 @@ body.feedback-mode-paused .feedback-panel * {
     justify-content: center;
 }
 
+.matrix-container[data-view="net"] .matrix-wrapper {
+    padding-left: 5.5rem;
+}
+
 .matrix {
     position: relative;
     width: min(100%, 520px);
@@ -1531,7 +1535,7 @@ body.feedback-mode-paused .feedback-panel * {
 }
 
 .matrix-container[data-view="net"] .axis-label.y-axis {
-    left: -8.5rem;
+    left: -6.75rem;
 }
 
 .axis-label.y-axis .axis-arrow {
