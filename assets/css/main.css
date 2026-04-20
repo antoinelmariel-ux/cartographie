@@ -514,6 +514,7 @@ body.feedback-mode-paused .feedback-panel * {
     flex-direction: column;
     gap: 24px;
     margin-bottom: 30px;
+    align-items: stretch;
 }
 
 .matrix-container.active-view {
@@ -545,10 +546,11 @@ body.feedback-mode-paused .feedback-panel * {
     align-items: flex-start;
     flex-wrap: wrap;
     justify-content: center;
+    padding-left: 0;
 }
 
 .matrix-container[data-view="net"] .matrix-wrapper {
-    padding-left: 5.5rem;
+    padding-left: 0;
 }
 
 .matrix {

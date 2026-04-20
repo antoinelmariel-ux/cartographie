@@ -7224,18 +7224,6 @@ class RiskManagementSystem {
                     netGrid.appendChild(cell);
                 });
             });
-
-            const rowLabels = document.getElementById('matrixNetRowLabels');
-            if (rowLabels) {
-                rowLabels.innerHTML = '';
-                brutLevels.forEach(level => {
-                    const label = document.createElement('div');
-                    label.className = 'matrix-net-row-label';
-                    label.innerHTML = `${level.label}<span>${level.range}</span>`;
-                    rowLabels.appendChild(label);
-                });
-            }
-
             const colLabels = document.getElementById('matrixNetColLabels');
             if (colLabels) {
                 colLabels.innerHTML = '';
@@ -7262,12 +7250,12 @@ class RiskManagementSystem {
                 gridId: 'matrixGridBrut',
                 probKey: 'probBrut',
                 impactKey: 'impactBrut',
-                label: 'Risque brut',
+                label: 'Gross risk',
                 mode: 'brut'
             },
             net: {
                 gridId: 'matrixGridNet',
-                label: 'Risque net',
+                label: 'Net risk',
                 mode: 'net'
             }
         };
@@ -7357,9 +7345,9 @@ class RiskManagementSystem {
                     const formattedNet = Number.isFinite(netInfo.score)
                         ? netInfo.score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                         : '0';
-                    tooltipSegments.push(`Brut ${formattedBrut} → Net ${formattedNet}`);
-                    tooltipSegments.push(`Réduction ${formatMitigationCoefficient(netInfo.coefficient)} (${netInfo.label})`);
-                    tooltipSegments.push(`Niveau brut : ${severityLabelMap[brutLevel] || brutLevel}`);
+                    tooltipSegments.push(`Gross ${formattedBrut} → Net ${formattedNet}`);
+                    tooltipSegments.push(`Reduction ${formatMitigationCoefficient(netInfo.coefficient)} (${netInfo.label})`);
+                    tooltipSegments.push(`Gross level: ${severityLabelMap[brutLevel] || brutLevel}`);
 
                     point.title = tooltipSegments.join(' • ');
                     point.textContent = viewSymbols[viewKey] || '';
@@ -7616,13 +7604,13 @@ class RiskManagementSystem {
                 titleId: 'riskDetailsTitleBrut',
                 probKey: 'probBrut',
                 impactKey: 'impactBrut',
-                title: 'Risques bruts triés par score',
+                title: 'Gross risks ranked by score',
                 mode: 'brut'
             },
             net: {
                 containerId: 'riskDetailsListNet',
                 titleId: 'riskDetailsTitleNet',
-                title: 'Risques nets triés par score',
+                title: 'Net risks ranked by score',
                 mode: 'net'
             }
         };
@@ -7670,8 +7658,8 @@ class RiskManagementSystem {
 
             if (!scoredRisks.length) {
                 const message = baseRisks.length
-                    ? 'No risk matches the filters appliqués.'
-                    : 'No risk recorded. Ajoutez un risque pour visualiser les détails ici.';
+                    ? 'No risk matches the active filters.'
+                    : 'No risk recorded. Add a risk to view details here.';
 
                 container.innerHTML = `
                     <div class="matrix-description-empty" style="text-align: center; padding: 16px 12px;">
