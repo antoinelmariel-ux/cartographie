@@ -16,11 +16,67 @@
         { value: 50, label: 'Needs improvement' },
         { value: 75, label: 'Effective' }
     ];
+    const PROBABILITY_DETAILS = {
+        1: {
+            title: 'Probability 1 - Rare',
+            description: 'Event has not happened yet and remains unlikely in the coming year.'
+        },
+        2: {
+            title: 'Probability 2 - Possible',
+            description: 'Event has happened in isolated situations and could recur.'
+        },
+        3: {
+            title: 'Probability 3 - Likely',
+            description: 'Event happened at least once in the past year or is expected to happen.'
+        },
+        4: {
+            title: 'Probability 4 - Very likely',
+            description: 'Event happened multiple times and is expected to recur regularly.'
+        }
+    };
+    const IMPACT_DETAILS = {
+        1: {
+            title: 'Impact 1 - Minor',
+            points: [
+                'Financial: below €50k',
+                'Legal: no significant sanction',
+                'Reputation: limited local visibility',
+                'Operational: minimal disruption'
+            ]
+        },
+        2: {
+            title: 'Impact 2 - Significant',
+            points: [
+                'Financial: €50k to €500k',
+                'Legal: formal warning or moderate sanction',
+                'Reputation: local media exposure',
+                'Operational: temporary disruption'
+            ]
+        },
+        3: {
+            title: 'Impact 3 - Severe',
+            points: [
+                'Financial: €500k to €5m',
+                'Legal: major sanction or legal settlement',
+                'Reputation: national visibility and trust erosion',
+                'Operational: major delays or loss of business'
+            ]
+        },
+        4: {
+            title: 'Impact 4 - Critical',
+            points: [
+                'Financial: above €5m',
+                'Legal: criminal exposure or exceptional sanction',
+                'Reputation: sustained national crisis',
+                'Operational: lasting business interruption'
+            ]
+        }
+    };
 
     const state = {
         view: 'scenarios',
         data: {
-            version: '2.14.53',
+            version: '2.14.54',
             scenarios: [],
             selectedId: null
         }
@@ -235,6 +291,11 @@
 
         if (!scenario) {
             dom.rawLegend.textContent = 'P1 × I1 = 1 (Low)';
+            dom.riskCalculation.textContent = 'P1 × I1 = 1 (Low)';
+            dom.probabilityTitle.textContent = PROBABILITY_DETAILS[1].title;
+            dom.probabilityDetail.textContent = PROBABILITY_DETAILS[1].description;
+            dom.impactTitle.textContent = IMPACT_DETAILS[1].title;
+            dom.impactDetail.innerHTML = IMPACT_DETAILS[1].points.map((point) => `<li>${point}</li>`).join('');
             dom.effectiveness.value = 0;
             dom.effectivenessLegend.textContent = '0% - Ineffective';
             dom.comment.value = '';
@@ -245,7 +306,13 @@
         const prob = clampMatrixValue(scenario.raw?.prob);
         const impact = clampMatrixValue(scenario.raw?.impact);
         const score = prob * impact;
-        dom.rawLegend.textContent = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
+        const riskLegend = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
+        dom.rawLegend.textContent = riskLegend;
+        dom.riskCalculation.textContent = riskLegend;
+        dom.probabilityTitle.textContent = PROBABILITY_DETAILS[prob].title;
+        dom.probabilityDetail.textContent = PROBABILITY_DETAILS[prob].description;
+        dom.impactTitle.textContent = IMPACT_DETAILS[impact].title;
+        dom.impactDetail.innerHTML = IMPACT_DETAILS[impact].points.map((point) => `<li>${point}</li>`).join('');
 
         dom.matrix.querySelectorAll('.qa-cell').forEach((cell) => {
             const active = Number(cell.dataset.prob) === prob && Number(cell.dataset.impact) === impact;
@@ -459,6 +526,11 @@
         dom.duplicateBtn = document.getElementById('qaDuplicateBtn');
         dom.deleteBtn = document.getElementById('qaDeleteBtn');
         dom.rawLegend = document.getElementById('qaRawLegend');
+        dom.riskCalculation = document.getElementById('qaRiskCalculation');
+        dom.probabilityTitle = document.getElementById('qaProbabilityTitle');
+        dom.probabilityDetail = document.getElementById('qaProbabilityDetail');
+        dom.impactTitle = document.getElementById('qaImpactTitle');
+        dom.impactDetail = document.getElementById('qaImpactDetail');
         dom.aggravatingFactors = document.getElementById('qaAggravatingFactors');
         dom.effectiveness = document.getElementById('qaEffectiveness');
         dom.effectivenessLegend = document.getElementById('qaEffectivenessLegend');

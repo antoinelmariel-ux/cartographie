@@ -390,7 +390,7 @@
 
                     <section class="qa-panel" id="qa-assessment-panel">
                         <div class="qa-assessment-grid">
-                            <div class="qa-column">
+                            <div class="qa-card qa-card-scenario">
                                 <div class="qa-selected-caption" id="qaSelectedCaption">Selected scenario</div>
                                 <div class="qa-current-scenario" id="qaCurrentScenario">No scenario selected</div>
                                 <div class="qa-actions-row">
@@ -400,20 +400,36 @@
                                 <div class="qa-progress"><div id="qaAssessmentProgressFill"></div></div>
                             </div>
 
-                            <div class="qa-column">
+                            <div class="qa-card qa-card-matrix">
                                 <h4 id="qaRawRiskTitle">Gross risk (inherent)</h4>
                                 <div class="qa-matrix-wrapper">
                                     <div id="qaMatrix" class="qa-matrix"></div>
                                 </div>
-                                <div class="qa-legend" id="qaRawLegend">P1 × I1 = 1 (Low)</div>
                             </div>
 
-                            <div class="qa-column">
+                            <div class="qa-card qa-card-details">
+                                <h4 id="qaRawDetailTitle">Gross risk details</h4>
+                                <div class="qa-risk-calculation" id="qaRiskCalculation">P1 × I1 = 1 (Low)</div>
+                                <div class="qa-risk-block">
+                                    <h5 id="qaProbabilityTitle">Probability 1 - Rare</h5>
+                                    <p id="qaProbabilityDetail">Event has not happened yet and remains unlikely in the coming year.</p>
+                                </div>
+                                <div class="qa-risk-block">
+                                    <h5 id="qaImpactTitle">Impact 1 - Minor</h5>
+                                    <ul id="qaImpactDetail" class="qa-impact-list"></ul>
+                                </div>
+                                <div class="qa-legend" id="qaRawLegend">P1 × I1 = 1 (Low)</div>
                                 <h4 id="qaAggravatingTitle">Facteurs aggravants</h4>
                                 <div id="qaAggravatingFactors" class="qa-aggravating-list"></div>
+                            </div>
+
+                            <div class="qa-card qa-card-controls">
                                 <label class="form-label" id="qaEffectivenessLabel" for="qaEffectiveness">Control effectiveness</label>
                                 <input type="range" id="qaEffectiveness" min="0" max="75" step="25">
                                 <div class="form-helper" id="qaEffectivenessLegend">0% - Inefficace</div>
+                            </div>
+
+                            <div class="qa-card qa-card-comment">
                                 <label class="form-label" id="qaCommentLabel" for="qaComment">Commentaires</label>
                                 <textarea id="qaComment" class="form-textarea" rows="4" placeholder="Ajoutez vos observations..."></textarea>
                                 <div class="qa-nav-actions">
@@ -840,7 +856,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.53</span>
+            <span class="app-version">Version 2.14.54</span>
         </footer>
     </div>
 
