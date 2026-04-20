@@ -556,7 +556,7 @@ function renderBenefitFirstAssignment() {
                 const linkedControls = getAssignedControlsForBenefit(label);
                 const summary = linkedControls.length
                     ? linkedControls.slice(0, 2).map(item => item.name).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
-                    : 'Aucun contrôle lié';
+                    : 'No linked control';
                 const linkedHtml = linkedControls.length
                     ? `<div class="benefit-first-linked-controls">
                         ${linkedControls.map(item => `<span class="benefit-first-linked-chip">#${item.id} - ${item.name}</span>`).join('')}
@@ -570,7 +570,7 @@ function renderBenefitFirstAssignment() {
                             ${linkedHtml}
                         </div>
                         <div class="benefit-first-actions">
-                            <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Ajouter un contrôle</button>
+                            <button type="button" class="btn btn-outline" onclick="openControlSelectorForBenefit('${encodeURIComponent(label)}')">Add control</button>
                         </div>
                     </div>
                 `;
@@ -1730,7 +1730,7 @@ function addNewActionPlan() {
         }
         updateSelectedRisksForPlanDisplay();
     }
-    document.getElementById('actionPlanModalTitle').textContent = "Nouveau Plan d'action";
+    document.getElementById('actionPlanModalTitle').textContent = 'New Action Plan';
     populatePlanOwnerSuggestions();
     const modal = document.getElementById('actionPlanModal');
     if (modal) {
@@ -1753,7 +1753,7 @@ function editActionPlan(planId) {
         selectedRisksForPlan = plan.risks ? [...plan.risks] : [];
         updateSelectedRisksForPlanDisplay();
     }
-    document.getElementById('actionPlanModalTitle').textContent = "Edit le Plan d'action";
+    document.getElementById('actionPlanModalTitle').textContent = 'Edit Action Plan';
     populatePlanOwnerSuggestions();
     const modal = document.getElementById('actionPlanModal');
     if (modal) {
@@ -1801,7 +1801,7 @@ function saveActionPlan() {
     };
     const isDraftPlan = !planData.title;
     if (isDraftPlan) {
-        planData.title = `Brouillon sans titre (${new Date().toLocaleDateString('fr-FR')})`;
+        planData.title = `Untitled draft (${new Date().toLocaleDateString('en-US')})`;
     }
     if (!planData.status || isDraftPlan) {
         planData.status = 'brouillon';
@@ -1827,9 +1827,9 @@ function saveActionPlan() {
                 }
             });
             if (isDraftPlan) {
-                showNotification('info', 'Plan incomplet enregistré en brouillon');
+                showNotification('info', 'Incomplete plan saved as draft');
             } else {
-                showNotification('success', `Plan "${planData.title}" modifié`);
+                showNotification('success', `Plan "${planData.title}" updated`);
             }
         }
     } else {
@@ -1844,9 +1844,9 @@ function saveActionPlan() {
             }
         });
         if (isDraftPlan) {
-            showNotification('info', 'Plan incomplet enregistré en brouillon');
+            showNotification('info', 'Incomplete plan saved as draft');
         } else {
-            showNotification('success', `Plan "${planData.title}" créé`);
+            showNotification('success', `Plan "${planData.title}" created`);
         }
     }
 
