@@ -3679,6 +3679,16 @@ tbody tr:hover {
     overflow-y: auto;
 }
 
+.interview-view-notes ul,
+.interview-view-notes ol {
+    margin: 0 0 0.8rem;
+    padding-left: 1.4rem;
+}
+
+.interview-view-notes li {
+    margin-bottom: 0.3rem;
+}
+
 .interview-view-notes p:last-child,
 .interview-view-notes ul:last-child,
 .interview-view-notes ol:last-child {
