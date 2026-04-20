@@ -5971,6 +5971,13 @@ tbody tr:hover {
     max-width: 520px;
 }
 
+
+.qa-matrix-surface .axis-label.x-axis {
+    bottom: 8px;
+    transform: translateX(-50%);
+    z-index: 4;
+}
+
 .qa-matrix,
 .qa-overview-matrix {
     position: absolute;
