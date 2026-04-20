@@ -1495,6 +1495,303 @@ function exportRisks() {
 }
 window.exportRisks = exportRisks;
 
+function csvEscapeCell(value) {
+    if (value === null || value === undefined) return '';
+    const stringValue = String(value);
+    if (/[;"\n\r]/.test(stringValue)) {
+        return `"${stringValue.replace(/"/g, '""')}"`;
+    }
+    return stringValue;
+}
+
+function csvSplitLine(line, delimiter = ';') {
+    const cells = [];
+    let current = '';
+    let inQuotes = false;
+    for (let index = 0; index < line.length; index += 1) {
+        const char = line[index];
+        if (inQuotes) {
+            if (char === '"') {
+                if (line[index + 1] === '"') {
+                    current += '"';
+                    index += 1;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                current += char;
+            }
+        } else if (char === '"') {
+            inQuotes = true;
+        } else if (char === delimiter) {
+            cells.push(current);
+            current = '';
+        } else {
+            current += char;
+        }
+    }
+    cells.push(current);
+    return cells;
+}
+
+function parseCsvText(content) {
+    const lines = String(content || '')
+        .replace(/\r\n/g, '\n')
+        .replace(/\r/g, '\n')
+        .split('\n')
+        .map(line => line.trim())
+        .filter(Boolean);
+    if (!lines.length) {
+        return [];
+    }
+    const headers = csvSplitLine(lines[0]).map(header => String(header || '').trim());
+    return lines.slice(1).map((line) => {
+        const values = csvSplitLine(line);
+        return headers.reduce((row, header, index) => {
+            row[header] = (values[index] ?? '').trim();
+            return row;
+        }, {});
+    });
+}
+
+function readCsvFile(callback) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.csv,text/csv';
+    input.style.display = 'none';
+    input.addEventListener('change', (event) => {
+        const file = event.target.files && event.target.files[0];
+        if (!file) {
+            input.remove();
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => callback(String(reader.result || ''), file.name);
+        reader.onerror = () => {
+            if (typeof showNotification === 'function') {
+                showNotification('error', "Lecture du fichier CSV impossible");
+            }
+            input.remove();
+        };
+        reader.readAsText(file, 'utf-8');
+    });
+    document.body.appendChild(input);
+    input.click();
+}
+
+function toIntScore(value, fallback = 2) {
+    const numeric = Number.parseFloat(String(value ?? '').replace(',', '.'));
+    if (!Number.isFinite(numeric)) return fallback;
+    return Math.max(1, Math.min(4, Math.round(numeric)));
+}
+
+function parseIds(value) {
+    if (!value) return [];
+    return String(value)
+        .split(/[|,]/)
+        .map(entry => entry.trim())
+        .filter(Boolean)
+        .map(entry => (/^-?\d+$/.test(entry) ? Number.parseInt(entry, 10) : entry));
+}
+
+function exportRisksAssessmentCsv() {
+    if (!window.rms || !Array.isArray(rms.risks) || rms.risks.length === 0) {
+        if (typeof showNotification === 'function') {
+            showNotification('warning', 'Aucun risque à exporter.');
+        }
+        return;
+    }
+
+    const headers = [
+        'id', 'titre', 'description', 'processus', 'sousProcessus', 'typeCorruption', 'statut',
+        'probBrut', 'impactBrut', 'probNet', 'impactNet', 'mitigationEffectiveness',
+        'controls', 'actionPlans', 'tiers', 'paysExposes', 'dateCreation'
+    ];
+    const lines = [
+        headers.map(csvEscapeCell).join(';'),
+        ...rms.risks.map((risk) => {
+            const row = [
+                risk.id ?? '',
+                risk.titre ?? '',
+                risk.description ?? '',
+                risk.processus ?? '',
+                risk.sousProcessus ?? '',
+                risk.typeCorruption ?? '',
+                risk.statut ?? '',
+                risk.probBrut ?? '',
+                risk.impactBrut ?? '',
+                risk.probNet ?? '',
+                risk.impactNet ?? '',
+                risk.mitigationEffectiveness ?? '',
+                (risk.controls || []).join('|'),
+                (risk.actionPlans || []).join('|'),
+                (risk.tiers || []).join('|'),
+                (risk.paysExposes || []).join('|'),
+                risk.dateCreation ?? ''
+            ];
+            return row.map(csvEscapeCell).join(';');
+        })
+    ];
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    const filename = `risques-evaluation-${new Date().toISOString().slice(0, 10)}.csv`;
+    triggerBlobDownload(blob, filename);
+    if (typeof showNotification === 'function') {
+        showNotification('success', 'Export CSV des risques généré.');
+    }
+}
+window.exportRisksAssessmentCsv = exportRisksAssessmentCsv;
+
+function importRisksAssessmentCsv() {
+    if (!window.rms) return;
+    readCsvFile((content, filename) => {
+        try {
+            const rows = parseCsvText(content);
+            if (!rows.length) {
+                throw new Error('Aucune ligne exploitable');
+            }
+
+            const importedRisks = rows.map((row, index) => {
+                const id = row.id || row.identifiant || row.code || `risk-${Date.now()}-${index + 1}`;
+                const risk = {
+                    id,
+                    titre: row.titre || row.title || '',
+                    description: row.description || row.titre || row.title || 'Sans description',
+                    processus: row.processus || row.process || 'Non renseigné',
+                    sousProcessus: row.sousProcessus || row.subProcess || '',
+                    typeCorruption: row.typeCorruption || row.type || 'autre',
+                    statut: row.statut || row.status || 'brouillon',
+                    probBrut: toIntScore(row.probBrut, 2),
+                    impactBrut: toIntScore(row.impactBrut, 2),
+                    probNet: toIntScore(row.probNet, toIntScore(row.probBrut, 2)),
+                    impactNet: toIntScore(row.impactNet, toIntScore(row.impactBrut, 2)),
+                    mitigationEffectiveness: row.mitigationEffectiveness || '',
+                    controls: parseIds(row.controls),
+                    actionPlans: parseIds(row.actionPlans),
+                    tiers: row.tiers ? row.tiers.split('|').map(v => v.trim()).filter(Boolean) : [],
+                    paysExposes: row.paysExposes ? row.paysExposes.split('|').map(v => v.trim()).filter(Boolean) : [],
+                    dateCreation: row.dateCreation || new Date().toISOString()
+                };
+                if (typeof rms.normalizeRisk === 'function') {
+                    return rms.normalizeRisk(risk);
+                }
+                return risk;
+            });
+
+            const existing = new Map((rms.risks || []).map(risk => [String(risk.id), risk]));
+            importedRisks.forEach((risk) => existing.set(String(risk.id), { ...existing.get(String(risk.id)), ...risk }));
+            rms.risks = Array.from(existing.values());
+            if (typeof rms.saveData === 'function') {
+                rms.saveData();
+            }
+            if (typeof rms.renderAll === 'function') {
+                rms.renderAll();
+            }
+            if (typeof showNotification === 'function') {
+                showNotification('success', `${importedRisks.length} risque(s) importé(s) depuis ${filename}.`);
+            }
+        } catch (error) {
+            console.error('Import risques CSV impossible', error);
+            if (typeof showNotification === 'function') {
+                showNotification('error', `Import risques CSV impossible : ${error.message}`);
+            }
+        }
+    });
+}
+window.importRisksAssessmentCsv = importRisksAssessmentCsv;
+
+function exportControlsCsv() {
+    if (!window.rms || !Array.isArray(rms.controls) || rms.controls.length === 0) {
+        if (typeof showNotification === 'function') {
+            showNotification('warning', 'Aucun contrôle à exporter.');
+        }
+        return;
+    }
+
+    const headers = [
+        'id', 'reference', 'groupCode', 'name', 'type', 'origin', 'owner',
+        'frequency', 'mode', 'effectiveness', 'status', 'description', 'risks', 'dateCreation'
+    ];
+    const lines = [
+        headers.map(csvEscapeCell).join(';'),
+        ...rms.controls.map((control) => {
+            const row = [
+                control.id ?? '',
+                control.reference ?? '',
+                control.groupCode ?? '',
+                control.name ?? '',
+                control.type ?? '',
+                control.origin ?? '',
+                control.owner ?? '',
+                control.frequency ?? '',
+                control.mode ?? '',
+                control.effectiveness ?? '',
+                control.status ?? '',
+                control.description ?? '',
+                (control.risks || []).join('|'),
+                control.dateCreation ?? ''
+            ];
+            return row.map(csvEscapeCell).join(';');
+        })
+    ];
+
+    const blob = new Blob([`\uFEFF${lines.join('\n')}`], { type: 'text/csv;charset=utf-8;' });
+    const filename = `controles-${new Date().toISOString().slice(0, 10)}.csv`;
+    triggerBlobDownload(blob, filename);
+    if (typeof showNotification === 'function') {
+        showNotification('success', 'Export CSV des contrôles généré.');
+    }
+}
+window.exportControlsCsv = exportControlsCsv;
+
+function importControlsCsv() {
+    if (!window.rms) return;
+    readCsvFile((content, filename) => {
+        try {
+            const rows = parseCsvText(content);
+            if (!rows.length) {
+                throw new Error('Aucune ligne exploitable');
+            }
+
+            const importedControls = rows.map((row, index) => ({
+                id: row.id || row.identifiant || row.code || `control-${Date.now()}-${index + 1}`,
+                reference: row.reference || '',
+                groupCode: row.groupCode || '',
+                name: row.name || row.nom || `Contrôle ${index + 1}`,
+                type: row.type || 'a-priori',
+                origin: row.origin || 'interne',
+                owner: row.owner || '',
+                frequency: row.frequency || 'ad-hoc',
+                mode: row.mode || 'ongoing',
+                effectiveness: row.effectiveness || 'to-be-improved',
+                status: row.status || 'actif',
+                description: row.description || '',
+                risks: parseIds(row.risks),
+                dateCreation: row.dateCreation || new Date().toISOString().slice(0, 10)
+            }));
+
+            const existing = new Map((rms.controls || []).map(control => [String(control.id), control]));
+            importedControls.forEach((control) => existing.set(String(control.id), { ...existing.get(String(control.id)), ...control }));
+            rms.controls = Array.from(existing.values());
+            if (typeof rms.saveData === 'function') {
+                rms.saveData();
+            }
+            if (typeof rms.renderAll === 'function') {
+                rms.renderAll();
+            }
+            if (typeof showNotification === 'function') {
+                showNotification('success', `${importedControls.length} contrôle(s) importé(s) depuis ${filename}.`);
+            }
+        } catch (error) {
+            console.error('Import contrôles CSV impossible', error);
+            if (typeof showNotification === 'function') {
+                showNotification('error', `Import contrôles CSV impossible : ${error.message}`);
+            }
+        }
+    });
+}
+window.importControlsCsv = importControlsCsv;
+
 function exportOperationalData() {
     if (!window.rms) {
         console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
