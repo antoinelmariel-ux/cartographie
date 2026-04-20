@@ -5848,6 +5848,21 @@ class RiskManagementSystem {
                     risk.processus = '';
                     risk.sousProcessus = '';
                 }
+                if (Array.isArray(risk.processusAssocies) && risk.processusAssocies.length) {
+                    risk.processusAssocies = risk.processusAssocies.filter(item => item !== removedValue);
+                    risk.processus = risk.processusAssocies[0] || '';
+                }
+                if (Array.isArray(risk.sousProcessusAssocies) && risk.sousProcessusAssocies.length) {
+                    const validSubProcessValues = new Set();
+                    (risk.processusAssocies || []).forEach(processKey => {
+                        const entries = Array.isArray(this.config?.subProcesses?.[processKey])
+                            ? this.config.subProcesses[processKey]
+                            : [];
+                        entries.forEach(entry => validSubProcessValues.add(entry?.value));
+                    });
+                    risk.sousProcessusAssocies = risk.sousProcessusAssocies.filter(item => validSubProcessValues.has(item));
+                    risk.sousProcessus = risk.sousProcessusAssocies[0] || '';
+                }
             });
         }
 
@@ -5880,6 +5895,10 @@ class RiskManagementSystem {
             this.risks.forEach(risk => {
                 if (risk.processus === processValue && risk.sousProcessus === removedValue) {
                     risk.sousProcessus = '';
+                }
+                if (Array.isArray(risk.sousProcessusAssocies) && risk.sousProcessusAssocies.length) {
+                    risk.sousProcessusAssocies = risk.sousProcessusAssocies.filter(item => item !== removedValue);
+                    risk.sousProcessus = risk.sousProcessusAssocies[0] || '';
                 }
             });
         }
@@ -6334,6 +6353,10 @@ class RiskManagementSystem {
                             risk.sousProcessus = '';
                         }
                     }
+                    if (Array.isArray(risk.processusAssocies) && risk.processusAssocies.length) {
+                        risk.processusAssocies = risk.processusAssocies.map(item => item === previous.value ? value : item);
+                        risk.processus = risk.processusAssocies[0] || '';
+                    }
                 });
                 this.saveData();
             }
@@ -6608,6 +6631,12 @@ class RiskManagementSystem {
                 if (risk.processus === process && risk.sousProcessus === previous.value) {
                     risk.sousProcessus = value;
                 }
+                if (Array.isArray(risk.sousProcessusAssocies) && risk.sousProcessusAssocies.length) {
+                    risk.sousProcessusAssocies = risk.sousProcessusAssocies.map(item => item === previous.value ? value : item);
+                    if (risk.sousProcessusAssocies[0] !== undefined) {
+                        risk.sousProcessus = risk.sousProcessusAssocies[0] || '';
+                    }
+                }
             });
             this.saveData();
         }
@@ -6672,6 +6701,44 @@ class RiskManagementSystem {
         if (typeof renderRiskMultiSelectChips === 'function') {
             renderRiskMultiSelectChips('sousProcessus');
         }
+    }
+
+    getProcessLabel(processValue) {
+        const raw = processValue == null ? '' : String(processValue).trim();
+        if (!raw) {
+            return '';
+        }
+        const match = Array.isArray(this.config?.processes)
+            ? this.config.processes.find(entry => String(entry?.value || '').trim() === raw)
+            : null;
+        return match?.label || raw;
+    }
+
+    getSubProcessLabel(processValue, subProcessValue) {
+        const raw = subProcessValue == null ? '' : String(subProcessValue).trim();
+        if (!raw) {
+            return '';
+        }
+        const processRaw = processValue == null ? '' : String(processValue).trim();
+        const scopedList = processRaw && Array.isArray(this.config?.subProcesses?.[processRaw])
+            ? this.config.subProcesses[processRaw]
+            : [];
+        const scopedMatch = scopedList.find(entry => String(entry?.value || '').trim() === raw);
+        if (scopedMatch?.label) {
+            return scopedMatch.label;
+        }
+
+        if (this.config?.subProcesses && typeof this.config.subProcesses === 'object') {
+            const allLists = Object.values(this.config.subProcesses).filter(Array.isArray);
+            for (let index = 0; index < allLists.length; index += 1) {
+                const match = allLists[index].find(entry => String(entry?.value || '').trim() === raw);
+                if (match?.label) {
+                    return match.label;
+                }
+            }
+        }
+
+        return raw;
     }
 
     getInterviewFilePath(fileName) {
@@ -7841,10 +7908,10 @@ class RiskManagementSystem {
                 else if (score > 4) scoreClass = 'medium';
 
                 const processLabel = risk?.processus && String(risk.processus).trim()
-                    ? String(risk.processus).trim()
+                    ? this.getProcessLabel(String(risk.processus).trim())
                     : 'Not defined';
                 const sp = risk?.sousProcessus && String(risk.sousProcessus).trim()
-                    ? ` > ${String(risk.sousProcessus).trim()}`
+                    ? ` > ${this.getSubProcessLabel(risk?.processus, String(risk.sousProcessus).trim())}`
                     : '';
                 const typeLabel = resolveTypeLabel(risk?.typeCorruption);
                 const formattedScore = Number.isFinite(score)
@@ -8138,12 +8205,14 @@ class RiskManagementSystem {
             .map((entry, index) => {
                 const risk = entry.risk || {};
                 const subProcessRaw = risk.sousProcessus;
-                const subProcessLabel = subProcessRaw && String(subProcessRaw).trim() ? subProcessRaw : '';
+                const subProcessLabel = subProcessRaw && String(subProcessRaw).trim()
+                    ? this.getSubProcessLabel(risk.processus, String(subProcessRaw).trim())
+                    : '';
                 return {
                     rank: index + 1,
                     id: risk.id,
                     titre: risk.titre || risk.description || 'Risque sans titre',
-                    processus: risk.processus || 'Not defined',
+                    processus: this.getProcessLabel(risk.processus) || 'Not defined',
                     sousProcessus: subProcessLabel,
                     score: Number.isFinite(entry.score) ? entry.score : 0,
                     brutScore: Number.isFinite(entry.brutScore) ? entry.brutScore : 0,
@@ -8154,7 +8223,9 @@ class RiskManagementSystem {
 
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
-            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Not defined';
+            const label = rawLabel && String(rawLabel).trim()
+                ? this.getProcessLabel(String(rawLabel).trim())
+                : 'Not defined';
             if (!acc[label]) {
                 acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
             }
@@ -8649,7 +8720,7 @@ class RiskManagementSystem {
                 return {
                     id: risk.id,
                     description: risk.description || risk.titre || 'Sans description',
-                    process: risk.processus || risk.process || '-',
+                    process: this.getProcessLabel(risk.processus || risk.process) || '-',
                     level: severityLabels[severityKey] || 'Modéré',
                     severity: severityKey,
                     score,
@@ -8837,9 +8908,11 @@ class RiskManagementSystem {
                     const risk = entry.risk || {};
                     const rank = index + 1;
                     const title = risk.titre || risk.description || 'Risque sans titre';
-                    const processLabel = risk.processus || 'Not defined';
+                    const processLabel = this.getProcessLabel(risk.processus) || 'Not defined';
                     const subProcessRaw = risk.sousProcessus;
-                    const subProcessLabel = subProcessRaw && String(subProcessRaw).trim() ? subProcessRaw : '—';
+                    const subProcessLabel = subProcessRaw && String(subProcessRaw).trim()
+                        ? this.getSubProcessLabel(risk.processus, String(subProcessRaw).trim())
+                        : '—';
                     const scoreLabel = Number.isFinite(entry.score)
                         ? entry.score.toLocaleString('fr-FR')
                         : '0';
@@ -9219,8 +9292,8 @@ class RiskManagementSystem {
                 <tr>
                     <td>#${risk.id}</td>
                     <td>${risk.description}</td>
-                    <td>${risk.processus}</td>
-                    <td>${risk.sousProcessus || ''}</td>
+                    <td>${this.getProcessLabel(risk.processus)}</td>
+                    <td>${this.getSubProcessLabel(risk.processus, risk.sousProcessus) || ''}</td>
                     <td>${typeLabel}</td>
                     <td>${tierLabels.join(', ')}</td>
                     <td>${brutLabel}</td>
