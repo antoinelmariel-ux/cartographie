@@ -6049,6 +6049,47 @@ tbody tr:hover {
     gap: 12px;
 }
 
+.qa-overview-matrix-layout {
+    display: grid;
+    grid-template-columns: 140px 1fr;
+    gap: 12px;
+    align-items: start;
+}
+
+.qa-overview-matrix-stage {
+    width: 100%;
+}
+
+.qa-overview-row-labels,
+.qa-overview-col-labels {
+    color: #0f2544;
+    font-weight: 600;
+}
+
+.qa-overview-row-labels {
+    display: grid;
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    min-height: 520px;
+}
+
+.qa-overview-row-labels span {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    text-align: right;
+    padding-right: 4px;
+}
+
+.qa-overview-col-labels {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    margin-top: 10px;
+}
+
+.qa-overview-col-labels span {
+    text-align: center;
+}
+
 .qa-overview-list {
     display: flex;
     flex-direction: column;
@@ -6096,6 +6137,20 @@ tbody tr:hover {
     .qa-assessment-grid,
     .qa-overview-grid {
         grid-template-columns: 1fr;
+    }
+    .qa-overview-matrix-layout {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+    .qa-overview-row-labels {
+        min-height: auto;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-rows: 1fr;
+    }
+    .qa-overview-row-labels span {
+        justify-content: center;
+        text-align: center;
+        padding-right: 0;
     }
     .qa-assessment-grid {
         grid-template-areas:
