@@ -954,6 +954,123 @@ class RiskManagementSystem {
         return { themes, activeId: resolvedActive };
     }
 
+    normalizeStatusKey(value) {
+        if (value == null) {
+            return '';
+        }
+
+        let normalized = String(value).trim().toLowerCase();
+        if (!normalized) {
+            return '';
+        }
+
+        if (typeof normalized.normalize === 'function') {
+            normalized = normalized.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        }
+
+        return normalized
+            .replace(/[_\s]+/g, '-')
+            .replace(/[^a-z0-9-]/g, '')
+            .replace(/-+/g, '-')
+            .replace(/^-|-$/g, '');
+    }
+
+    getStatusAliasesByType(type) {
+        const aliases = {
+            risk: {
+                brouillon: ['draft'],
+                'a-valider': ['a-valider', 'a valider', 'to-validate', 'to validate'],
+                'validé': ['valide', 'validee', 'validé', 'valida', 'validate', 'validated'],
+                archive: ['archive', 'archived']
+            },
+            control: {
+                actif: ['active'],
+                'en-mise-en-place': ['en mise en place', 'being-implemented', 'being implemented'],
+                'en-revision': ['en revision', 'under-review', 'under review'],
+                obsolete: ['obsolete', 'obsoletee', 'obsolet']
+            },
+            actionPlan: {
+                brouillon: ['draft'],
+                'a-demarrer': ['a demarrer', 'to-start', 'to start'],
+                'en-cours': ['en cours', 'in-progress', 'in progress'],
+                termine: ['termine', 'terminee', 'completed']
+            }
+        };
+
+        return aliases[type] || {};
+    }
+
+    normalizeStatusValue(type, ...candidates) {
+        const aliasDefinition = this.getStatusAliasesByType(type);
+        const aliasMap = {};
+
+        Object.entries(aliasDefinition).forEach(([canonicalValue, values]) => {
+            const canonicalKey = this.normalizeStatusKey(canonicalValue);
+            if (canonicalKey) {
+                aliasMap[canonicalKey] = canonicalValue;
+            }
+            (Array.isArray(values) ? values : []).forEach(alias => {
+                const aliasKey = this.normalizeStatusKey(alias);
+                if (aliasKey) {
+                    aliasMap[aliasKey] = canonicalValue;
+                }
+            });
+        });
+
+        const configKeyByType = {
+            risk: 'riskStatuses',
+            control: 'controlStatuses',
+            actionPlan: 'actionPlanStatuses'
+        };
+        const configKey = configKeyByType[type];
+        const statusOptions = Array.isArray(this.config?.[configKey]) ? this.config[configKey] : [];
+
+        statusOptions.forEach(option => {
+            const canonicalValue = option?.value != null ? String(option.value) : '';
+            const canonicalKey = this.normalizeStatusKey(canonicalValue);
+            if (!canonicalKey) {
+                return;
+            }
+            if (!aliasMap[canonicalKey]) {
+                aliasMap[canonicalKey] = canonicalValue;
+            }
+            const labelKey = this.normalizeStatusKey(option?.label);
+            if (labelKey && !aliasMap[labelKey]) {
+                aliasMap[labelKey] = canonicalValue;
+            }
+        });
+
+        for (const candidate of candidates) {
+            const candidateKey = this.normalizeStatusKey(candidate);
+            if (!candidateKey) {
+                continue;
+            }
+            if (aliasMap[candidateKey]) {
+                return aliasMap[candidateKey];
+            }
+        }
+
+        const fallback = candidates.find(candidate => this.normalizeStatusKey(candidate));
+        return fallback != null ? String(fallback).trim() : '';
+    }
+
+    getStatusLabel(type, ...candidates) {
+        const normalizedValue = this.normalizeStatusValue(type, ...candidates);
+        if (!normalizedValue) {
+            return '';
+        }
+
+        const configKeyByType = {
+            risk: 'riskStatuses',
+            control: 'controlStatuses',
+            actionPlan: 'actionPlanStatuses'
+        };
+        const configKey = configKeyByType[type];
+        const statusOptions = Array.isArray(this.config?.[configKey]) ? this.config[configKey] : [];
+        const option = statusOptions.find(item => this.normalizeStatusValue(type, item?.value) === normalizedValue);
+        return option?.label || normalizedValue;
+    }
+
     normalizeRisk(risk) {
         if (!risk || typeof risk !== 'object') {
             return {};
@@ -1077,6 +1194,14 @@ class RiskManagementSystem {
         if (typeof getNetImpactValueFromSeverity === 'function') {
             normalized.impactNet = getNetImpactValueFromSeverity(severity);
         }
+
+        normalized.statut = this.normalizeStatusValue(
+            'risk',
+            risk?.statut,
+            risk?.status,
+            risk?.statusLabel,
+            risk?.state
+        ) || 'brouillon';
 
         return normalized;
     }
@@ -7506,8 +7631,18 @@ class RiskManagementSystem {
                 }
             }
 
-            if (status && risk?.statut !== status) {
-                return false;
+            if (status) {
+                const riskStatus = this.normalizeStatusValue(
+                    'risk',
+                    risk?.statut,
+                    risk?.status,
+                    risk?.statusLabel,
+                    risk?.state
+                );
+                const filterStatus = this.normalizeStatusValue('risk', status);
+                if (riskStatus !== filterStatus) {
+                    return false;
+                }
             }
 
             if (searchFilter) {
@@ -7532,32 +7667,24 @@ class RiskManagementSystem {
     }
 
     getRisksByStatus(status) {
-        const normalize = (value) => {
-            if (value == null) {
-                return '';
-            }
-
-            const str = String(value).trim().toLowerCase();
-            if (typeof str.normalize === 'function') {
-                return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-            }
-            return str;
-        };
-
         const sourceRisks = Array.isArray(this.risks) ? this.risks : [];
         if (!status) {
             return sourceRisks.slice();
         }
 
-        const targetStatus = normalize(status);
+        const targetStatus = this.normalizeStatusValue('risk', status);
         if (!targetStatus) {
             return sourceRisks.slice();
         }
 
-        const statusKeys = ['statut', 'status', 'statusLabel', 'state'];
-
         return sourceRisks.filter(risk => {
-            return statusKeys.some(key => normalize(risk?.[key]) === targetStatus);
+            return this.normalizeStatusValue(
+                'risk',
+                risk?.statut,
+                risk?.status,
+                risk?.statusLabel,
+                risk?.state
+            ) === targetStatus;
         });
     }
 
@@ -7795,7 +7922,7 @@ class RiskManagementSystem {
             : 0;
 
         const allControls = Array.isArray(this.controls) ? this.controls : [];
-        const activeControlsList = allControls.filter(control => String(control?.status || '').toLowerCase() === 'actif');
+        const activeControlsList = allControls.filter(control => this.normalizeStatusValue('control', control?.status) === 'actif');
         const activeControls = activeControlsList.length;
         const totalControls = allControls.length;
 
@@ -7910,17 +8037,17 @@ class RiskManagementSystem {
         const statusOptions = Array.isArray(this.config?.actionPlanStatuses)
             ? this.config.actionPlanStatuses.filter(option => option && option.value !== undefined && option.value !== null)
             : [];
-        const statusOrder = statusOptions.map(option => String(option.value).toLowerCase());
+        const statusOrder = statusOptions.map(option => this.normalizeStatusValue('actionPlan', option.value));
         const statusLabelMap = statusOptions.reduce((acc, option) => {
-            const key = String(option.value).toLowerCase();
+            const key = this.normalizeStatusValue('actionPlan', option.value);
             acc[key] = option.label || option.value;
             return acc;
         }, {});
 
         const statusCounts = actionPlans.reduce((acc, plan) => {
-            const rawStatus = plan?.status ?? '';
+            const rawStatus = plan?.status ?? plan?.statut ?? plan?.statusLabel ?? '';
             const rawString = rawStatus != null ? String(rawStatus).trim() : '';
-            const normalizedStatus = rawString ? rawString.toLowerCase() : '';
+            const normalizedStatus = this.normalizeStatusValue('actionPlan', rawStatus);
             const key = normalizedStatus || '__undefined__';
 
             if (!acc[key]) {
@@ -8123,12 +8250,12 @@ class RiskManagementSystem {
 
         const formatControlTypeDistribution = (distribution, total) => {
             if (!total) {
-                return 'Aucun contrôle actif';
+                return 'No active control';
             }
 
             if (!Array.isArray(distribution) || distribution.length === 0) {
                 const plural = total > 1 ? 's' : '';
-                return `${total} contrôle${plural} actif${plural}`;
+                return `${total} active control${plural}`;
             }
 
             return distribution.map((item) => {
@@ -8238,7 +8365,7 @@ class RiskManagementSystem {
 
             if (summaryElement) {
                 if (totalPlans === 0 || distribution.length === 0) {
-                    summaryElement.innerHTML = '<div class="plan-status-empty">Aucun plan d\'action enregistré</div>';
+                    summaryElement.innerHTML = '<div class="plan-status-empty">No action plan recorded</div>';
                 } else {
                     const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (match) => {
                         const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
@@ -8257,7 +8384,7 @@ class RiskManagementSystem {
                                     <span class="plan-status-color" style="background-color: ${color};"></span>
                                     <span class="plan-status-label">${label}</span>
                                 </div>
-                                <span class="plan-status-count">${count} ${plural} d'action</span>
+                                <span class="plan-status-count">${count} ${plural}</span>
                             </div>
                         `;
                     }).join('');
@@ -8497,17 +8624,22 @@ class RiskManagementSystem {
                     return null;
                 }
 
-                const statusKeys = ['statut', 'status', 'statusLabel', 'state'];
-                const riskStatus = statusKeys
-                    .map(key => normalizeValue(risk?.[key]))
-                    .find(value => Boolean(value));
-                if (riskStatus !== 'valide') {
+                const riskStatus = this.normalizeStatusValue(
+                    'risk',
+                    risk?.statut,
+                    risk?.status,
+                    risk?.statusLabel,
+                    risk?.state
+                );
+                if (riskStatus !== 'validé') {
                     return null;
                 }
 
                 const associatedPlans = collectPlansForRisk(risk);
                 const hasPlans = associatedPlans.length > 0;
-                const hasDraftPlan = associatedPlans.some(plan => normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel) === 'brouillon');
+                const hasDraftPlan = associatedPlans.some(
+                    plan => this.normalizeStatusValue('actionPlan', plan?.status, plan?.statut, plan?.statusLabel) === 'brouillon'
+                );
 
                 if (hasPlans && !hasDraftPlan) {
                     return null;
@@ -8537,14 +8669,6 @@ class RiskManagementSystem {
                 return getTime(b) - getTime(a);
             });
 
-        const statusMap = (this.config?.actionPlanStatuses || []).reduce((acc, item) => {
-            const key = normalizeValue(item?.value);
-            if (key) {
-                acc[key] = item?.label || item?.value;
-            }
-            return acc;
-        }, {});
-
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const todayTime = today.getTime();
@@ -8552,8 +8676,8 @@ class RiskManagementSystem {
         const overdueActionPlans = (Array.isArray(this.actionPlans) ? this.actionPlans : [])
             .map(plan => {
                 const dueDate = parsePlanDueDate(plan?.dueDate);
-                const statusValue = normalizeValue(plan?.status ?? plan?.statut ?? plan?.statusLabel);
-                const statusLabel = statusMap[statusValue] || plan?.statusLabel || plan?.status || plan?.statut || '-';
+                const statusValue = this.normalizeStatusValue('actionPlan', plan?.status, plan?.statut, plan?.statusLabel);
+                const statusLabel = this.getStatusLabel('actionPlan', statusValue, plan?.statusLabel, plan?.status, plan?.statut) || '-';
                 return {
                     plan,
                     dueDate,
@@ -8632,7 +8756,7 @@ class RiskManagementSystem {
             if (overdueActionPlans.length === 0) {
                 plansBody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="table-empty">No action plan en retard</td>
+                        <td colspan="4" class="table-empty">No overdue action plan</td>
                     </tr>
                 `;
             } else {
@@ -9079,6 +9203,17 @@ class RiskManagementSystem {
             const tierLabels = Array.isArray(risk.tiers)
                 ? risk.tiers.map(tier => resolveLabel(tierMap, tier))
                 : [];
+            const riskStatusValue = this.normalizeStatusValue(
+                'risk',
+                risk?.statut,
+                risk?.status,
+                risk?.statusLabel,
+                risk?.state
+            );
+            const riskStatusLabel = this.getStatusLabel('risk', riskStatusValue, risk?.statusLabel, risk?.status, risk?.statut);
+            const riskBadgeClass = riskStatusValue === 'validé'
+                ? 'success'
+                : (riskStatusValue === 'archive' ? 'danger' : 'warning');
 
             return `
                 <tr>
@@ -9090,7 +9225,7 @@ class RiskManagementSystem {
                     <td>${tierLabels.join(', ')}</td>
                     <td>${brutLabel}</td>
                     <td title="Réduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
-                    <td><span class="table-badge badge-${risk.statut === 'validé' ? 'success' : risk.statut === 'archive' ? 'danger' : 'warning'}">${risk.statut}</span></td>
+                    <td><span class="table-badge badge-${riskBadgeClass}">${riskStatusLabel || 'Not defined'}</span></td>
                     <td class="table-actions-cell">
                         <div class="table-actions">
                             <button class="action-btn" title="Dupliquer" onclick="rms.duplicateRisk(${JSON.stringify(risk.id)})">📄</button>
@@ -9110,7 +9245,7 @@ class RiskManagementSystem {
 
         const typeFilter = String(type || '').toLowerCase();
         const originFilter = String(origin || '').toLowerCase();
-        const statusFilter = String(status || '').toLowerCase();
+        const statusFilter = this.normalizeStatusValue('control', status);
         const searchTerm = String(search || '').trim().toLowerCase();
 
         if (!typeFilter && !originFilter && !statusFilter && !searchTerm) {
@@ -9120,7 +9255,7 @@ class RiskManagementSystem {
         return controls.filter(control => {
             const controlType = String(control?.type || '').toLowerCase();
             const controlOrigin = String(control?.origin || '').toLowerCase();
-            const controlStatus = String(control?.status || '').toLowerCase();
+            const controlStatus = this.normalizeStatusValue('control', control?.status, control?.statusLabel, control?.statut);
             const controlName = String(control?.name || '').toLowerCase();
             const controlOwner = String(control?.owner || '').toLowerCase();
 
@@ -9188,7 +9323,8 @@ class RiskManagementSystem {
 
         const statusMap = (this.config.controlStatuses || []).reduce((acc, item) => {
             if (item && item.value !== undefined && item.value !== null) {
-                acc[String(item.value).toLowerCase()] = item.label || item.value;
+                const normalizedValue = this.normalizeStatusValue('control', item.value);
+                acc[normalizedValue] = item.label || item.value;
             }
             return acc;
         }, {});
@@ -9204,9 +9340,11 @@ class RiskManagementSystem {
             const originLabel = normalizedOrigin ? (originMap[normalizedOrigin] || rawOrigin) : '';
             const originClass = normalizedOrigin ? normalizedOrigin.replace(/[^a-z0-9-]+/g, '-') : 'origin-undefined';
             const ownerLabel = control?.owner || '';
-            const rawStatus = control?.status ?? '';
-            const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
-            const statusLabel = normalizedStatus ? (statusMap[normalizedStatus] || rawStatus) : '';
+            const rawStatus = control?.status ?? control?.statusLabel ?? control?.statut ?? '';
+            const normalizedStatus = this.normalizeStatusValue('control', rawStatus);
+            const statusLabel = normalizedStatus
+                ? (statusMap[normalizedStatus] || this.getStatusLabel('control', normalizedStatus, rawStatus) || rawStatus)
+                : '';
             const statusClass = normalizedStatus ? normalizedStatus.replace(/[^a-z0-9-]+/g, '-') : '';
 
             return `
@@ -9245,13 +9383,13 @@ class RiskManagementSystem {
             dueDateOrder = ''
         } = this.actionPlanFilters || {};
 
-        const statusFilter = String(status || '').toLowerCase();
+        const statusFilter = this.normalizeStatusValue('actionPlan', status);
         const nameFilter = String(name || '').trim().toLowerCase();
         const ownerFilter = String(owner || '').trim().toLowerCase();
         const dueDateOrderFilter = String(dueDateOrder || '').toLowerCase();
 
         const filteredPlans = plans.filter(plan => {
-            const planStatus = String(plan?.status || '').toLowerCase();
+            const planStatus = this.normalizeStatusValue('actionPlan', plan?.status, plan?.statut, plan?.statusLabel);
             if (statusFilter && planStatus !== statusFilter) {
                 return false;
             }
@@ -9354,7 +9492,8 @@ class RiskManagementSystem {
 
         const statusMap = (this.config.actionPlanStatuses || []).reduce((acc, item) => {
             if (item && item.value !== undefined && item.value !== null) {
-                acc[String(item.value).toLowerCase()] = item.label || item.value;
+                const normalizedValue = this.normalizeStatusValue('actionPlan', item.value);
+                acc[normalizedValue] = item.label || item.value;
             }
             return acc;
         }, {});
@@ -9379,9 +9518,11 @@ class RiskManagementSystem {
 
         container.innerHTML = filteredPlans.map(plan => {
             const planTitle = plan?.title || 'Plan sans titre';
-            const rawStatus = plan?.status ?? '';
-            const normalizedStatus = rawStatus ? String(rawStatus).toLowerCase() : '';
-            const statusLabel = normalizedStatus ? (statusMap[normalizedStatus] || rawStatus) : '';
+            const rawStatus = plan?.status ?? plan?.statut ?? plan?.statusLabel ?? '';
+            const normalizedStatus = this.normalizeStatusValue('actionPlan', rawStatus);
+            const statusLabel = normalizedStatus
+                ? (statusMap[normalizedStatus] || this.getStatusLabel('actionPlan', normalizedStatus, rawStatus) || rawStatus)
+                : '';
             const statusClass = normalizedStatus ? normalizedStatus.replace(/[^a-z0-9-]+/g, '-') : '';
             const ownerLabel = plan?.owner ? String(plan.owner) : '';
             const dueDateLabel = formatDueDate(plan?.dueDate);
@@ -11521,7 +11662,33 @@ class RiskManagementSystem {
         };
 
         const rows = data.map(row => {
-            return headers.map(header => escapeValue(row ? row[header] : undefined)).join(',');
+            const inferStatusType = (entry) => {
+                if (!entry || typeof entry !== 'object') {
+                    return 'risk';
+                }
+                if ('dueDate' in entry || 'title' in entry) {
+                    return 'actionPlan';
+                }
+                if ('origin' in entry || 'effectiveness' in entry || 'name' in entry) {
+                    return 'control';
+                }
+                return 'risk';
+            };
+
+            return headers.map(header => {
+                if (!row) {
+                    return escapeValue(undefined);
+                }
+
+                const rawValue = row[header];
+                if (['statut', 'status', 'statusLabel', 'state'].includes(header)) {
+                    const type = inferStatusType(row);
+                    const label = this.getStatusLabel(type, rawValue, row.status, row.statut, row.statusLabel, row.state);
+                    return escapeValue(label || rawValue);
+                }
+
+                return escapeValue(rawValue);
+            }).join(',');
         });
 
         return [headers.join(','), ...rows].join('\n');
