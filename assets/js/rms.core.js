@@ -898,7 +898,7 @@ class RiskManagementSystem {
         baseThemes.forEach((theme, themeIndex) => {
             const title = typeof theme?.name === 'string' && theme.name.trim()
                 ? theme.name.trim()
-                : `Thème ${themeIndex + 1}`;
+                : `Theme ${themeIndex + 1}`;
             const rawId = typeof theme?.id === 'string' && theme.id.trim()
                 ? theme.id.trim()
                 : (typeof slugifyLabel === 'function'
@@ -2962,9 +2962,9 @@ class RiskManagementSystem {
         if (!container) return;
 
         const availableSections = [
-            { id: 'processManager', label: 'Processus & référents' },
-            { id: 'general', label: 'Autres paramètres' },
-            { id: 'history', label: 'Historique des modifications' }
+            { id: 'processManager', label: 'Processes & referents' },
+            { id: 'general', label: 'Other settings' },
+            { id: 'history', label: 'Change history' }
         ];
 
         if (!this.currentConfigSection || !availableSections.some(section => section.id === this.currentConfigSection)) {
@@ -3100,7 +3100,7 @@ class RiskManagementSystem {
             },
             {
                 key: 'mindMapThemes',
-                label: 'Thèmes du mindmap',
+                label: 'Mind map themes',
                 renderer: (body) => this.renderMindMapThemeManager(body)
             },
             {
@@ -3638,18 +3638,18 @@ class RiskManagementSystem {
 
         const title = document.createElement('h2');
         title.className = 'admin-section-title';
-        title.textContent = 'Historique des modifications';
+        title.textContent = 'Change history';
         header.appendChild(title);
 
         const exportBtn = document.createElement('button');
         exportBtn.type = 'button';
         exportBtn.className = 'btn btn-secondary';
-        exportBtn.textContent = '📤 Exporter';
+        exportBtn.textContent = '📤 Export';
         exportBtn.addEventListener('click', () => {
             if (typeof exportHistory === 'function') {
                 exportHistory();
             } else {
-                console.warn('Fonction exportHistory indisponible.');
+                console.warn('exportHistory function unavailable.');
             }
         });
         header.appendChild(exportBtn);
@@ -3738,7 +3738,7 @@ class RiskManagementSystem {
         this.refreshMindMapFromThemes();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Thème activé pour le mindmap.');
+            showNotification('success', 'Theme enabled for the mind map.');
         }
         return true;
     }
@@ -3747,7 +3747,7 @@ class RiskManagementSystem {
         const themes = this.ensureMindMapThemesArray();
         const name = typeof payload.name === 'string' && payload.name.trim()
             ? payload.name.trim()
-            : 'Nouveau thème';
+            : 'New theme';
         const id = this.generateMindMapThemeId(name);
 
         const template = Array.isArray(payload.columns) && payload.columns.length
@@ -3779,7 +3779,7 @@ class RiskManagementSystem {
         const copyId = this.generateMindMapThemeId(`${target.name || target.id}-copie`);
         const copy = {
             id: copyId,
-            name: `${target.name || 'Thème'} (copie)`,
+            name: `${target.name || 'Theme'} (copy)`,
             columns: target.columns.map(column => ({ ...column }))
         };
 
@@ -3788,7 +3788,7 @@ class RiskManagementSystem {
         this.renderMindMapThemeManager(this.mindMapThemeManagerContainer);
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Thème dupliqué.');
+            showNotification('success', 'Theme duplicated.');
         }
         return true;
     }
@@ -3928,7 +3928,7 @@ class RiskManagementSystem {
 
         const helper = document.createElement('p');
         helper.className = 'config-template-helper';
-        helper.textContent = 'Créez plusieurs thèmes de mindmap et personnalisez les colonnes, leur ordre et leur intitulé.';
+        helper.textContent = 'Create multiple mind map themes and customize columns, their order, and labels.';
         wrapper.appendChild(helper);
 
         const themes = this.ensureMindMapThemesArray();
@@ -3941,7 +3941,7 @@ class RiskManagementSystem {
         if (!themes.length) {
             const empty = document.createElement('div');
             empty.className = 'config-template-empty';
-            empty.textContent = 'Aucun thème défini pour le moment.';
+            empty.textContent = 'No themes defined yet.';
             list.appendChild(empty);
         } else {
             themes.forEach(theme => {
@@ -3962,7 +3962,7 @@ class RiskManagementSystem {
                     if (theme.id === activeId) {
                         const badge = document.createElement('span');
                         badge.className = 'mindmap-theme-badge';
-                        badge.textContent = 'Thème actif';
+                        badge.textContent = 'Active theme';
                         header.appendChild(badge);
                     }
 
@@ -3990,7 +3990,7 @@ class RiskManagementSystem {
                     const activateButton = document.createElement('button');
                     activateButton.type = 'button';
                     activateButton.className = 'btn btn-secondary';
-                    activateButton.textContent = theme.id === activeId ? 'Thème sélectionné' : 'Définir comme thème actif';
+                    activateButton.textContent = theme.id === activeId ? 'Selected theme' : 'Set as active theme';
                     activateButton.disabled = theme.id === activeId;
                     activateButton.addEventListener('click', () => {
                         this.setMindMapActiveTheme(theme.id);
@@ -4150,7 +4150,7 @@ class RiskManagementSystem {
 
         const addTitle = document.createElement('p');
         addTitle.className = 'config-template-helper';
-        addTitle.textContent = 'Créer un nouveau thème';
+        addTitle.textContent = 'Create a new theme';
         addForm.appendChild(addTitle);
 
         const nameInput = document.createElement('input');
@@ -4291,7 +4291,7 @@ class RiskManagementSystem {
 
         this.saveConfig();
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Configuration mindmap enregistrée.');
+            showNotification('success', 'Mind map configuration saved.');
         }
     }
 
@@ -4304,7 +4304,7 @@ class RiskManagementSystem {
 
         const helper = document.createElement('p');
         helper.className = 'config-template-helper';
-        helper.textContent = 'Configurez ici les catégories, tags et questions du module mindmap. Ces réglages sont partagés pour toutes les cartes.';
+        helper.textContent = 'Configure categories, tags, and questions for the mind map module here. These settings are shared across all maps.';
         container.appendChild(helper);
 
         const actions = document.createElement('div');
@@ -4314,13 +4314,13 @@ class RiskManagementSystem {
         const saveButton = document.createElement('button');
         saveButton.type = 'button';
         saveButton.className = 'btn btn-success';
-        saveButton.textContent = 'Enregistrer la configuration mindmap';
+        saveButton.textContent = 'Save mind map configuration';
         actions.appendChild(saveButton);
 
         const frame = document.createElement('iframe');
         frame.className = 'mindmap-module-frame';
         frame.id = 'mindmapModuleAdminFrame';
-        frame.title = 'Configuration des cartes Mindmap';
+        frame.title = 'Mind map card configuration';
         frame.setAttribute('loading', 'lazy');
         frame.src = 'mindmap/index.html?admin=1&tab=tab-notes';
         frame.addEventListener('load', () => {
@@ -4347,7 +4347,7 @@ class RiskManagementSystem {
 
         const helper = document.createElement('p');
         helper.className = 'config-template-helper';
-        helper.textContent = "Créez, modifiez et réutilisez des trames pour préremplir vos comptes-rendus d'entretien.";
+        helper.textContent = "Create, edit, and reuse templates to prefill interview reports.";
         manager.appendChild(helper);
 
         const listWrapper = document.createElement('div');
@@ -4359,7 +4359,7 @@ class RiskManagementSystem {
         if (!templates.length) {
             const empty = document.createElement('div');
             empty.className = 'config-template-empty';
-            empty.textContent = 'Aucune trame définie pour le moment.';
+            empty.textContent = 'No templates defined yet.';
             listWrapper.appendChild(empty);
         } else {
             templates.forEach((template, index) => {
@@ -4375,12 +4375,12 @@ class RiskManagementSystem {
 
                     const title = document.createElement('div');
                     title.className = 'config-template-title';
-                    title.textContent = template.label || 'Trame sans titre';
+                    title.textContent = template.label || 'Untitled template';
                     header.appendChild(title);
 
                     const slug = document.createElement('div');
                     slug.className = 'config-template-slug';
-                    slug.textContent = template.value ? `ID : ${template.value}` : 'Identifiant non défini';
+                    slug.textContent = template.value ? `ID : ${template.value}` : 'Identifier not set';
                     header.appendChild(slug);
 
                     card.appendChild(header);
@@ -4390,7 +4390,7 @@ class RiskManagementSystem {
                     if (template.content && String(template.content).trim()) {
                         preview.innerHTML = template.content;
                     } else {
-                        preview.innerHTML = '<p class="config-template-empty">Contenu non renseigné.</p>';
+                        preview.innerHTML = '<p class="config-template-empty">No content provided.</p>';
                     }
                     card.appendChild(preview);
 
@@ -4460,9 +4460,9 @@ class RiskManagementSystem {
 
                         if (!payload.label || !payload.value) {
                             if (typeof showNotification === 'function') {
-                                showNotification('error', 'Renseignez un libellé et un identifiant pour la trame.');
+                                showNotification('error', 'Provide a label and an identifier for the template.');
                             } else {
-                                alert('Renseignez un libellé et un identifiant pour la trame.');
+                                alert('Provide a label and an identifier for the template.');
                             }
                             return;
                         }
@@ -4531,9 +4531,9 @@ class RiskManagementSystem {
 
             if (!payload.label || !payload.value) {
                 if (typeof showNotification === 'function') {
-                    showNotification('error', 'Renseignez un libellé et un identifiant pour la trame.');
+                    showNotification('error', 'Provide a label and an identifier for the template.');
                 } else {
-                    alert('Renseignez un libellé et un identifiant pour la trame.');
+                    alert('Provide a label and an identifier for the template.');
                 }
                 return;
             }
@@ -4557,9 +4557,9 @@ class RiskManagementSystem {
         const duplicate = templates.some(template => template.value === normalized.value);
         if (duplicate) {
             if (typeof showNotification === 'function') {
-                showNotification('error', 'Un identifiant identique est déjà utilisé pour une autre trame.');
+                showNotification('error', 'This identifier is already used by another template.');
             } else {
-                alert('Un identifiant identique est déjà utilisé pour une autre trame.');
+                alert('This identifier is already used by another template.');
             }
             return false;
         }
@@ -4570,7 +4570,7 @@ class RiskManagementSystem {
         this.renderInterviewTemplateChoices();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Trame ajoutée avec succès');
+            showNotification('success', 'Template added successfully');
         }
         return true;
     }
@@ -4590,9 +4590,9 @@ class RiskManagementSystem {
         const duplicate = templates.some((template, idx) => idx !== index && template.value === normalized.value);
         if (duplicate) {
             if (typeof showNotification === 'function') {
-                showNotification('error', 'Un identifiant identique est déjà utilisé pour une autre trame.');
+                showNotification('error', 'This identifier is already used by another template.');
             } else {
-                alert('Un identifiant identique est déjà utilisé pour une autre trame.');
+                alert('This identifier is already used by another template.');
             }
             return false;
         }
@@ -4603,7 +4603,7 @@ class RiskManagementSystem {
         this.renderInterviewTemplateChoices();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Trame mise à jour');
+            showNotification('success', 'Template updated');
         }
         return true;
     }
@@ -4618,7 +4618,7 @@ class RiskManagementSystem {
         const label = target?.label ? `« ${target.label} »` : 'cette trame';
 
         if (typeof window !== 'undefined') {
-            const confirmed = window.confirm(`Confirmez-vous la suppression de ${label} ?`);
+            const confirmed = window.confirm(`Do you confirm deleting ${label} ?`);
             if (!confirmed) {
                 return;
             }
@@ -4630,7 +4630,7 @@ class RiskManagementSystem {
         this.renderInterviewTemplateChoices();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Trame supprimée');
+            showNotification('success', 'Template deleted');
         }
     }
 
@@ -4691,7 +4691,7 @@ class RiskManagementSystem {
             const resetButton = document.createElement('button');
             resetButton.type = 'button';
             resetButton.className = 'btn btn-outline process-filter-reset';
-            resetButton.textContent = 'Réinitialiser';
+            resetButton.textContent = 'Reset';
             resetButton.addEventListener('click', () => {
                 this.processManagerFilters = { query: '', referent: '' };
                 this.renderProcessManager(container);
@@ -4750,7 +4750,7 @@ class RiskManagementSystem {
         if (!hasVisibleProcesses) {
             const empty = document.createElement('div');
             empty.className = 'process-manager-empty';
-            empty.innerHTML = '<p>Aucun processus ne correspond aux filtres actuels.</p><p>Utilisez le bouton + pour ajouter un processus ou réinitialisez les filtres.</p>';
+            empty.innerHTML = '<p>No process matches the current filters.</p><p>Use the + button to add a process, or reset the filters.</p>';
             listWrapper.appendChild(empty);
         }
     }
@@ -4829,8 +4829,8 @@ class RiskManagementSystem {
 
         const entries = this.parseReferentDirectoryInput(textarea.value);
         helper.textContent = entries.length === 0
-            ? 'Aucun référent détecté pour le moment.'
-            : `${entries.length} référent${entries.length > 1 ? 's' : ''} seront proposés lors de la saisie.`;
+            ? 'No referent detected yet.'
+            : `${entries.length} referent${entries.length > 1 ? 's' : ''} will be suggested while typing.`;
     }
 
     saveReferentDirectoryFromModal() {
@@ -6653,7 +6653,7 @@ class RiskManagementSystem {
         }
 
         if (!this.supportsInterviewFolderPicker()) {
-            alert('Votre navigateur ne permet pas de sélectionner un dossier complet. Merci d’utiliser un navigateur compatible.');
+            alert('Your browser cannot select a full folder. Please use a compatible browser.');
             return;
         }
 
@@ -6704,7 +6704,7 @@ class RiskManagementSystem {
             .filter(file => file && typeof file.name === 'string' && /interview\d+\.json$/i.test(file.name));
 
         if (!files.length) {
-            alert('Aucun fichier interviewX.json trouvé dans le dossier sélectionné.');
+            alert('No interviewX.json file found in the selected folder.');
             return;
         }
 
@@ -6743,7 +6743,7 @@ class RiskManagementSystem {
         }
 
         if (!loadedInterviews.length) {
-            alert('Les fichiers détectés ne contiennent pas de comptes-rendus valides.');
+            alert('Detected files do not contain valid interview reports.');
             return;
         }
 
@@ -6754,7 +6754,7 @@ class RiskManagementSystem {
         this.updateInterviewsList();
 
         if (typeof showNotification === 'function') {
-            showNotification('success', 'Interviews chargées depuis le dossier sélectionné.');
+            showNotification('success', 'Interviews loaded from the selected folder.');
         }
     }
 
@@ -7694,7 +7694,7 @@ class RiskManagementSystem {
 
             const resolveTypeLabel = (value) => {
                 if (value == null) {
-                    return 'Non défini';
+                    return 'Not defined';
                 }
                 const rawValue = String(value);
                 return typeMap[rawValue] || typeMap[rawValue.toLowerCase()] || rawValue;
@@ -7709,7 +7709,7 @@ class RiskManagementSystem {
 
                 const processLabel = risk?.processus && String(risk.processus).trim()
                     ? String(risk.processus).trim()
-                    : 'Non défini';
+                    : 'Not defined';
                 const sp = risk?.sousProcessus && String(risk.sousProcessus).trim()
                     ? ` > ${String(risk.sousProcessus).trim()}`
                     : '';
@@ -7818,7 +7818,7 @@ class RiskManagementSystem {
 
         const computeDistributionLabel = (entry) => {
             if (!entry) {
-                return 'Non défini';
+                return 'Not defined';
             }
 
             const normalizedValue = entry.value;
@@ -7826,7 +7826,7 @@ class RiskManagementSystem {
                 return controlTypeLabelMap[normalizedValue] || entry.rawValue || normalizedValue;
             }
 
-            return 'Non défini';
+            return 'Not defined';
         };
 
         const controlTypeDistribution = [];
@@ -7930,7 +7930,7 @@ class RiskManagementSystem {
         statusOrder.forEach((statusValue) => {
             const key = statusValue || '__undefined__';
             const entry = statusCounts[key];
-            const label = statusLabelMap[statusValue] || entry?.rawValue || statusValue || 'Non défini';
+            const label = statusLabelMap[statusValue] || entry?.rawValue || statusValue || 'Not defined';
 
             actionPlanStatusDistribution.push({
                 value: statusValue,
@@ -7952,7 +7952,7 @@ class RiskManagementSystem {
             const normalizedValue = entry.value || '';
             const label = normalizedValue
                 ? (statusLabelMap[normalizedValue] || entry.rawValue || normalizedValue)
-                : (entry.rawValue || 'Non défini');
+                : (entry.rawValue || 'Not defined');
 
             actionPlanStatusDistribution.push({
                 value: normalizedValue,
@@ -8010,7 +8010,7 @@ class RiskManagementSystem {
                     rank: index + 1,
                     id: risk.id,
                     titre: risk.titre || risk.description || 'Risque sans titre',
-                    processus: risk.processus || 'Non défini',
+                    processus: risk.processus || 'Not defined',
                     sousProcessus: subProcessLabel,
                     score: Number.isFinite(entry.score) ? entry.score : 0,
                     brutScore: Number.isFinite(entry.brutScore) ? entry.brutScore : 0,
@@ -8021,7 +8021,7 @@ class RiskManagementSystem {
 
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
-            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
+            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Not defined';
             if (!acc[label]) {
                 acc[label] = { count: 0, totalScore: 0, maxScore: 0 };
             }
@@ -8127,14 +8127,14 @@ class RiskManagementSystem {
 
             return distribution.map((item) => {
                 if (!item) {
-                    return '0% de contrôles "Non défini"';
+                    return '0% of controls "Not defined"';
                 }
 
                 const percent = Number.isFinite(item.percentage)
                     ? item.percentage
                     : (total > 0 ? Math.round((Number(item.count) || 0) / total * 100) : 0);
-                const label = item.label || item.value || 'Non défini';
-                return `${percent}% de contrôles "${label}"`;
+                const label = item.label || item.value || 'Not defined';
+                return `${percent}% of controls "${label}"`;
             }).join(' ; ');
         };
 
@@ -8202,7 +8202,7 @@ class RiskManagementSystem {
             if (totalElement) {
                 totalElement.textContent = totalPlans > 0
                     ? `${totalPlans} plan${totalPlans > 1 ? 's' : ''} d'action`
-                    : "Aucun plan d'action";
+                    : "No action plan";
             }
 
             const palette = [
@@ -8240,7 +8240,7 @@ class RiskManagementSystem {
                     });
 
                     const summaryContent = distribution.map((item, index) => {
-                        const label = escapeHtml(item?.label || 'Non défini');
+                        const label = escapeHtml(item?.label || 'Not defined');
                         const count = Number(item?.count) || 0;
                         const plural = count > 1 ? 'plans' : 'plan';
                         const color = getColor(index, 'border');
@@ -8269,7 +8269,7 @@ class RiskManagementSystem {
 
                 const hasData = totalPlans > 0 && distribution.some(item => (Number(item?.count) || 0) > 0);
                 const chartData = {
-                    labels: distribution.map(item => item?.label || 'Non défini'),
+                    labels: distribution.map(item => item?.label || 'Not defined'),
                     datasets: [
                         {
                             data: distribution.map(item => Number(item?.count) || 0),
@@ -8293,14 +8293,14 @@ class RiskManagementSystem {
                                 label: (context) => {
                                     const value = Number(context.raw) || 0;
                                     const plural = value > 1 ? 'plans' : 'plan';
-                                    const label = context.label || 'Non défini';
+                                    const label = context.label || 'Not defined';
                                     return `${label}: ${value} ${plural} d'action`;
                                 }
                             }
                         },
                         emptyChartMessage: {
                             display: !hasData,
-                            message: "Aucun plan d'action"
+                            message: "No action plan"
                         }
                     }
                 };
@@ -8592,7 +8592,7 @@ class RiskManagementSystem {
             if (severeRisks.length === 0) {
                 risksBody.innerHTML = `
                     <tr>
-                        <td colspan="5" class="table-empty">Aucune alerte récente</td>
+                        <td colspan="5" class="table-empty">No recent alerts</td>
                     </tr>
                 `;
             } else {
@@ -8626,7 +8626,7 @@ class RiskManagementSystem {
             if (overdueActionPlans.length === 0) {
                 plansBody.innerHTML = `
                     <tr>
-                        <td colspan="4" class="table-empty">Aucun plan d'action en retard</td>
+                        <td colspan="4" class="table-empty">No action plan en retard</td>
                     </tr>
                 `;
             } else {
@@ -8707,7 +8707,7 @@ class RiskManagementSystem {
                     const risk = entry.risk || {};
                     const rank = index + 1;
                     const title = risk.titre || risk.description || 'Risque sans titre';
-                    const processLabel = risk.processus || 'Non défini';
+                    const processLabel = risk.processus || 'Not defined';
                     const subProcessRaw = risk.sousProcessus;
                     const subProcessLabel = subProcessRaw && String(subProcessRaw).trim() ? subProcessRaw : '—';
                     const scoreLabel = Number.isFinite(entry.score)
@@ -8763,7 +8763,7 @@ class RiskManagementSystem {
 
         const processMetrics = filteredRisks.reduce((acc, risk) => {
             const rawLabel = risk?.processus;
-            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Non défini';
+            const label = rawLabel && String(rawLabel).trim() ? String(rawLabel).trim() : 'Not defined';
             if (!acc[label]) {
                 acc[label] = { count: 0, scores: [], maxScore: 0 };
             }
@@ -8947,7 +8947,7 @@ class RiskManagementSystem {
                         },
                         emptyChartMessage: {
                             display: !hasProcessData,
-                            message: 'Aucun risque à afficher'
+                            message: 'No risks to display'
                         }
                     }
                 };
@@ -8985,7 +8985,7 @@ class RiskManagementSystem {
                 const scoreDescriptor = scoreMode === 'brut' ? 'brut' : 'net';
 
                 if (!totalCount || nonZeroEntries.length === 0) {
-                    summaryElement.textContent = 'Aucun risque filtré à analyser.';
+                    summaryElement.textContent = 'No filtered risks to analyze.';
                 } else if (nonZeroEntries.length === 1) {
                     const [top] = nonZeroEntries;
                     summaryElement.textContent = `Le processus ${top.label} concentre 100 % des risques filtrés avec un score médian (${scoreDescriptor}) de ${formatScore(top.median)}.`;
@@ -9149,8 +9149,8 @@ class RiskManagementSystem {
             container.innerHTML = `
                 <div class="controls-empty-state">
                     <div class="controls-empty-title">No control recorded</div>
-                    <div class="controls-empty-text">Ajoutez votre premier contrôle pour suivre vos mesures de mitigation.</div>
-                    <button class="btn btn-secondary" onclick="addNewControl()">+ Ajouter un contrôle</button>
+                    <div class="controls-empty-text">Add your first control to track your mitigation measures.</div>
+                    <button class="btn btn-secondary" onclick="addNewControl()">+ Add a control</button>
                 </div>
             `;
             return;
@@ -9160,7 +9160,7 @@ class RiskManagementSystem {
             container.innerHTML = `
                 <div class="controls-empty-state">
                     <div class="controls-empty-title">No control matches the filters</div>
-                    <div class="controls-empty-text">Modifiez vos filtres ou réinitialisez-les pour afficher les contrôles disponibles.</div>
+                    <div class="controls-empty-text">Adjust your filters or reset them to display available controls.</div>
                 </div>
             `;
             return;
@@ -9191,7 +9191,7 @@ class RiskManagementSystem {
             const controlName = control?.name || 'Contrôle sans nom';
             const rawType = control?.type ?? '';
             const normalizedType = rawType ? String(rawType).toLowerCase() : '';
-            const typeLabel = normalizedType ? (typeMap[normalizedType] || rawType) : 'Non défini';
+            const typeLabel = normalizedType ? (typeMap[normalizedType] || rawType) : 'Not defined';
             const typeClass = normalizedType ? normalizedType.replace(/[^a-z0-9-]+/g, '-') : 'type-undefined';
             const rawOrigin = control?.origin ?? '';
             const normalizedOrigin = rawOrigin ? String(rawOrigin).toLowerCase() : '';
@@ -9212,13 +9212,13 @@ class RiskManagementSystem {
                         <span class="control-type-badge ${typeClass}">${typeLabel}</span>
                     </div>
                     <div class="controls-table-cell control-origin-cell">
-                        ${originLabel ? `<span class="control-origin-badge ${originClass}">${originLabel}</span>` : `<span class="text-placeholder">Non définie</span>`}
+                        ${originLabel ? `<span class="control-origin-badge ${originClass}">${originLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell control-owner-cell">
-                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell control-status-cell">
-                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell controls-table-actions">
                         <button class="action-btn" onclick="editControl(${control.id})" title="Edit">✏️</button>
@@ -9329,8 +9329,8 @@ class RiskManagementSystem {
             container.innerHTML = `
                 <div class="controls-empty-state">
                     <div class="controls-empty-title">No action plan recorded</div>
-                    <div class="controls-empty-text">Créez votre premier plan pour piloter vos actions correctives.</div>
-                    <button class="btn btn-secondary" onclick="addNewActionPlan()">+ Ajouter un plan</button>
+                    <div class="controls-empty-text">Create your first plan to manage corrective actions.</div>
+                    <button class="btn btn-secondary" onclick="addNewActionPlan()">+ Add a plan</button>
                 </div>
             `;
             return;
@@ -9340,7 +9340,7 @@ class RiskManagementSystem {
             container.innerHTML = `
                 <div class="controls-empty-state">
                     <div class="controls-empty-title">No plan matches the filters</div>
-                    <div class="controls-empty-text">Ajustez votre recherche ou réinitialisez les filtres pour afficher les plans disponibles.</div>
+                    <div class="controls-empty-text">Adjust your search or reset filters to display available plans.</div>
                 </div>
             `;
             return;
@@ -9386,13 +9386,13 @@ class RiskManagementSystem {
                         <div class="control-name" title="${planTitle}">${planTitle}</div>
                     </div>
                     <div class="controls-table-cell control-owner-cell">
-                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                        ${ownerLabel ? `<span class="control-owner">${ownerLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell control-due-date-cell">
-                        ${dueDateLabel ? `<span class="control-due-date">${dueDateLabel}</span>` : `<span class="text-placeholder">Non définie</span>`}
+                        ${dueDateLabel ? `<span class="control-due-date">${dueDateLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell control-status-cell">
-                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Non défini</span>`}
+                        ${statusLabel ? `<span class="control-status-badge ${statusClass}">${statusLabel}</span>` : `<span class="text-placeholder">Not defined</span>`}
                     </div>
                     <div class="controls-table-cell controls-table-actions">
                         <button class="action-btn" onclick="editActionPlan(${plan.id})" title="Edit">✏️</button>
@@ -10028,12 +10028,12 @@ class RiskManagementSystem {
 
             const title = document.createElement('div');
             title.className = 'template-choice-title';
-            title.textContent = template.label || 'Trame sans titre';
+            title.textContent = template.label || 'Untitled template';
             header.appendChild(title);
 
             const slug = document.createElement('div');
             slug.className = 'template-choice-slug';
-            slug.textContent = template.value ? `ID : ${template.value}` : 'Identifiant non défini';
+            slug.textContent = template.value ? `ID : ${template.value}` : 'Identifier not set';
             header.appendChild(slug);
 
             card.appendChild(header);
@@ -10043,7 +10043,7 @@ class RiskManagementSystem {
             if (template.content && String(template.content).trim()) {
                 preview.innerHTML = template.content;
             } else {
-                preview.innerHTML = '<p class="template-choice-empty">Contenu non renseigné.</p>';
+                preview.innerHTML = '<p class="template-choice-empty">No content provided.</p>';
             }
             card.appendChild(preview);
 
@@ -10533,7 +10533,7 @@ class RiskManagementSystem {
             const action = document.createElement('button');
             action.type = 'button';
             action.className = isArchivedView ? 'btn btn-secondary' : 'btn btn-outline';
-            action.textContent = isArchivedView ? 'Désarchiver' : 'Archiver';
+            action.textContent = isArchivedView ? 'Unarchive' : 'Archive';
             action.addEventListener('click', () => {
                 this.setMentionArchived(entry.key, !isArchivedView);
                 this.renderMentionsModal();
@@ -10847,7 +10847,7 @@ class RiskManagementSystem {
         }
 
         if (!dateValue) {
-            alert('Indiquez une date valide pour le compte-rendu.');
+            alert('Provide a valid date for the interview report.');
             return;
         }
 
@@ -10984,7 +10984,7 @@ class RiskManagementSystem {
             return;
         }
 
-        if (!confirm('Confirmez-vous la suppression de ce compte-rendu ?')) {
+        if (!confirm('Do you confirm deleting this interview report?')) {
             return;
         }
 
@@ -11022,10 +11022,10 @@ class RiskManagementSystem {
 
         if (!interviews.length) {
             if (countElement) {
-                countElement.textContent = '0 compte-rendu';
+                countElement.textContent = '0 interview report';
             }
             const button = this.supportsInterviewFolderPicker()
-                ? '<button class="btn btn-outline" type="button" onclick="rms.openInterviewFolderPicker()">📂 Charger un dossier d\'interviews</button>'
+                ? '<button class="btn btn-outline" type="button" onclick="rms.openInterviewFolderPicker()">📂 Load an interviews folder</button>'
                 : '';
             const message = this.supportsInterviewFolderPicker()
                 ? 'No interview report loaded. Select the folder containing your interviewX.json files.'
@@ -11171,7 +11171,7 @@ class RiskManagementSystem {
 
         if (countElement) {
             const total = filtered.length;
-            const label = total <= 1 ? `${total} compte-rendu` : `${total} comptes-rendus`;
+            const label = total <= 1 ? `${total} interview report` : `${total} interview reports`;
             countElement.textContent = label;
         }
 
@@ -11223,7 +11223,7 @@ class RiskManagementSystem {
                         <div class="interview-card-actions">
                             <button class="interview-action-btn view" onclick="rms.openInterviewViewer(${idAttribute})">View</button>
                             <button class="interview-action-btn edit" onclick="rms.openInterviewModal(${idAttribute})">Edit</button>
-                            <button class="interview-action-btn download" onclick="rms.downloadInterviewFile(${idAttribute})">Exporter</button>
+                            <button class="interview-action-btn download" onclick="rms.downloadInterviewFile(${idAttribute})">Export</button>
                             <button class="interview-action-btn delete" onclick="rms.deleteInterview(${idAttribute})">Delete</button>
                         </div>
                     </footer>
@@ -11245,7 +11245,7 @@ class RiskManagementSystem {
         const normalizedRisk = this.normalizeRisk(newRisk);
 
         this.risks.push(normalizedRisk);
-        this.addHistoryItem('Création risque', `Nouveau risque: ${normalizedRisk.description}`);
+        this.addHistoryItem('Risk creation', `New risk: ${normalizedRisk.description}`);
         this.saveData();
         this.init();
 
@@ -11277,7 +11277,7 @@ class RiskManagementSystem {
 
         this.risks.push(normalizedRisk);
         const historyDescription = sourceRisk?.description || normalizedRisk.description;
-        this.addHistoryItem('Duplication risque', `Copie du risque: ${historyDescription}`);
+        this.addHistoryItem('Risk duplication', `Risk copy: ${historyDescription}`);
         this.saveData();
         this.init();
 
@@ -11416,7 +11416,7 @@ class RiskManagementSystem {
         if (index > -1) {
             const risk = this.risks[index];
             this.risks.splice(index, 1);
-            this.addHistoryItem('Suppression risque', `Risque supprimé: ${risk.description}`);
+            this.addHistoryItem('Risk deletion', `Risk deleted: ${risk.description}`);
             this.saveData();
             this.init();
         }
