@@ -550,7 +550,7 @@ function renderBenefitFirstAssignment() {
     }
 
     container.innerHTML = `
-        <div class="benefit-first-assignment-title">Attribution guidée par avantage indu</div>
+        <div class="benefit-first-assignment-title">Assignment guided by undue benefit</div>
         <div class="benefit-first-assignment-grid">
             ${undueBenefits.map(label => {
                 const linkedControls = getAssignedControlsForBenefit(label);
@@ -1436,14 +1436,14 @@ function renderControlSelectionList() {
         const originKey = ctrl?.origin != null ? String(ctrl.origin).toLowerCase() : '';
         const originLabel = originKey ? (originMap[originKey] || ctrl.origin || '') : '';
         const ownerLabel = ctrl?.owner || '';
-        const controlName = ctrl?.name || 'Sans nom';
+        const controlName = ctrl?.name || 'Unnamed';
         return `
             <div class="risk-list-item">
               <input type="checkbox" id="control-${ctrl.id}" ${isSelected ? 'checked' : ''} onchange="toggleControlSelection(${ctrl.id})">
               <div class="risk-item-info">
                 <div class="risk-item-title">#${ctrl.id} - ${controlName}</div>
-                <div class="risk-item-meta">Type: ${typeLabel || 'Non défini'} | Origine: ${originLabel || 'Non définie'} | Propriétaire: ${ownerLabel || 'Non défini'}</div>
-                ${focusLabel && recommendedSet.has(ctrl.id) ? '<div class="risk-item-hint">Recommandé pour cet avantage indu</div>' : ''}
+                <div class="risk-item-meta">Type: ${typeLabel || 'Undefined'} | Origin: ${originLabel || 'Undefined'} | Owner: ${ownerLabel || 'Undefined'}</div>
+                ${focusLabel && recommendedSet.has(ctrl.id) ? '<div class="risk-item-hint">Recommended for this undue benefit</div>' : ''}
               </div>
             </div>`;
     };
@@ -1451,15 +1451,15 @@ function renderControlSelectionList() {
     if (focusLabel) {
         sections.push(`
             <div class="risk-list-section-title">
-                Contrôles déjà assignés à cet avantage dans d'autres risques (${recommendedControls.length})
+                Controls already assigned to this benefit in other risks (${recommendedControls.length})
             </div>
-            ${recommendedControls.length ? recommendedControls.map(renderControlItem).join('') : '<div class="risk-list-empty">Aucun contrôle recommandé trouvé.</div>'}
+            ${recommendedControls.length ? recommendedControls.map(renderControlItem).join('') : '<div class="risk-list-empty">No recommended control found.</div>'}
         `);
         sections.push(`
             <div class="risk-list-section-title">
-                Autres contrôles disponibles (${otherControls.length})
+                Other available controls (${otherControls.length})
             </div>
-            ${otherControls.length ? otherControls.map(renderControlItem).join('') : '<div class="risk-list-empty">Aucun autre contrôle disponible.</div>'}
+            ${otherControls.length ? otherControls.map(renderControlItem).join('') : '<div class="risk-list-empty">No other control available.</div>'}
         `);
     } else {
         sections.push(otherControls.map(renderControlItem).join(''));
@@ -1539,14 +1539,14 @@ function updateSelectedControlsDisplay() {
         if (!assignment?.transverse) return null;
         const ctrl = rms.controls.find(c => c.id === id);
         if (!ctrl) return null;
-        return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Sans nom'} <button type="button" class="transverse-control-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Retirer le contrôle transverse #${id}">×</button></span>`;
+        return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Unnamed'} <button type="button" class="transverse-control-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Remove cross-functional control #${id}">×</button></span>`;
     }).filter(Boolean);
     const transverseSection = transverseControls.length
         ? `<div class="transverse-controls-section">
-                <div class="transverse-controls-title">Contrôles transverses</div>
+                <div class="transverse-controls-title">Cross-functional controls</div>
                 <div class="transverse-controls-list">${transverseControls.join('')}</div>
            </div>`
-        : '<div style="color: #7f8c8d; font-style: italic;">Aucun contrôle transverse sélectionné</div>';
+        : '<div style="color: #7f8c8d; font-style: italic;">No cross-functional control selected</div>';
     container.innerHTML = transverseSection;
     renderBenefitFirstAssignment();
 }
@@ -1587,13 +1587,13 @@ function updateSelectedActionPlansDisplay() {
     const container = document.getElementById('riskActionPlans');
     if (!container) return;
     if (selectedActionPlansForRisk.length === 0) {
-        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">Aucun plan d\'action sélectionné</div>';
+        container.innerHTML = '<div style="color: #7f8c8d; font-style: italic;">No action plan selected</div>';
         return;
     }
     container.innerHTML = selectedActionPlansForRisk.map(id => {
         const plan = rms.actionPlans.find(p => p.id === id);
         if (!plan) return '';
-        const title = plan.title || 'Sans titre';
+        const title = plan.title || 'Untitled';
         return `
             <div class="selected-control-item">
               #${id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
@@ -1645,7 +1645,7 @@ function renderActionPlanSelectionList() {
         return String(plan.id).includes(query) || title.includes(query);
     }).map(plan => {
         const isSelected = selectedActionPlansForRisk.includes(plan.id);
-        const title = plan.title || 'Sans titre';
+        const title = plan.title || 'Untitled';
         return `
             <div class="risk-list-item">
               <input type="checkbox" id="action-plan-${plan.id}" ${isSelected ? 'checked' : ''} onchange="toggleActionPlanSelection(${plan.id})">
@@ -1774,7 +1774,7 @@ function deleteActionPlan(planId) {
     });
     rms.saveData();
     rms.renderAll();
-    showNotification('success', `Plan "${title}" supprimé`);
+    showNotification('success', `Plan "${title}" deleted`);
 }
 window.deleteActionPlan = deleteActionPlan;
 
@@ -1914,13 +1914,13 @@ function renderRiskSelectionListForPlan() {
         return String(risk.id).includes(query) || title.includes(query);
     }).map(risk => {
         const isSelected = selectedRisksForPlan.some(id => idsEqual(id, risk.id));
-        const title = risk.titre || risk.description || 'Sans titre';
+        const title = risk.titre || risk.description || 'Untitled';
         return `
             <div class="risk-list-item">
               <input type="checkbox" id="plan-risk-${risk.id}" ${isSelected ? 'checked' : ''} onchange="toggleRiskSelectionForPlan(${JSON.stringify(risk.id)})">
               <div class="risk-item-info">
                 <div class="risk-item-title">#${risk.id} - ${title}</div>
-                <div class="risk-item-meta">Processus: ${risk.processus}${risk.sousProcessus ? ` > ${risk.sousProcessus}` : ''} | Type: ${risk.typeCorruption}</div>
+                <div class="risk-item-meta">Process: ${risk.processus}${risk.sousProcessus ? ` > ${risk.sousProcessus}` : ''} | Type: ${risk.typeCorruption}</div>
               </div>
             </div>`;
     }).join('');
@@ -1966,7 +1966,7 @@ function updateSelectedRisksForPlanDisplay() {
     container.innerHTML = selectedRisksForPlan.map(riskId => {
         const risk = rms.risks.find(r => idsEqual(r.id, riskId));
         if (!risk) return '';
-        const title = risk.titre || risk.description || 'Sans titre';
+        const title = risk.titre || risk.description || 'Untitled';
         return `
             <div class="selected-risk-item">
               #${risk.id} - ${title.substring(0, 50)}${title.length > 50 ? '...' : ''}
@@ -2004,9 +2004,9 @@ function showNotification(type, message) {
 }
 window.showNotification = showNotification;
 function generateReport(type) {
-    showNotification('info', `Génération du rapport ${type} en cours...`);
+    showNotification('info', `Generating ${type} report...`);
     setTimeout(() => {
-        showNotification('success', 'Rapport généré avec succès!');
+        showNotification('success', 'Report generated successfully!');
     }, 2000);
 }
 window.generateReport = generateReport;

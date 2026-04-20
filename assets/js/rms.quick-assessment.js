@@ -2,25 +2,25 @@
     const STORAGE_KEY = 'rmsQuickAssessmentData';
     const MAX_SCENARIO_LENGTH = 500;
     const DEFAULT_AGGRAVATING_FACTORS = [
-        'Pays à risque de corruption élevé (CPI < 40)',
-        'Pays à risque de corruption modéré (40 ≤ CPI < 60)',
-        'Intermédiaires difficiles à contrôler',
-        'Zones géographiques instables',
-        'Secteurs d’activité exposés (BTP, énergie, défense)',
-        'Culture tolérante aux cadeaux',
-        'Turn-over élevé'
+        'High corruption-risk countries (CPI < 40)',
+        'Moderate corruption-risk countries (40 ≤ CPI < 60)',
+        'Intermediaries difficult to control',
+        'Unstable geographic areas',
+        'Exposed sectors (construction, energy, defense)',
+        'Gift-tolerant culture',
+        'High turnover'
     ];
     const EFFECTIVENESS_LEVELS = [
-        { value: 0, label: 'Inefficace' },
-        { value: 25, label: 'Insuffisant' },
-        { value: 50, label: 'Améliorable' },
-        { value: 75, label: 'Efficace' }
+        { value: 0, label: 'Ineffective' },
+        { value: 25, label: 'Insufficient' },
+        { value: 50, label: 'Needs improvement' },
+        { value: 75, label: 'Effective' }
     ];
 
     const state = {
         view: 'scenarios',
         data: {
-            version: '2.14.51',
+            version: '2.14.52',
             scenarios: [],
             selectedId: null
         }
@@ -104,9 +104,9 @@
     }
 
     function scoreLabel(score) {
-        if (score >= 12) return 'Élevé';
-        if (score >= 6) return 'Modéré';
-        return 'Faible';
+        if (score >= 12) return 'High';
+        if (score >= 6) return 'Moderate';
+        return 'Low';
     }
 
     function replaceScenariosFromText(inputText) {
@@ -151,7 +151,7 @@
     function renderScenarioList() {
         dom.scenarioList.innerHTML = '';
         if (!state.data.scenarios.length) {
-            dom.scenarioList.innerHTML = '<div class="interview-empty">Aucun scénario chargé pour le moment.</div>';
+            dom.scenarioList.innerHTML = '<div class="interview-empty">No scenario loaded yet.</div>';
             return;
         }
 
@@ -223,7 +223,7 @@
     function renderAssessment() {
         const scenario = getCurrentScenario();
         const disabled = !scenario;
-        dom.currentScenario.textContent = scenario?.text || 'Aucun scénario sélectionné';
+        dom.currentScenario.textContent = scenario?.text || 'No scenario selected';
         dom.duplicateBtn.disabled = disabled;
         dom.deleteBtn.disabled = disabled;
         dom.prevBtn.disabled = disabled;
@@ -234,9 +234,9 @@
         renderAggravatingFactors(scenario);
 
         if (!scenario) {
-            dom.rawLegend.textContent = 'P1 × I1 = 1 (Faible)';
+            dom.rawLegend.textContent = 'P1 × I1 = 1 (Low)';
             dom.effectiveness.value = 0;
-            dom.effectivenessLegend.textContent = '0% - Inefficace';
+            dom.effectivenessLegend.textContent = '0% - Ineffective';
             dom.comment.value = '';
             dom.matrix.querySelectorAll('.qa-cell').forEach((cell) => cell.classList.remove('active-cell'));
             return;
@@ -254,7 +254,7 @@
 
         const snapped = nearestEffectivenessLevel(scenario.effectiveness);
         dom.effectiveness.value = snapped;
-        dom.effectivenessLegend.textContent = `${snapped}% - ${EFFECTIVENESS_LEVELS.find((l) => l.value === snapped)?.label || 'Inefficace'}`;
+        dom.effectivenessLegend.textContent = `${snapped}% - ${EFFECTIVENESS_LEVELS.find((l) => l.value === snapped)?.label || 'Ineffective'}`;
         dom.comment.value = scenario.comment || '';
 
         const idx = state.data.scenarios.findIndex((s) => s.id === scenario.id);
@@ -273,8 +273,8 @@
         const sorted = getSortedScenarios();
 
         if (!sorted.length) {
-            dom.overviewList.innerHTML = '<div class="interview-empty">Aucun risque coté pour le moment.</div>';
-            dom.overviewMatrix.innerHTML = '<div class="interview-empty">Chargez des scénarios pour afficher la matrice consolidée.</div>';
+            dom.overviewList.innerHTML = '<div class="interview-empty">No assessed risk yet.</div>';
+            dom.overviewMatrix.innerHTML = '<div class="interview-empty">Load scenarios to display the consolidated matrix.</div>';
             return;
         }
 
@@ -342,7 +342,7 @@
 
     function exportCsv() {
         const rows = [
-            ['Scénario', 'Probabilité', 'Impact', 'Score', 'Facteurs aggravants', 'Efficacité', 'Commentaire'],
+            ['Scenario', 'Probability', 'Impact', 'Score', 'Aggravating factors', 'Effectiveness', 'Comment'],
             ...state.data.scenarios.map((scenario) => [
                 scenario.text,
                 scenario.raw.prob,
@@ -369,7 +369,7 @@
         reader.onload = () => {
             try {
                 const parsed = JSON.parse(String(reader.result || '{}'));
-                if (!parsed || !Array.isArray(parsed.scenarios)) throw new Error('Format invalide');
+                if (!parsed || !Array.isArray(parsed.scenarios)) throw new Error('Invalid format');
                 state.data.scenarios = parsed.scenarios
                     .map((s) => ({
                         id: s.id || uid(),
