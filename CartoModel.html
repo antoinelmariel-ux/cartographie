@@ -374,7 +374,7 @@
                 <div class="content-area quick-assessment-content">
                     <div class="qa-subtabs">
                         <button type="button" class="qa-subtab active" data-qa-view="scenarios" id="qaSubtabScenarios">1. Scenario loading</button>
-                        <button type="button" class="qa-subtab" data-qa-view="assessment" id="qaSubtabAssessment">2. Cotation</button>
+                        <button type="button" class="qa-subtab" data-qa-view="assessment" id="qaSubtabAssessment">2. Assessment</button>
                         <button type="button" class="qa-subtab" data-qa-view="overview" id="qaSubtabOverview">3. Consolidated view</button>
                     </div>
 
@@ -418,26 +418,26 @@
                                 <h4 id="qaRawDetailTitle">Gross risk details</h4>
                                 <div class="qa-risk-calculation" id="qaRiskCalculation">P1 × I1 = 1 (Low)</div>
                                 <div class="qa-risk-block">
-                                    <h5 id="qaProbabilityTitle">Probability 1 - Rare</h5>
-                                    <p id="qaProbabilityDetail">Event has not happened yet and remains unlikely in the coming year.</p>
+                                    <h5 id="qaProbabilityTitle">Probability 1 - Unlikely</h5>
+                                    <p id="qaProbabilityDetail">Event has not occurred in the past 5 years. Event not expected to occur in the next 5 years.</p>
                                 </div>
                                 <div class="qa-risk-block">
-                                    <h5 id="qaImpactTitle">Impact 1 - Minor</h5>
+                                    <h5 id="qaImpactTitle">Impact 1 - Low</h5>
                                     <ul id="qaImpactDetail" class="qa-impact-list"></ul>
                                 </div>
                                 <div class="qa-legend" id="qaRawLegend">P1 × I1 = 1 (Low)</div>
-                                <h4 id="qaAggravatingTitle">Facteurs aggravants</h4>
+                                <h4 id="qaAggravatingTitle">Aggravating factors</h4>
                                 <div id="qaAggravatingFactors" class="qa-aggravating-list"></div>
                             </div>
 
                             <div class="qa-card qa-card-controls">
                                 <label class="form-label" id="qaEffectivenessLabel" for="qaEffectiveness">Control effectiveness</label>
                                 <input type="range" id="qaEffectiveness" min="0" max="75" step="25">
-                                <div class="form-helper" id="qaEffectivenessLegend">0% - Inefficace</div>
+                                <div class="form-helper" id="qaEffectivenessLegend">0% - Ineffective</div>
                             </div>
 
                             <div class="qa-card qa-card-comment">
-                                <label class="form-label" id="qaCommentLabel" for="qaComment">Commentaire</label>
+                                <label class="form-label" id="qaCommentLabel" for="qaComment">Comment</label>
                                 <textarea id="qaComment" class="form-textarea" rows="4" placeholder="Ajoutez vos observations..."></textarea>
                                 <div class="qa-nav-actions">
                                     <button class="btn btn-secondary" type="button" id="qaPrevBtn">← Previous scenario</button>
@@ -883,7 +883,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.59</span>
+            <span class="app-version">Version 2.14.60</span>
         </footer>
     </div>
 

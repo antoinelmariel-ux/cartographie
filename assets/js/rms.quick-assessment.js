@@ -18,57 +18,57 @@
     ];
     const PROBABILITY_DETAILS = {
         1: {
-            title: 'Probability 1 - Rare',
-            description: 'Event has not happened yet and remains unlikely in the coming year.'
+            title: 'Probability 1 - Unlikely',
+            description: 'Event has not occurred in the past 5 years. Event not expected to occur in the next 5 years.'
         },
         2: {
-            title: 'Probability 2 - Possible',
-            description: 'Event has happened in isolated situations and could recur.'
+            title: 'Probability 2 - Moderately likely',
+            description: 'Event that has occurred once in the past 5 years. Event that may occur once in the next 5 years.'
         },
         3: {
             title: 'Probability 3 - Likely',
-            description: 'Event happened at least once in the past year or is expected to happen.'
+            description: 'Event that has occurred once in the past year. Event that may occur once in the coming year.'
         },
         4: {
             title: 'Probability 4 - Very likely',
-            description: 'Event happened multiple times and is expected to recur regularly.'
+            description: 'Event that occurred several times in the past year. Event expected to occur once or more times in the coming year.'
         }
     };
     const IMPACT_DETAILS = {
         1: {
-            title: 'Impact 1 - Minor',
+            title: 'Impact 1 - Low',
             points: [
-                'Financial: below €50k',
-                'Legal: no significant sanction',
-                'Reputation: limited local visibility',
-                'Operational: minimal disruption'
+                'Financial (base): < 300K€',
+                'Legal: internal disciplinary action against an employee',
+                'Reputational: no impact, internal or local external (e.g., partners); disruption limited to a few days',
+                'Operational: little or no disruption; slowdown in operations'
             ]
         },
         2: {
-            title: 'Impact 2 - Significant',
+            title: 'Impact 2 - Moderate',
             points: [
-                'Financial: €50k to €500k',
-                'Legal: formal warning or moderate sanction',
-                'Reputation: local media exposure',
-                'Operational: temporary disruption'
+                'Financial (base): [300K ; 3M€[',
+                'Legal: legal or administrative proceedings involving an individual employee',
+                'Reputational: regional external impact; disruption limited to a few weeks',
+                'Operational: minor disruptions; temporary loss of business or contracts'
             ]
         },
         3: {
-            title: 'Impact 3 - Severe',
+            title: 'Impact 3 - High',
             points: [
-                'Financial: €500k to €5m',
-                'Legal: major sanction or legal settlement',
-                'Reputation: national visibility and trust erosion',
-                'Operational: major delays or loss of business'
+                'Financial (base): [3M€ ; 30M€[',
+                'Legal: sanctions at the affiliate level; Judicial Public Interest Agreement (CJIP)',
+                'Reputational: national external impact (e.g., Department of Health); national media crisis; impact lasting several months',
+                'Operational: significant disruptions; permanent loss of business or contracts'
             ]
         },
         4: {
             title: 'Impact 4 - Critical',
             points: [
-                'Financial: above €5m',
-                'Legal: criminal exposure or exceptional sanction',
-                'Reputation: sustained national crisis',
-                'Operational: lasting business interruption'
+                'Financial (base): ≥ 30M€',
+                'Legal: group-wide sanctions; criminal conviction',
+                'Reputational: international external impact (e.g., EMA, FDA, etc.); international media crisis; long-term damage lasting several years',
+                'Operational: cessation of operations'
             ]
         }
     };
@@ -76,7 +76,7 @@
     const state = {
         view: 'scenarios',
         data: {
-            version: '2.14.59',
+            version: '2.14.60',
             scenarios: [],
             selectedId: null
         }
