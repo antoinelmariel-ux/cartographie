@@ -76,7 +76,7 @@
     const state = {
         view: 'scenarios',
         data: {
-            version: '2.14.56',
+            version: '2.14.57',
             scenarios: [],
             selectedId: null
         }
@@ -422,6 +422,7 @@
         dom.overviewList.innerHTML = '';
         dom.overviewMatrix.innerHTML = '';
         const sorted = getSortedScenarios();
+        const rankingByScenarioId = new Map(sorted.map((scenario, index) => [scenario.id, index + 1]));
 
         if (!sorted.length) {
             dom.overviewList.innerHTML = '<div class="interview-empty">No assessed risk yet.</div>';
@@ -447,11 +448,11 @@
                 const cell = document.createElement('div');
                 cell.className = `matrix-cell qa-cell qa-overview-cell level-${scoreToLevel(prob * impact)}`;
                 const risks = sorted.filter((s) => s.raw.prob === prob && s.raw.impact === impact);
-                risks.slice(0, 9).forEach((scenario, idx) => {
+                risks.slice(0, 9).forEach((scenario) => {
                     const bullet = document.createElement('button');
                     bullet.type = 'button';
                     bullet.className = `qa-overview-bullet ${scenario.id === state.data.selectedId ? 'active' : ''}`;
-                    bullet.textContent = String(idx + 1);
+                    bullet.textContent = String(rankingByScenarioId.get(scenario.id) || '');
                     bullet.title = scenario.text;
                     bullet.addEventListener('click', (event) => {
                         event.stopPropagation();
