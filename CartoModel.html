@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corruption Risk Mapping - Sapin II v2.14.55</title>
+    <title>Corruption Risk Mapping - Sapin II v2.14.56</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local dependencies with CDN fallback -->
     <script>
@@ -403,7 +403,14 @@
                             <div class="qa-card qa-card-matrix">
                                 <h4 id="qaRawRiskTitle">Gross risk (inherent)</h4>
                                 <div class="qa-matrix-wrapper">
-                                    <div id="qaMatrix" class="qa-matrix"></div>
+                                    <div class="qa-matrix-surface">
+                                        <div id="qaMatrix" class="qa-matrix"></div>
+                                        <div class="axis-label x-axis">Likelihood →</div>
+                                        <div class="axis-label y-axis">
+                                            <span class="axis-text">Impact</span>
+                                            <span class="axis-arrow" aria-hidden="true">↑</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -448,7 +455,16 @@
                             </div>
                             <div>
                                 <h4 id="qaOverviewMatrixTitle">Matrice des risques bruts</h4>
-                                <div id="qaOverviewMatrix" class="qa-overview-matrix"></div>
+                                <div class="qa-matrix-wrapper qa-overview-matrix-wrapper">
+                                    <div class="qa-matrix-surface">
+                                        <div id="qaOverviewMatrix" class="qa-overview-matrix"></div>
+                                        <div class="axis-label x-axis">Likelihood →</div>
+                                        <div class="axis-label y-axis">
+                                            <span class="axis-text">Impact</span>
+                                            <span class="axis-arrow" aria-hidden="true">↑</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </section>
@@ -856,7 +872,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.55</span>
+            <span class="app-version">Version 2.14.56</span>
         </footer>
     </div>
 
