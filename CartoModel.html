@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corruption Risk Mapping - Sapin II v2.14.48</title>
+    <title>Corruption Risk Mapping - Sapin II v2.14.49</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local dependencies with CDN fallback -->
     <script>
@@ -745,7 +745,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.48</span>
+            <span class="app-version">Version 2.14.49</span>
         </footer>
     </div>
 
@@ -873,7 +873,7 @@
                     <div class="interview-view-section-content" id="interviewViewReferents"></div>
                 </div>
                 <div class="interview-view-section">
-                    <div class="interview-view-section-title">Process & sous-processus</div>
+                    <div class="interview-view-section-title">Process & sub-process</div>
                     <div class="interview-view-section-content" id="interviewViewTags"></div>
                 </div>
                 <div class="interview-view-section">
@@ -1164,14 +1164,14 @@
                         <div class="form-grid">
                             <div class="form-group">
                                 <label class="form-label required">Process</label>
-                                <select class="form-select visually-hidden" id="processus" required multiple size="5" onchange="rms.updateSousProcessOptions()" aria-hidden="true" tabindex="-1">
+                                <select class="form-select visually-hidden" id="processus" required multiple size="5" onchange="rms.updateSousProcessusOptions()" aria-hidden="true" tabindex="-1">
                                 </select>
                                 <div id="processusChips" class="risk-multi-chip-list" aria-label="Selectable processes"></div>
                                 <div class="form-helper">You can select multiple processes.</div>
                             </div>
                             <div class="form-group">
                                 <label class="form-label">Sub-process</label>
-                                <select class="form-select visually-hidden" id="sousProcess" multiple size="5" aria-hidden="true" tabindex="-1">
+                                <select class="form-select visually-hidden" id="sousProcessus" multiple size="5" aria-hidden="true" tabindex="-1">
                                 </select>
                                 <div id="sousProcessChips" class="risk-multi-chip-list" aria-label="Selectable sub-processes"></div>
                                 <div class="form-helper">Displayed sub-processes depend on selected processes.</div>

@@ -371,10 +371,10 @@ class RiskManagementSystem {
 
         if (!Array.isArray(config.riskStatuses) || config.riskStatuses.length === 0) {
             config.riskStatuses = [
-                { value: 'brouillon', label: 'Brouillon' },
-                { value: 'a-valider', label: 'A valider' },
-                { value: 'validé', label: 'Validé' },
-                { value: 'archive', label: 'Archivé' }
+                { value: 'brouillon', label: 'Draft' },
+                { value: 'a-valider', label: 'To validate' },
+                { value: 'validé', label: 'Validated' },
+                { value: 'archive', label: 'Archived' }
             ];
         }
 
@@ -500,10 +500,10 @@ class RiskManagementSystem {
         const fallbackStatuses = (fallback && Array.isArray(fallback.actionPlanStatuses))
             ? fallback.actionPlanStatuses
             : [
-                { value: 'brouillon', label: 'Brouillon' },
-                { value: 'a-demarrer', label: 'À démarrer' },
-                { value: 'en-cours', label: 'En cours' },
-                { value: 'termine', label: 'Terminé' }
+                { value: 'brouillon', label: 'Draft' },
+                { value: 'a-demarrer', label: 'To start' },
+                { value: 'en-cours', label: 'In progress' },
+                { value: 'termine', label: 'Completed' }
             ];
 
         if (!Array.isArray(baseConfig.actionPlanStatuses)) {
@@ -1764,7 +1764,7 @@ class RiskManagementSystem {
             const addButton = document.createElement('button');
             addButton.type = 'button';
             addButton.className = 'btn btn-outline mindmap-add-button';
-            addButton.textContent = '+ Ajouter une idée';
+            addButton.textContent = '+ Add an idea';
             addButton.addEventListener('click', () => {
                 const newId = this.addMindMapNode(column.key);
                 this.renderMindMap(newId);
@@ -2224,7 +2224,7 @@ class RiskManagementSystem {
         text.contentEditable = 'true';
         text.role = 'textbox';
         text.textContent = node.text || 'Nouvelle idée';
-        text.dataset.placeholder = 'Idée...';
+        text.dataset.placeholder = 'Idea...';
         text.addEventListener('input', () => {
             this.updateMindMapNodeText(columnKey, node.id, text.textContent);
         });
@@ -2748,13 +2748,13 @@ class RiskManagementSystem {
             });
         };
 
-        fill(['matrixProcessFilter', 'risksProcessFilter', 'interviewProcessFilter'], this.config.processes, 'Tous les processus');
-        fill(['matrixRiskTypeFilter', 'risksTypeFilter'], this.config.riskTypes, 'Tous les types');
-        fill(['matrixStatusFilter', 'risksStatusFilter'], this.config.riskStatuses, 'Tous les statuts');
-        fill('processus', this.config.processes, 'Sélectionner...');
+        fill(['matrixProcessFilter', 'risksProcessFilter', 'interviewProcessFilter'], this.config.processes, 'All processes');
+        fill(['matrixRiskTypeFilter', 'risksTypeFilter'], this.config.riskTypes, 'All types');
+        fill(['matrixStatusFilter', 'risksStatusFilter'], this.config.riskStatuses, 'All statuses');
+        fill('processus', this.config.processes, 'Select...');
         this.updateSousProcessusOptions();
-        fill('typeCorruption', this.config.riskTypes, 'Sélectionner...');
-        fill('statut', this.config.riskStatuses, 'Sélectionner...');
+        fill('typeCorruption', this.config.riskTypes, 'Select...');
+        fill('statut', this.config.riskStatuses, 'Select...');
         fill('tiers', this.config.tiers);
         const riskCountriesSelect = document.getElementById('riskCountries');
         const previousCountries = riskCountriesSelect
@@ -2774,21 +2774,21 @@ class RiskManagementSystem {
         }
         this.renderRiskCountryColumns();
         this.renderMatrixEntityFilterChips();
-        fill('controlType', this.config.controlTypes, 'Sélectionner...');
-        fill('controlOrigin', this.config.controlOrigins, 'Sélectionner...');
-        fill('controlFrequency', this.config.controlFrequencies, 'Sélectionner...');
-        fill('controlMode', this.config.controlModes, 'Sélectionner...');
-        fill('controlEffectiveness', this.config.controlEffectiveness, 'Sélectionner...');
-        fill('controlStatus', this.config.controlStatuses, 'Sélectionner...');
-        fill('controlsTypeFilter', this.config.controlTypes, 'Tous les types de contrôle');
-        fill('controlsOriginFilter', this.config.controlOrigins, 'Toutes les origines');
-        fill('controlsStatusFilter', this.config.controlStatuses, 'Tous les statuts');
-        fill('planStatus', this.config.actionPlanStatuses, 'Sélectionner...');
-        fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'Tous les statuts');
+        fill('controlType', this.config.controlTypes, 'Select...');
+        fill('controlOrigin', this.config.controlOrigins, 'Select...');
+        fill('controlFrequency', this.config.controlFrequencies, 'Select...');
+        fill('controlMode', this.config.controlModes, 'Select...');
+        fill('controlEffectiveness', this.config.controlEffectiveness, 'Select...');
+        fill('controlStatus', this.config.controlStatuses, 'Select...');
+        fill('controlsTypeFilter', this.config.controlTypes, 'All control types');
+        fill('controlsOriginFilter', this.config.controlOrigins, 'All origins');
+        fill('controlsStatusFilter', this.config.controlStatuses, 'All statuses');
+        fill('planStatus', this.config.actionPlanStatuses, 'Select...');
+        fill('actionPlansStatusFilter', this.config.actionPlanStatuses, 'All statuses');
 
         const referentOptions = this.getAllKnownReferents().map(ref => ({ value: ref, label: ref }));
 
-        fill('interviewReferentFilter', referentOptions, 'Tous les référents');
+        fill('interviewReferentFilter', referentOptions, 'All referents');
         this.updateInterviewReferentSelect(referentOptions);
 
         const mitigationInput = document.getElementById('mitigationEffectiveness');
@@ -2975,11 +2975,11 @@ class RiskManagementSystem {
         if (exportButton) {
             if (this.currentConfigSection === 'processManager') {
                 exportButton.style.display = '';
-                exportButton.textContent = '💾 Exporter les processus';
+                exportButton.textContent = '💾 Export processes';
                 exportButton.setAttribute('data-scope', 'processes');
             } else if (this.currentConfigSection === 'general') {
                 exportButton.style.display = '';
-                exportButton.textContent = '💾 Exporter les autres paramètres';
+                exportButton.textContent = '💾 Export other settings';
                 exportButton.setAttribute('data-scope', 'parameters');
             } else {
                 exportButton.style.display = 'none';
@@ -3187,18 +3187,18 @@ class RiskManagementSystem {
                 const labelInput = document.createElement('input');
                 labelInput.type = 'text';
                 labelInput.id = `input-${key}-label`;
-                labelInput.placeholder = 'Libellé à saisir';
+                labelInput.placeholder = 'Enter label';
                 labelInput.classList.add('config-input-label');
 
                 const valueInput = document.createElement('input');
                 valueInput.type = 'text';
                 valueInput.id = `input-${key}-value`;
-                valueInput.placeholder = 'Valeur auto-générée';
+                valueInput.placeholder = 'Auto-generated value';
                 valueInput.classList.add('config-input-value');
 
                 const addButton = document.createElement('button');
                 addButton.type = 'button';
-                addButton.textContent = 'Ajouter';
+                addButton.textContent = 'Add';
                 addButton.addEventListener('click', () => {
                     this.addConfigOption(key);
                 });
@@ -4045,7 +4045,7 @@ class RiskManagementSystem {
                     nameInput.type = 'text';
                     nameInput.value = theme.name || '';
                     nameInput.className = 'config-input-label';
-                    nameInput.placeholder = 'Nom du thème';
+                    nameInput.placeholder = 'Theme name';
                     nameInput.addEventListener('change', () => {
                         this.updateMindMapTheme(theme.id, { name: nameInput.value });
                     });
@@ -4077,7 +4077,7 @@ class RiskManagementSystem {
                             titleInput.type = 'text';
                             titleInput.className = 'config-input-label';
                             titleInput.value = column.title || '';
-                            titleInput.placeholder = 'Titre de colonne';
+                            titleInput.placeholder = 'Column title';
                             titleInput.addEventListener('change', () => {
                                 this.updateMindMapThemeColumn(theme.id, index, { title: titleInput.value });
                             });
@@ -4087,7 +4087,7 @@ class RiskManagementSystem {
                             subtitleInput.type = 'text';
                             subtitleInput.className = 'config-input-value';
                             subtitleInput.value = column.subtitle || '';
-                            subtitleInput.placeholder = 'Sous-titre (optionnel)';
+                            subtitleInput.placeholder = 'Subtitle (optional)';
                             subtitleInput.addEventListener('change', () => {
                                 this.updateMindMapThemeColumn(theme.id, index, { subtitle: subtitleInput.value });
                             });
@@ -4121,7 +4121,7 @@ class RiskManagementSystem {
                     const addColumn = document.createElement('button');
                     addColumn.type = 'button';
                     addColumn.className = 'btn btn-secondary';
-                    addColumn.textContent = 'Ajouter une colonne';
+                    addColumn.textContent = 'Add a column';
                     addColumn.addEventListener('click', () => this.addMindMapThemeColumn(theme.id));
                     form.appendChild(addColumn);
 
@@ -4155,14 +4155,14 @@ class RiskManagementSystem {
 
         const nameInput = document.createElement('input');
         nameInput.type = 'text';
-        nameInput.placeholder = 'Nom du thème';
+        nameInput.placeholder = 'Theme name';
         nameInput.className = 'config-input-label';
         addForm.appendChild(nameInput);
 
         const addButton = document.createElement('button');
         addButton.type = 'button';
         addButton.className = 'btn btn-success';
-        addButton.textContent = 'Ajouter le thème';
+        addButton.textContent = 'Add theme';
         addButton.addEventListener('click', () => {
             const value = nameInput.value.trim();
             const id = this.addMindMapTheme({ name: value });
@@ -4428,20 +4428,20 @@ class RiskManagementSystem {
                     const labelInput = document.createElement('input');
                     labelInput.type = 'text';
                     labelInput.value = template.label || '';
-                    labelInput.placeholder = 'Libellé de la trame';
+                    labelInput.placeholder = 'Template label';
                     labelInput.className = 'config-input-label';
                     form.appendChild(labelInput);
 
                     const valueInput = document.createElement('input');
                     valueInput.type = 'text';
                     valueInput.value = template.value || '';
-                    valueInput.placeholder = 'Identifiant automatique';
+                    valueInput.placeholder = 'Auto-generated identifier';
                     valueInput.className = 'config-input-value';
                     form.appendChild(valueInput);
 
                     const contentInput = document.createElement('textarea');
                     contentInput.value = template.content || '';
-                    contentInput.placeholder = 'Contenu de la trame (HTML autorisé)';
+                    contentInput.placeholder = 'Template content (HTML allowed)';
                     form.appendChild(contentInput);
 
                     const actions = document.createElement('div');
@@ -4450,7 +4450,7 @@ class RiskManagementSystem {
                     const saveButton = document.createElement('button');
                     saveButton.type = 'button';
                     saveButton.className = 'btn btn-success';
-                    saveButton.textContent = 'Enregistrer';
+                    saveButton.textContent = 'Save';
                     saveButton.addEventListener('click', () => {
                         const payload = {
                             label: labelInput.value.trim(),
@@ -4474,7 +4474,7 @@ class RiskManagementSystem {
                     const cancelButton = document.createElement('button');
                     cancelButton.type = 'button';
                     cancelButton.className = 'btn btn-outline';
-                    cancelButton.textContent = 'Annuler';
+                    cancelButton.textContent = 'Cancel';
                     cancelButton.addEventListener('click', () => {
                         renderDisplay();
                     });
@@ -4495,23 +4495,23 @@ class RiskManagementSystem {
 
         const addIntro = document.createElement('p');
         addIntro.className = 'config-template-helper';
-        addIntro.textContent = 'Ajouter une nouvelle trame d’entretien';
+        addIntro.textContent = 'Add a new interview template';
         addForm.appendChild(addIntro);
 
         const labelInput = document.createElement('input');
         labelInput.type = 'text';
-        labelInput.placeholder = 'Libellé de la trame';
+        labelInput.placeholder = 'Template label';
         labelInput.className = 'config-input-label';
         addForm.appendChild(labelInput);
 
         const valueInput = document.createElement('input');
         valueInput.type = 'text';
-        valueInput.placeholder = 'Identifiant automatique';
+        valueInput.placeholder = 'Auto-generated identifier';
         valueInput.className = 'config-input-value';
         addForm.appendChild(valueInput);
 
         const contentInput = document.createElement('textarea');
-        contentInput.placeholder = 'Contenu de la trame (HTML autorisé)';
+        contentInput.placeholder = 'Template content (HTML allowed)';
         addForm.appendChild(contentInput);
 
         const actions = document.createElement('div');
@@ -4521,7 +4521,7 @@ class RiskManagementSystem {
         const addButton = document.createElement('button');
         addButton.type = 'button';
         addButton.className = 'btn btn-success';
-        addButton.textContent = 'Ajouter la trame';
+        addButton.textContent = 'Add template';
         addButton.addEventListener('click', () => {
             const payload = {
                 label: labelInput.value.trim(),
@@ -4645,11 +4645,11 @@ class RiskManagementSystem {
         header.className = 'process-manager-header';
 
         const title = document.createElement('h3');
-        title.textContent = 'Gestion des processus et sous-processus';
+        title.textContent = 'Process and sub-process management';
         header.appendChild(title);
 
         const subtitle = document.createElement('p');
-        subtitle.textContent = 'Ajoutez vos processus, rattachez des sous-processus et associez des référents. Utilisez le glisser-déposer pour réorganiser la hiérarchie.';
+        subtitle.textContent = 'Add your processes, attach sub-processes, and assign referents. Use drag-and-drop to reorganize the hierarchy.';
         header.appendChild(subtitle);
 
         container.appendChild(header);
@@ -4660,7 +4660,7 @@ class RiskManagementSystem {
         const queryInput = document.createElement('input');
         queryInput.type = 'search';
         queryInput.className = 'process-filter-input';
-        queryInput.placeholder = 'Filtrer par titre de processus ou sous-processus';
+        queryInput.placeholder = 'Filter by process or sub-process title';
         queryInput.value = this.processManagerFilters.query || '';
         queryInput.addEventListener('input', (event) => {
             this.processManagerFilters.query = event.target.value || '';
@@ -4671,7 +4671,7 @@ class RiskManagementSystem {
         const referentInput = document.createElement('input');
         referentInput.type = 'search';
         referentInput.className = 'process-filter-input';
-        referentInput.placeholder = 'Filtrer par référent';
+        referentInput.placeholder = 'Filter by referent';
         referentInput.value = this.processManagerFilters.referent || '';
         referentInput.setAttribute('list', 'processReferentSuggestions');
         referentInput.addEventListener('input', (event) => {
@@ -4683,7 +4683,7 @@ class RiskManagementSystem {
         const referentDirectoryButton = document.createElement('button');
         referentDirectoryButton.type = 'button';
         referentDirectoryButton.className = 'btn btn-secondary process-filter-directory';
-        referentDirectoryButton.textContent = '📋 Pré-charger des référents';
+        referentDirectoryButton.textContent = '📋 Preload referents';
         referentDirectoryButton.addEventListener('click', () => this.openReferentDirectoryModal());
         filtersBar.appendChild(referentDirectoryButton);
 
@@ -4940,12 +4940,12 @@ class RiskManagementSystem {
         button.className = 'process-insert-button';
         button.innerHTML = '<span aria-hidden="true">+</span>';
         button.setAttribute('aria-label', parentProcess
-            ? 'Ajouter un sous-processus ici'
-            : 'Ajouter un processus ici');
+            ? 'Add a sub-process here'
+            : 'Add a process here');
 
         if (filtersActive) {
             button.disabled = true;
-            button.title = 'Ajout désactivé pendant l\'application de filtres';
+            button.title = 'Adding is disabled while filters are active';
             control.classList.add('is-disabled');
         } else {
             button.addEventListener('click', () => {
@@ -5003,16 +5003,16 @@ class RiskManagementSystem {
         labelInput.required = true;
         labelInput.className = 'process-insert-input';
         labelInput.placeholder = parentProcess
-            ? 'Libellé du sous-processus'
-            : 'Libellé du processus';
+            ? 'Sub-process label'
+            : 'Process label';
 
         const valueInput = document.createElement('input');
         valueInput.type = 'text';
         valueInput.required = true;
         valueInput.className = 'process-insert-input';
         valueInput.placeholder = parentProcess
-            ? 'Identifiant du sous-processus'
-            : 'Identifiant du processus';
+            ? 'Sub-process identifier'
+            : 'Process identifier';
 
         this.setupAutoValueSync(labelInput, valueInput);
 
@@ -5022,12 +5022,12 @@ class RiskManagementSystem {
         const submitButton = document.createElement('button');
         submitButton.type = 'submit';
         submitButton.className = 'btn btn-primary btn-small';
-        submitButton.textContent = parentProcess ? 'Ajouter le sous-processus' : 'Ajouter le processus';
+        submitButton.textContent = parentProcess ? 'Add sub-process' : 'Add process';
 
         const cancelButton = document.createElement('button');
         cancelButton.type = 'button';
         cancelButton.className = 'btn btn-outline btn-small';
-        cancelButton.textContent = 'Annuler';
+        cancelButton.textContent = 'Cancel';
         cancelButton.addEventListener('click', () => {
             this.closeActiveInsertionForm({ rerender: true });
         });
@@ -5196,7 +5196,7 @@ class RiskManagementSystem {
         titleInput.type = 'text';
         titleInput.className = 'process-title-input';
         titleInput.value = process.label || '';
-        titleInput.placeholder = 'Nom du processus';
+        titleInput.placeholder = 'Process name';
         titleInput.addEventListener('change', () => {
             this.renameProcess(index, titleInput.value);
         });
@@ -5214,9 +5214,9 @@ class RiskManagementSystem {
         const summary = document.createElement('span');
         summary.className = 'process-sub-count';
         if (filters.hasQuery || filters.hasReferent) {
-            summary.textContent = `${visibleSubs.length} / ${totalSubs} sous-processus`;
+            summary.textContent = `${visibleSubs.length} / ${totalSubs} sub-processes`;
         } else {
-            summary.textContent = `${totalSubs} sous-processus`;
+            summary.textContent = `${totalSubs} sub-processes`;
         }
         headerActions.appendChild(summary);
 
@@ -5224,15 +5224,15 @@ class RiskManagementSystem {
         toggleButton.type = 'button';
         toggleButton.className = 'process-card-toggle';
         toggleButton.setAttribute('aria-expanded', String(!isCollapsed));
-        toggleButton.setAttribute('aria-label', `${isCollapsed ? 'Afficher' : 'Masquer'} les sous-processus du ${processLabel}`);
+        toggleButton.setAttribute('aria-label', `${isCollapsed ? 'Show' : 'Hide'} sub-processes for ${processLabel}`);
         toggleButton.classList.toggle('is-collapsed', isCollapsed);
         if (collapseForcedOpen) {
             toggleButton.disabled = true;
-            toggleButton.title = "Développement automatique pendant l'application de filtres";
+            toggleButton.title = 'Auto-expanded while filters are active';
         } else {
             toggleButton.title = isCollapsed
-                ? 'Afficher les sous-processus'
-                : 'Masquer les sous-processus';
+                ? 'Show sub-processes'
+                : 'Hide sub-processes';
         }
         const toggleIcon = document.createElement('span');
         toggleIcon.className = 'process-card-toggle-icon';
@@ -5248,7 +5248,7 @@ class RiskManagementSystem {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button danger';
-        deleteButton.setAttribute('aria-label', `Delete le processus ${processLabel}`);
+        deleteButton.setAttribute('aria-label', `Delete process ${processLabel}`);
         deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
         deleteButton.addEventListener('click', () => {
             this.deleteProcess(index);
@@ -5270,7 +5270,7 @@ class RiskManagementSystem {
 
         const subHeader = document.createElement('div');
         subHeader.className = 'subprocess-section-header';
-        subHeader.textContent = 'Sous-processus';
+        subHeader.textContent = 'Sub-processes';
         subSection.appendChild(subHeader);
 
         const list = document.createElement('div');
@@ -5285,8 +5285,8 @@ class RiskManagementSystem {
             const message = document.createElement('div');
             message.className = 'subprocess-empty';
             message.textContent = totalSubs === 0
-                ? 'Aucun sous-processus pour le moment.'
-                : 'Aucun sous-processus ne correspond aux filtres.';
+                ? 'No sub-processes yet.'
+                : 'No sub-process matches the active filters.';
             list.appendChild(message);
         } else {
             visibleSubs.forEach((entry) => {
@@ -5350,7 +5350,7 @@ class RiskManagementSystem {
         titleInput.type = 'text';
         titleInput.className = 'subprocess-title-input';
         titleInput.value = subProcess.label || '';
-        titleInput.placeholder = 'Nom du sous-processus';
+        titleInput.placeholder = 'Sub-process name';
         titleInput.addEventListener('change', () => {
             this.renameSubProcess(parentProcess.value, subIndex, titleInput.value);
         });
@@ -5364,7 +5364,7 @@ class RiskManagementSystem {
         const deleteButton = document.createElement('button');
         deleteButton.type = 'button';
         deleteButton.className = 'icon-button danger';
-        deleteButton.setAttribute('aria-label', `Delete le sous-processus ${subProcess.label}`);
+        deleteButton.setAttribute('aria-label', `Delete sub-process ${subProcess.label}`);
         deleteButton.innerHTML = '<span aria-hidden="true">✕</span>';
         deleteButton.addEventListener('click', () => {
             this.deleteSubProcess(parentProcess.value, subIndex);
@@ -5401,7 +5401,7 @@ class RiskManagementSystem {
 
         const title = document.createElement('div');
         title.className = 'referent-editor-title';
-        title.textContent = 'Référents';
+        title.textContent = 'Referents';
         container.appendChild(title);
 
         const chips = document.createElement('div');
@@ -5411,7 +5411,7 @@ class RiskManagementSystem {
         if (normalizedReferents.length === 0) {
             const empty = document.createElement('div');
             empty.className = 'referent-empty';
-            empty.textContent = 'Aucun référent défini';
+            empty.textContent = 'No referent defined';
             chips.appendChild(empty);
         } else {
             normalizedReferents.forEach((referent) => {
@@ -5425,7 +5425,7 @@ class RiskManagementSystem {
                 const remove = document.createElement('button');
                 remove.type = 'button';
                 remove.className = 'referent-chip-remove';
-                remove.setAttribute('aria-label', `Retirer ${referent}`);
+                remove.setAttribute('aria-label', `Remove ${referent}`);
                 remove.textContent = '×';
                 remove.addEventListener('click', () => {
                     if (scope === 'subprocess') {
@@ -5448,7 +5448,7 @@ class RiskManagementSystem {
         const input = document.createElement('input');
         input.type = 'text';
         input.className = 'referent-input';
-        input.placeholder = 'Ajouter un référent';
+        input.placeholder = 'Add a referent';
         input.setAttribute('list', 'processReferentSuggestions');
 
         const commitInputValue = () => {
@@ -5479,7 +5479,7 @@ class RiskManagementSystem {
 
         const helper = document.createElement('p');
         helper.className = 'referent-helper';
-        helper.textContent = 'Validez avec Entrée pour ajouter un référent. Les suggestions proviennent des référents existants.';
+        helper.textContent = 'Press Enter to add a referent. Suggestions come from existing referents.';
 
         container.appendChild(inputWrapper);
         container.appendChild(helper);
@@ -6078,13 +6078,13 @@ class RiskManagementSystem {
                 const labelInput = document.createElement('input');
                 labelInput.type = 'text';
                 labelInput.value = opt.label;
-                labelInput.placeholder = 'Libellé à saisir';
+                labelInput.placeholder = 'Enter label';
                 labelInput.className = 'config-edit-input config-input-label';
 
                 const valueInput = document.createElement('input');
                 valueInput.type = 'text';
                 valueInput.value = opt.value;
-                valueInput.placeholder = 'Valeur auto-générée';
+                valueInput.placeholder = 'Auto-generated value';
                 valueInput.className = 'config-edit-input config-input-value';
 
                 const actions = document.createElement('div');
@@ -6093,7 +6093,7 @@ class RiskManagementSystem {
                 const saveButton = document.createElement('button');
                 saveButton.type = 'button';
                 saveButton.className = 'btn btn-success';
-                saveButton.textContent = 'Enregistrer';
+                saveButton.textContent = 'Save';
                 saveButton.addEventListener('click', () => {
                     const value = valueInput.value.trim();
                     const label = labelInput.value.trim();
@@ -6104,7 +6104,7 @@ class RiskManagementSystem {
                 const cancelButton = document.createElement('button');
                 cancelButton.type = 'button';
                 cancelButton.className = 'btn btn-outline';
-                cancelButton.textContent = 'Annuler';
+                cancelButton.textContent = 'Cancel';
                 cancelButton.addEventListener('click', () => {
                     renderDisplay();
                 });
@@ -6264,7 +6264,7 @@ class RiskManagementSystem {
         if (!this.config.processes.length) {
             const empty = document.createElement('p');
             empty.className = 'config-empty';
-            empty.textContent = 'Ajoutez un processus pour configurer ses sous-processus.';
+            empty.textContent = 'Add a process to configure its sub-processes.';
             container.appendChild(empty);
             this.adjustOpenAccordionBodies(container);
             return;
@@ -6306,18 +6306,18 @@ class RiskManagementSystem {
             const labelInput = document.createElement('input');
             labelInput.type = 'text';
             labelInput.id = `input-sub-${procId}-label`;
-            labelInput.placeholder = 'Libellé à saisir';
+            labelInput.placeholder = 'Enter label';
             labelInput.classList.add('config-input-label');
 
             const valueInput = document.createElement('input');
             valueInput.type = 'text';
             valueInput.id = `input-sub-${procId}-value`;
-            valueInput.placeholder = 'Valeur auto-générée';
+            valueInput.placeholder = 'Auto-generated value';
             valueInput.classList.add('config-input-value');
 
             const addButton = document.createElement('button');
             addButton.type = 'button';
-            addButton.textContent = 'Ajouter';
+            addButton.textContent = 'Add';
             addButton.dataset.process = proc.value;
             addButton.addEventListener('click', (event) => {
                 const { process } = event.currentTarget.dataset;
@@ -6398,13 +6398,13 @@ class RiskManagementSystem {
                     const labelInput = document.createElement('input');
                     labelInput.type = 'text';
                     labelInput.value = sp.label;
-                    labelInput.placeholder = 'Libellé à saisir';
+                    labelInput.placeholder = 'Enter label';
                     labelInput.className = 'config-edit-input config-input-label';
 
                     const valueInput = document.createElement('input');
                     valueInput.type = 'text';
                     valueInput.value = sp.value;
-                    valueInput.placeholder = 'Valeur auto-générée';
+                    valueInput.placeholder = 'Auto-generated value';
                     valueInput.className = 'config-edit-input config-input-value';
 
                     const actions = document.createElement('div');
@@ -6413,7 +6413,7 @@ class RiskManagementSystem {
                     const saveButton = document.createElement('button');
                     saveButton.type = 'button';
                     saveButton.className = 'btn btn-success';
-                    saveButton.textContent = 'Enregistrer';
+                    saveButton.textContent = 'Save';
                     saveButton.addEventListener('click', () => {
                         const value = valueInput.value.trim();
                         const label = labelInput.value.trim();
@@ -6424,7 +6424,7 @@ class RiskManagementSystem {
                     const cancelButton = document.createElement('button');
                     cancelButton.type = 'button';
                     cancelButton.className = 'btn btn-outline';
-                    cancelButton.textContent = 'Annuler';
+                    cancelButton.textContent = 'Cancel';
                     cancelButton.addEventListener('click', () => {
                         renderDisplay();
                     });
@@ -9567,7 +9567,7 @@ class RiskManagementSystem {
         select.innerHTML = '';
         const placeholder = document.createElement('option');
         placeholder.value = '';
-        placeholder.textContent = 'Tous les sous-processus';
+        placeholder.textContent = 'All sub-processes';
         select.appendChild(placeholder);
 
         const optionsMap = new Map();
