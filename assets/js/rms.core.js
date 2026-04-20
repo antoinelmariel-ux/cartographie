@@ -3284,7 +3284,7 @@ class RiskManagementSystem {
             const selectButton = document.createElement('button');
             selectButton.type = 'button';
             selectButton.className = 'btn btn-outline btn-small';
-            selectButton.textContent = 'Tout sélectionner';
+            selectButton.textContent = 'Select all';
             selectButton.addEventListener('click', () => {
                 if (typeof selectRiskCountryColumn === 'function' && column?.key) {
                     selectRiskCountryColumn(column.key);
@@ -3295,7 +3295,7 @@ class RiskManagementSystem {
             const clearButton = document.createElement('button');
             clearButton.type = 'button';
             clearButton.className = 'btn btn-outline btn-small';
-            clearButton.textContent = 'Tout désélectionner';
+            clearButton.textContent = 'Deselect all';
             clearButton.addEventListener('click', () => {
                 if (typeof deselectRiskCountryColumn === 'function' && column?.key) {
                     deselectRiskCountryColumn(column.key);
