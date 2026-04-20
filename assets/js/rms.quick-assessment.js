@@ -364,7 +364,6 @@
         renderAggravatingFactors(scenario);
 
         if (!scenario) {
-            dom.rawLegend.textContent = 'P1 × I1 = 1 (Low)';
             dom.riskCalculation.textContent = 'P1 × I1 = 1 (Low)';
             dom.probabilityTitle.textContent = PROBABILITY_DETAILS[1].title;
             dom.probabilityDetail.textContent = PROBABILITY_DETAILS[1].description;
@@ -384,7 +383,6 @@
         const impact = clampMatrixValue(scenario.raw?.impact);
         const score = prob * impact;
         const riskLegend = `P${prob} × I${impact} = ${score} (${scoreLabel(score)})`;
-        dom.rawLegend.textContent = riskLegend;
         dom.riskCalculation.textContent = riskLegend;
         dom.probabilityTitle.textContent = PROBABILITY_DETAILS[prob].title;
         dom.probabilityDetail.textContent = PROBABILITY_DETAILS[prob].description;
@@ -610,7 +608,6 @@
         dom.currentScenario = document.getElementById('qaCurrentScenario');
         dom.duplicateBtn = document.getElementById('qaDuplicateBtn');
         dom.deleteBtn = document.getElementById('qaDeleteBtn');
-        dom.rawLegend = document.getElementById('qaRawLegend');
         dom.riskCalculation = document.getElementById('qaRiskCalculation');
         dom.probabilityTitle = document.getElementById('qaProbabilityTitle');
         dom.probabilityDetail = document.getElementById('qaProbabilityDetail');
