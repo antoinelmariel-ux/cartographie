@@ -1073,13 +1073,18 @@ window.renderAllRiskMultiSelectChips = renderAllRiskMultiSelectChips;
 function addNewRisk() {
     currentEditingRiskId = null;
     const form = document.getElementById('riskForm');
+    const refreshSubProcessOptions = () => {
+        if (window.rms && typeof rms.updateSousProcessusOptions === 'function') {
+            rms.updateSousProcessusOptions();
+        }
+    };
     if (form) {
         form.reset();
 
         const statutSelect = document.getElementById('statut');
         if (lastRiskData) {
             setSelectedValues('processus', lastRiskData.processusAssocies || (lastRiskData.processus ? [lastRiskData.processus] : []));
-            rms.updateSousProcessusOptions();
+            refreshSubProcessOptions();
             setSelectedValues('sousProcessus', lastRiskData.sousProcessusAssocies || (lastRiskData.sousProcessus ? [lastRiskData.sousProcessus] : []));
             setSelectedValues('typeCorruption', lastRiskData.typesCorruption || (lastRiskData.typeCorruption ? [lastRiskData.typeCorruption] : []));
             setSelectedValues('tiers', lastRiskData.tiers || []);
@@ -1112,7 +1117,7 @@ function addNewRisk() {
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
             setAggravatingFactorsSelection(lastRiskData.aggravatingFactors || null);
         } else {
-            rms.updateSousProcessusOptions();
+            refreshSubProcessOptions();
             selectedControlsForRisk = [];
             setRiskControlAssignments([]);
             setRiskBenefitChips('undue', []);
