@@ -554,9 +554,6 @@ function renderBenefitFirstAssignment() {
         <div class="benefit-first-assignment-grid">
             ${undueBenefits.map(label => {
                 const linkedControls = getAssignedControlsForBenefit(label);
-                const summary = linkedControls.length
-                    ? linkedControls.slice(0, 2).map(item => item.name).join(' • ') + (linkedControls.length > 2 ? ` • +${linkedControls.length - 2}` : '')
-                    : 'No linked control';
                 const linkedHtml = linkedControls.length
                     ? `<div class="benefit-first-linked-controls">
                         ${linkedControls.map(item => `<span class="benefit-first-linked-chip">${item.name}</span>`).join('')}
@@ -566,7 +563,6 @@ function renderBenefitFirstAssignment() {
                     <div class="benefit-first-card">
                         <div>
                             <div class="benefit-first-label">${label}</div>
-                            <div class="benefit-first-meta">${summary}</div>
                             ${linkedHtml}
                         </div>
                         <div class="benefit-first-actions">
