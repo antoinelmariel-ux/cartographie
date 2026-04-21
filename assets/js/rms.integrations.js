@@ -1786,6 +1786,9 @@ function exportReportsRisksXlsx() {
         const tiers = Array.isArray(risk?.tiers)
             ? risk.tiers.map((item) => mapToLabel(item, rms?.config?.tiers)).filter(Boolean).join(', ')
             : '';
+        const entities = Array.isArray(risk?.paysExposes)
+            ? risk.paysExposes.map((item) => mapToLabel(item, rms?.config?.countries)).filter(Boolean).join(', ')
+            : '';
 
         const probBrut = Number(risk?.probBrut) || 0;
         const impactBrut = Number(risk?.impactBrut) || 0;
@@ -1825,6 +1828,7 @@ function exportReportsRisksXlsx() {
             'Statut du risque': riskStatus || '',
             'Type de corruption': corruptionLabel || '',
             'Tiers': tiers,
+            'Entities': entities,
             'Scénario': risk?.description || risk?.titre || '',
             'Probabilité brut': probBrut || '',
             'Impact brut': impactBrut || '',
@@ -1873,9 +1877,10 @@ function exportReportsRisksXlsx() {
             }
 
             worksheet['!cols'] = [
-                { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 45 }, { wch: 16 },
-                { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 26 }, { wch: 18 },
-                { wch: 22 }, { wch: 32 }, { wch: 25 }, { wch: 20 }, { wch: 20 }
+                { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 28 }, { wch: 45 },
+                { wch: 16 }, { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 26 },
+                { wch: 18 }, { wch: 22 }, { wch: 32 }, { wch: 25 }, { wch: 20 },
+                { wch: 20 }
             ];
 
             const filename = `report-risques-${new Date().toISOString().slice(0, 10)}.xlsx`;
