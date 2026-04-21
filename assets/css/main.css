@@ -2033,6 +2033,42 @@ body.feedback-mode-paused .feedback-panel * {
     border: 1px solid var(--border-color);
 }
 
+.register-register {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 20px;
+}
+
+.register-register-headline {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.register-register-title {
+    margin: 0;
+    font-size: 1.1rem;
+    color: var(--text-color);
+}
+
+.register-register-subtitle {
+    margin: 0;
+    color: var(--muted-text-color);
+    font-size: 0.9rem;
+}
+
+.register-register-filters {
+    padding: 16px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    background: var(--surface-alt-color);
+}
+
+.register-register-table-wrapper {
+    overflow-x: auto;
+}
+
 .table-header {
     background: linear-gradient(120deg, rgba(11, 61, 96, 0.08), transparent 70%);
     padding: 16px 24px;

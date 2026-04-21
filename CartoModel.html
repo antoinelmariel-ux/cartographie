@@ -150,7 +150,7 @@
                     📈 Risk Matrix
                 </button>
                 <button class="tab" onclick="switchTab('risks')">
-                    📋 Risk Register
+                    📋 Register Register
                 </button>
                 <button class="tab" onclick="switchTab('controls')">
                     🔒 Controls & Mitigation
@@ -622,11 +622,11 @@
             </div>
         </div>
 
-        <!-- Risks List Tab -->
+        <!-- Register Register Tab -->
         <div id="risks-tab" class="tab-content">
             <div class="main-content">
                 <div class="toolbar">
-                    <div class="toolbar-title">Risk Register</div>
+                    <div class="toolbar-title">Register Register</div>
                     <div class="toolbar-actions">
                         <button class="btn btn-secondary" onclick="exportRisks()">
                             📤 Export
@@ -638,43 +638,51 @@
                 </div>
 
                 <div class="content-area">
-                    <div class="filters-bar">
-                        <div class="filter-group">
-                            <label class="filter-label" for="risksStatusFilter">Status</label>
-                            <select class="filter-select" id="risksStatusFilter" data-risk-filter="status" onchange="applyFilters('status', this.value, this)">
-                                <option value="">All statuses</option>
-                            </select>
+                    <section class="register-register">
+                        <div class="register-register-headline">
+                            <h3 class="register-register-title">Risk inventory</h3>
+                            <p class="register-register-subtitle">Use filters to quickly find a risk and validate the display of all columns.</p>
                         </div>
-                        <div class="filter-group">
-                            <label class="filter-label" for="risksEntityFilterChips">Entities</label>
-                            <div id="risksEntityFilterChips" class="filter-chip-group" aria-label="Filter risks by entities"></div>
+
+                        <div class="filters-bar register-register-filters">
+                            <div class="filter-group">
+                                <label class="filter-label" for="risksStatusFilter">Status</label>
+                                <select class="filter-select" id="risksStatusFilter" data-risk-filter="status" onchange="applyFilters('status', this.value, this)">
+                                    <option value="">All statuses</option>
+                                </select>
+                            </div>
+                            <div class="filter-group filter-group-entities">
+                                <label class="filter-label" for="risksEntityFilterChips">Entities</label>
+                                <div id="risksEntityFilterChips" class="filter-chip-group" aria-label="Filter risks by entities"></div>
+                            </div>
+                            <div class="search-box filter-group">
+                                <label class="filter-label" for="risksSearchInput">Search</label>
+                                <input type="search" class="search-input" id="risksSearchInput" data-risk-filter="search" placeholder="🔍 Search a risk..." oninput="searchRisks(this.value, this)">
+                            </div>
                         </div>
-                        <div class="search-box filter-group">
-                            <label class="filter-label" for="risksSearchInput">Search</label>
-                            <input type="search" class="search-input" id="risksSearchInput" data-risk-filter="search" placeholder="🔍 Search a risk..." oninput="searchRisks(this.value, this)">
+
+                        <div class="table-container register-register-table-wrapper">
+                            <table id="risksTable">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Description</th>
+                                        <th scope="col">Type</th>
+                                        <th scope="col">Tiers</th>
+                                        <th scope="col">Entities</th>
+                                        <th scope="col">Gross score</th>
+                                        <th scope="col">Aggravated score</th>
+                                        <th scope="col">Net score</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">Action Plan</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="risksTableBody">
+                                    <!-- Populated by JavaScript -->
+                                </tbody>
+                            </table>
                         </div>
-                    </div>
-                    <div class="table-container">
-                        <table id="risksTable">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Description</th>
-                                    <th>Type</th>
-                                    <th>Tiers</th>
-                                    <th>Entities</th>
-                                    <th>Gross score</th>
-                                    <th>Aggravated score</th>
-                                    <th>Net score</th>
-                                    <th>Status</th>
-                                    <th>Action Plan</th>
-                                </tr>
-                            </thead>
-                            <tbody id="risksTableBody">
-                                <!-- Populated by JavaScript -->
-                            </tbody>
-                        </table>
-                    </div>
+                    </section>
                 </div>
             </div>
         </div>
@@ -876,7 +884,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.82</span>
+            <span class="app-version">Version 2.14.83</span>
         </footer>
     </div>
 
