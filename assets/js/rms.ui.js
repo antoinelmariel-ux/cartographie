@@ -197,6 +197,18 @@ function toggleEntityFilterChip(entityValue) {
 }
 window.toggleEntityFilterChip = toggleEntityFilterChip;
 
+function resetRiskFilters() {
+    if (!window.rms) return;
+    rms.filters = {
+        process: '',
+        type: '',
+        status: '',
+        search: '',
+        entity: []
+    };
+    applyFilters('', '', null);
+}
+
 function syncControlFilterWidgets(filterKey, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
     if (!normalizedKey) return;
@@ -1306,6 +1318,13 @@ function saveRisk() {
         rms.saveData();
         rms.renderAll();
         riskSaved = true;
+        const riskVisibleWithCurrentFilters = Array.isArray(rms.getFilteredRisks?.(rms.risks))
+            ? rms.getFilteredRisks(rms.risks).some(risk => idsEqual(risk.id, newRisk.id))
+            : true;
+        if (!riskVisibleWithCurrentFilters) {
+            resetRiskFilters();
+            showNotification('info', 'Filters have been reset to display the newly created risk');
+        }
         if (isIncompleteRisk) {
             showNotification('info', 'Incomplete risk saved as draft');
         } else {
