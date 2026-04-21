@@ -1642,6 +1642,257 @@ function exportRisksAssessmentCsv() {
 }
 window.exportRisksAssessmentCsv = exportRisksAssessmentCsv;
 
+async function ensureXlsxLibrary() {
+    if (window.XLSX) {
+        return window.XLSX;
+    }
+
+    const existingScript = document.getElementById('xlsxLibraryScript');
+    if (existingScript) {
+        await new Promise((resolve, reject) => {
+            existingScript.addEventListener('load', resolve, { once: true });
+            existingScript.addEventListener('error', () => reject(new Error('Chargement XLSX impossible')), { once: true });
+        });
+        if (window.XLSX) {
+            return window.XLSX;
+        }
+        throw new Error('Bibliothèque XLSX indisponible');
+    }
+
+    await new Promise((resolve, reject) => {
+        const script = document.createElement('script');
+        script.id = 'xlsxLibraryScript';
+        script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+        script.async = true;
+        script.onload = () => resolve();
+        script.onerror = () => reject(new Error('Chargement XLSX impossible'));
+        document.head.appendChild(script);
+    });
+
+    if (!window.XLSX) {
+        throw new Error('Bibliothèque XLSX indisponible');
+    }
+    return window.XLSX;
+}
+
+function exportReportsRisksXlsx() {
+    if (!window.rms || !Array.isArray(rms.risks) || rms.risks.length === 0) {
+        if (typeof showNotification === 'function') {
+            showNotification('warning', 'Aucun risque à exporter.');
+        }
+        return;
+    }
+
+    const normalizeId = (value) => (value == null ? '' : String(value).trim());
+    const risks = Array.isArray(rms.risks) ? rms.risks : [];
+    const plans = Array.isArray(rms.actionPlans) ? rms.actionPlans : [];
+    const actionPlanIndex = new Map();
+    const riskPlanLinks = new Map();
+
+    plans.forEach((plan) => {
+        if (!plan || typeof plan !== 'object') return;
+        const planId = normalizeId(plan.id);
+        if (planId) {
+            actionPlanIndex.set(planId, plan);
+        }
+
+        const linkedRisks = Array.isArray(plan.risks)
+            ? plan.risks
+            : Array.isArray(plan.riskIds)
+                ? plan.riskIds
+                : Array.isArray(plan.actionedRisks)
+                    ? plan.actionedRisks
+                    : [];
+
+        linkedRisks.forEach((riskId) => {
+            const normalizedRiskId = normalizeId(riskId);
+            if (!normalizedRiskId || !planId) return;
+            if (!riskPlanLinks.has(normalizedRiskId)) {
+                riskPlanLinks.set(normalizedRiskId, new Set());
+            }
+            riskPlanLinks.get(normalizedRiskId).add(planId);
+        });
+    });
+
+    const collectPlansForRisk = (risk) => {
+        const collected = [];
+        const seen = new Set();
+        const addPlanById = (planId) => {
+            if (!planId || seen.has(planId)) return;
+            seen.add(planId);
+            const plan = actionPlanIndex.get(planId);
+            if (plan) {
+                collected.push(plan);
+            }
+        };
+        const addPlanObject = (planObject) => {
+            if (!planObject || typeof planObject !== 'object') return;
+            const planId = normalizeId(planObject.id);
+            if (planId) {
+                addPlanById(planId);
+                if (!actionPlanIndex.has(planId)) {
+                    collected.push(planObject);
+                }
+                return;
+            }
+            collected.push(planObject);
+        };
+
+        const directRefs = Array.isArray(risk?.actionPlans) ? risk.actionPlans : [];
+        directRefs.forEach((item) => {
+            if (item && typeof item === 'object') {
+                addPlanObject(item);
+            } else {
+                addPlanById(normalizeId(item));
+            }
+        });
+
+        const riskId = normalizeId(risk?.id);
+        if (riskId && riskPlanLinks.has(riskId)) {
+            riskPlanLinks.get(riskId).forEach(addPlanById);
+        }
+
+        return collected;
+    };
+
+    const mapToLabel = (value, options = []) => {
+        const normalized = normalizeId(value).toLowerCase();
+        if (!normalized || !Array.isArray(options)) return normalizeId(value);
+        const found = options.find((entry) => normalizeId(entry?.value).toLowerCase() === normalized);
+        return found?.label || normalizeId(value);
+    };
+
+    const formatDate = (value) => {
+        if (value == null) return '';
+        const raw = String(value).trim();
+        if (!raw) return '';
+        if (/^\d{4}-\d{2}-\d{2}$/.test(raw) || /^\d{2}\/\d{2}\/\d{4}$/.test(raw)) {
+            return raw;
+        }
+        const parsed = new Date(raw);
+        return Number.isNaN(parsed.getTime()) ? raw : parsed.toLocaleDateString('fr-FR');
+    };
+
+    const toDisplayScore = (value) => {
+        if (!Number.isFinite(value)) return '';
+        return Math.round(value * 100) / 100;
+    };
+
+    const riskRows = risks.map((risk) => {
+        const riskStatus = typeof rms.getStatusLabel === 'function'
+            ? rms.getStatusLabel('risk', risk?.statut, risk?.status, risk?.statusLabel)
+            : (risk?.statut || risk?.status || '');
+        const corruptionLabel = mapToLabel(risk?.typeCorruption, rms?.config?.riskTypes);
+        const tiers = Array.isArray(risk?.tiers)
+            ? risk.tiers.map((item) => mapToLabel(item, rms?.config?.tiers)).filter(Boolean).join(', ')
+            : '';
+
+        const probBrut = Number(risk?.probBrut) || 0;
+        const impactBrut = Number(risk?.impactBrut) || 0;
+        const netInfo = typeof getRiskNetInfo === 'function' ? getRiskNetInfo(risk) : null;
+        const aggravatingCoefficient = netInfo?.aggravatingCoefficient
+            ?? (typeof getRiskAggravatingCoefficient === 'function' ? getRiskAggravatingCoefficient(risk) : 1);
+        const baseBrutScore = netInfo?.baseBrutScore ?? (probBrut * impactBrut);
+        const aggravatedBrutScore = netInfo?.brutScore ?? (baseBrutScore * aggravatingCoefficient);
+        const riskNetScore = netInfo?.score ?? (typeof getRiskNetScore === 'function' ? getRiskNetScore(risk) : 0);
+        const netLevel = netInfo?.level
+            ?? (typeof getRiskSeverityFromScore === 'function' ? getRiskSeverityFromScore(riskNetScore) : '');
+        const netLevelLabel = mapToLabel(netLevel, [
+            { value: 'faible', label: 'Faible' },
+            { value: 'modere', label: 'Modéré' },
+            { value: 'fort', label: 'Fort' },
+            { value: 'critique', label: 'Critique' }
+        ]);
+        const mitigationLabel = netInfo?.label || mapToLabel(
+            typeof getRiskMitigationEffectiveness === 'function'
+                ? getRiskMitigationEffectiveness(risk)
+                : risk?.mitigationEffectiveness,
+            typeof getMitigationEffectivenessOptions === 'function' ? getMitigationEffectivenessOptions() : []
+        );
+
+        const relatedPlans = collectPlansForRisk(risk);
+        const relatedPlanTitles = relatedPlans.map((plan) => plan?.title || plan?.name || '').filter(Boolean).join(' | ');
+        const relatedPlanOwners = relatedPlans.map((plan) => plan?.owner || '').filter(Boolean).join(' | ');
+        const relatedPlanDueDates = relatedPlans.map((plan) => formatDate(plan?.dueDate)).filter(Boolean).join(' | ');
+        const relatedPlanStatuses = relatedPlans.map((plan) => {
+            if (typeof rms.getStatusLabel === 'function') {
+                return rms.getStatusLabel('actionPlan', plan?.status, plan?.statut, plan?.statusLabel) || '';
+            }
+            return plan?.status || plan?.statut || plan?.statusLabel || '';
+        }).filter(Boolean).join(' | ');
+
+        return {
+            'Statut du risque': riskStatus || '',
+            'Type de corruption': corruptionLabel || '',
+            'Tiers': tiers,
+            'Scénario': risk?.description || risk?.titre || '',
+            'Probabilité brut': probBrut || '',
+            'Impact brut': impactBrut || '',
+            'Niveau du risque brut': toDisplayScore(baseBrutScore),
+            "Coefficient d'aggravation": toDisplayScore(aggravatingCoefficient),
+            'Niveau du risque brut aggravé': toDisplayScore(aggravatedBrutScore),
+            'Niveau de maîtrise': mitigationLabel || '',
+            'Niveau du risque net': `${toDisplayScore(riskNetScore)}${netLevelLabel ? ` (${netLevelLabel})` : ''}`,
+            "Plans d'action rattachés": relatedPlanTitles,
+            "Propriétaire du plan d'action": relatedPlanOwners,
+            "Date de fin du plan d'action": relatedPlanDueDates,
+            "Statut du plan d'action": relatedPlanStatuses
+        };
+    });
+
+    ensureXlsxLibrary()
+        .then((xlsx) => {
+            const worksheet = xlsx.utils.json_to_sheet(riskRows, { skipHeader: false });
+            const workbook = xlsx.utils.book_new();
+            xlsx.utils.book_append_sheet(workbook, worksheet, 'Risques');
+
+            const headerRange = xlsx.utils.decode_range(worksheet['!ref'] || 'A1');
+            for (let columnIndex = headerRange.s.c; columnIndex <= headerRange.e.c; columnIndex += 1) {
+                const cellAddress = xlsx.utils.encode_cell({ r: 0, c: columnIndex });
+                if (!worksheet[cellAddress]) continue;
+                worksheet[cellAddress].s = {
+                    font: { bold: true, color: { rgb: 'FFFFFF' } },
+                    fill: { patternType: 'solid', fgColor: { rgb: '0B3D60' } },
+                    alignment: { vertical: 'center', horizontal: 'center', wrapText: true }
+                };
+            }
+
+            const rowCount = Math.max(riskRows.length, 1);
+            for (let rowIndex = 1; rowIndex <= rowCount; rowIndex += 1) {
+                for (let columnIndex = headerRange.s.c; columnIndex <= headerRange.e.c; columnIndex += 1) {
+                    const cellAddress = xlsx.utils.encode_cell({ r: rowIndex, c: columnIndex });
+                    if (!worksheet[cellAddress]) continue;
+                    worksheet[cellAddress].s = {
+                        fill: {
+                            patternType: 'solid',
+                            fgColor: { rgb: rowIndex % 2 === 0 ? 'F5F7FA' : 'FFFFFF' }
+                        },
+                        alignment: { vertical: 'top', wrapText: true }
+                    };
+                }
+            }
+
+            worksheet['!cols'] = [
+                { wch: 18 }, { wch: 24 }, { wch: 24 }, { wch: 45 }, { wch: 16 },
+                { wch: 14 }, { wch: 20 }, { wch: 18 }, { wch: 26 }, { wch: 18 },
+                { wch: 22 }, { wch: 32 }, { wch: 25 }, { wch: 20 }, { wch: 20 }
+            ];
+
+            const filename = `report-risques-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            xlsx.writeFile(workbook, filename, { bookType: 'xlsx', cellStyles: true });
+            if (typeof showNotification === 'function') {
+                showNotification('success', 'Export XLSX des risques généré.');
+            }
+        })
+        .catch((error) => {
+            console.error('Erreur lors de la génération de l\'export XLSX', error);
+            if (typeof showNotification === 'function') {
+                showNotification('error', `Export XLSX impossible : ${error.message}`);
+            }
+        });
+}
+window.exportReportsRisksXlsx = exportReportsRisksXlsx;
+
 function importRisksAssessmentCsv() {
     if (!window.rms) return;
     readCsvFile((content, filename) => {
