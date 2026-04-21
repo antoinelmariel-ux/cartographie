@@ -135,12 +135,17 @@ class RiskManagementSystem {
         this.processScoreMode = 'net';
         this.currentTab = 'dashboard';
         this.currentConfigSection = 'processManager';
+        const defaultEntityFilters = Array.isArray(this.config?.countries)
+            ? this.config.countries
+                .map(country => (country && country.value != null) ? String(country.value) : '')
+                .filter(Boolean)
+            : [];
         this.filters = {
             process: '',
             type: '',
             status: '',
             search: '',
-            entity: []
+            entity: defaultEntityFilters
         };
         this.controlFilters = {
             type: '',
@@ -3548,6 +3553,33 @@ class RiskManagementSystem {
                 return;
             }
             container.innerHTML = '';
+
+            const actions = document.createElement('div');
+            actions.className = 'filter-chip-actions';
+
+            const selectAllButton = document.createElement('button');
+            selectAllButton.type = 'button';
+            selectAllButton.className = 'btn btn-outline btn-small';
+            selectAllButton.textContent = 'Select all';
+            selectAllButton.addEventListener('click', () => {
+                if (typeof window.setAllEntityFilterChips === 'function') {
+                    window.setAllEntityFilterChips(true);
+                }
+            });
+            actions.appendChild(selectAllButton);
+
+            const deselectAllButton = document.createElement('button');
+            deselectAllButton.type = 'button';
+            deselectAllButton.className = 'btn btn-outline btn-small';
+            deselectAllButton.textContent = 'Deselect all';
+            deselectAllButton.addEventListener('click', () => {
+                if (typeof window.setAllEntityFilterChips === 'function') {
+                    window.setAllEntityFilterChips(false);
+                }
+            });
+            actions.appendChild(deselectAllButton);
+
+            container.appendChild(actions);
 
             options.forEach(entry => {
                 if (!entry || entry.value == null) {
