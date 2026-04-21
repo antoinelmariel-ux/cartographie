@@ -1316,6 +1316,7 @@ function saveRisk() {
     if (rms) {
         rms.renderRiskPoints();
         rms.updateRiskDetailsList();
+        rms.updateRisksList();
     }
 
     lastRiskData = {
