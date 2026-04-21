@@ -10503,7 +10503,7 @@ class RiskManagementSystem {
     }
 
     loadMentionArchive() {
-        if (typeof localStorage === 'undefined') {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
             return new Set();
         }
 
@@ -10531,7 +10531,7 @@ class RiskManagementSystem {
     }
 
     saveMentionArchive() {
-        if (typeof localStorage === 'undefined') {
+        if (!RMS_LOCAL_STORAGE_ENABLED || typeof localStorage === 'undefined') {
             return;
         }
 
