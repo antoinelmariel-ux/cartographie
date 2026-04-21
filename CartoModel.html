@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corruption Risk Mapping - Sapin II v2.14.71</title>
+    <title>Corruption Risk Mapping - Sapin II v2.14.73</title>
     <link rel="stylesheet" href="assets/css/main.css">
     <!-- Local dependencies with CDN fallback -->
     <script>
@@ -657,6 +657,10 @@
                                 <option value="">All statuses</option>
                             </select>
                         </div>
+                        <div class="filter-group">
+                            <label class="filter-label" for="risksEntityFilterChips">Entities</label>
+                            <div id="risksEntityFilterChips" class="filter-chip-group" aria-label="Filter risks by entities"></div>
+                        </div>
                         <div class="search-box filter-group">
                             <label class="filter-label" for="risksSearchInput">Search</label>
                             <input type="search" class="search-input" id="risksSearchInput" data-risk-filter="search" placeholder="🔍 Search a risk..." oninput="searchRisks(this.value, this)">
@@ -668,14 +672,14 @@
                                 <tr>
                                     <th>ID</th>
                                     <th>Description</th>
-                                    <th>Process</th>
-                                    <th>Sub-process</th>
                                     <th>Type</th>
                                     <th>Tiers</th>
+                                    <th>Entities</th>
                                     <th>Gross score</th>
+                                    <th>Aggravated score</th>
                                     <th>Net score</th>
                                     <th>Status</th>
-                                    <th>Actions</th>
+                                    <th>Action Plan</th>
                                 </tr>
                             </thead>
                             <tbody id="risksTableBody">
@@ -884,7 +888,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.72</span>
+            <span class="app-version">Version 2.14.73</span>
         </footer>
     </div>
 

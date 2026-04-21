@@ -1825,6 +1825,7 @@ function exportReportsRisksXlsx() {
         }).filter(Boolean).join(' | ');
 
         return {
+            'ID du risque': risk?.id ?? '',
             'Statut du risque': riskStatus || '',
             'Type de corruption': corruptionLabel || '',
             'Tiers': tiers,
