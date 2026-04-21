@@ -1114,6 +1114,7 @@ function addNewRisk() {
             setRiskControlAssignments(lastRiskData.controlAssignments || []);
             setRiskBenefitChips('undue', lastRiskData.avantagesIndus || []);
             setRiskBenefitChips('expected', lastRiskData.avantagesAttendus || []);
+            document.getElementById('examples').value = lastRiskData.examples || '';
             selectedActionPlansForRisk = [...(lastRiskData.actionPlans || [])];
             setAggravatingFactorsSelection(lastRiskData.aggravatingFactors || null);
         } else {
@@ -1122,6 +1123,7 @@ function addNewRisk() {
             setRiskControlAssignments([]);
             setRiskBenefitChips('undue', []);
             setRiskBenefitChips('expected', []);
+            document.getElementById('examples').value = '';
             selectedActionPlansForRisk = [];
             setAggravatingFactorsSelection(null);
             setRiskCountriesSelection([]);
@@ -1231,6 +1233,7 @@ function saveRisk() {
         tiers: Array.from(document.getElementById('tiers').selectedOptions).map(o => o.value),
         avantagesIndus: [...(riskBenefitsState.undue || [])],
         avantagesAttendus: [...(riskBenefitsState.expected || [])],
+        examples: document.getElementById('examples').value,
         paysExposes: countriesSelect
             ? Array.from(countriesSelect.selectedOptions).map(o => o.value)
             : [],
