@@ -10897,7 +10897,7 @@ class RiskManagementSystem {
             "'": '&#39;'
         }[match] || match));
 
-        const title = interview.title ? escapeHtml(interview.title) : 'Untitled interview report';
+        const title = interview.title ? String(interview.title) : 'Untitled interview report';
         const dateLabel = this.formatInterviewDate(interview.date);
         const updatedLabel = this.formatInterviewDateTime(interview.updatedAt || interview.createdAt);
 

@@ -2331,15 +2331,15 @@ function applyPatch() {
       };
       const state = {
         get risks(){ return RMS.risks || window.risks || []; },
-        set risks(v){ if (RMS.risks) RMS.risks = v; else window.risks = v; },
+        set risks(v){ if ('risks' in RMS) RMS.risks = v; else window.risks = v; },
         get controls(){ return RMS.controls || window.controls || []; },
-        set controls(v){ if (RMS.controls) RMS.controls = v; else window.controls = v; },
+        set controls(v){ if ('controls' in RMS) RMS.controls = v; else window.controls = v; },
         get actionPlans(){ return RMS.actionPlans || window.actionPlans || []; },
-        set actionPlans(v){ if (RMS.actionPlans) RMS.actionPlans = v; else window.actionPlans = v; },
+        set actionPlans(v){ if ('actionPlans' in RMS) RMS.actionPlans = v; else window.actionPlans = v; },
         get history(){ return RMS.history || window.historyLog || []; },
-        set history(v){ if (RMS.history) RMS.history = v; else window.historyLog = v; },
+        set history(v){ if ('history' in RMS) RMS.history = v; else window.historyLog = v; },
         get interviews(){ return RMS.interviews || window.interviews || []; },
-        set interviews(v){ if (RMS.interviews) RMS.interviews = v; else window.interviews = v; },
+        set interviews(v){ if ('interviews' in RMS) RMS.interviews = v; else window.interviews = v; },
         save: (label="auto") => {
           try {
             if (RMS.saveData) { RMS.saveData(); }
@@ -2833,7 +2833,9 @@ function applyPatch() {
               }
               state.save("après import");
               state.renderAll();
-              toast && toast("Import successful");
+              if (typeof toast === 'function') {
+                toast("Import successful");
+              }
             } catch(err){
               console.error(err);
               alert("Erreur à l'import : " + err.message);
