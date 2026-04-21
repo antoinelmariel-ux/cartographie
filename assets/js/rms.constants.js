@@ -46,7 +46,7 @@ const RISK_STATE_CONFIG = {
         scoreElement: 'scoreBrut',
         coordElement: 'coordBrut',
         pointClass: 'brut',
-        symbol: 'B',
+        symbol: 'G',
         matrixId: 'riskMatrixEditBrut',
         gridId: 'riskMatrixEditGridBrut',
         descriptionContainer: 'matrixDescriptionBrut'

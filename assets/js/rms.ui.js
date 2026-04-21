@@ -385,7 +385,6 @@ function findClosestExistingBenefitLabel(value, kind) {
     if (!source) return '';
     const normalized = normalizeBenefitForMatching(source);
     if (!normalized) return '';
-    const tokens = new Set(normalized.split(' ').filter(Boolean));
     const dictionary = buildBenefitsDictionary(kind);
 
     if (dictionary.has(normalized)) {
@@ -394,13 +393,7 @@ function findClosestExistingBenefitLabel(value, kind) {
 
     for (const [key, label] of dictionary.entries()) {
         if (!key) continue;
-        if (key.includes(normalized) || normalized.includes(key)) {
-            return label;
-        }
-        const keyTokens = new Set(key.split(' ').filter(Boolean));
-        const intersection = [...tokens].filter(token => keyTokens.has(token)).length;
-        const union = new Set([...tokens, ...keyTokens]).size;
-        if (union > 0 && (intersection / union) >= 0.7) {
+        if (key === normalized) {
             return label;
         }
     }
