@@ -1,6 +1,28 @@
 (function (global) {
     const defaultDataSets = {
-        risks: [],
+        risks: [
+            {
+                id: 1,
+                processus: 'Achats',
+                processusAssocies: ['Achats'],
+                sousProcessus: 'Sélection des fournisseurs',
+                sousProcessusAssocies: ['Sélection des fournisseurs'],
+                typeCorruption: 'active',
+                typesCorruption: ['active'],
+                statut: 'a-valider',
+                description: "Risque de favoritisme lors de la sélection des fournisseurs critiques en raison d'une documentation incomplète des critères de choix.",
+                tiers: ['Suppliers'],
+                avantagesIndus: ["Attribution d'un marché à un fournisseur non conforme"],
+                avantagesAttendus: ["Accélération indue du processus d'achat"],
+                paysExposes: ['France', 'Mexico'],
+                probBrut: 3,
+                impactBrut: 4,
+                mitigationEffectiveness: 'ameliorable',
+                controls: [5, 6, 9],
+                actionPlans: [],
+                dateCreation: '2026-04-21'
+            }
+        ],
         controls: [
             { id: 1, reference: 'GEN.01', groupCode: '', name: 'Separation of medical and commercial roles (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'annuelle', mode: 'ongoing', effectiveness: 'to-be-improved', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
             { id: 2, reference: 'GEN.02', groupCode: '', name: 'Segregation of duties (generic)', type: 'a-priori', origin: 'interne', owner: 'Compliance', frequency: 'annuelle', mode: 'ongoing', effectiveness: 'to-be-improved', status: 'actif', description: '', risks: [], dateCreation: '2026-04-16' },
