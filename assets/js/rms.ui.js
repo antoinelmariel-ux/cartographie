@@ -197,6 +197,20 @@ function toggleEntityFilterChip(entityValue) {
 }
 window.toggleEntityFilterChip = toggleEntityFilterChip;
 
+function setAllEntityFilterChips(selectAll = true) {
+    if (!window.rms) return;
+
+    const options = Array.isArray(rms.config?.countries)
+        ? rms.config.countries
+            .map(entry => (entry && entry.value != null) ? String(entry.value) : '')
+            .filter(Boolean)
+        : [];
+
+    const next = selectAll ? options : [];
+    applyFilters('entity', next, null);
+}
+window.setAllEntityFilterChips = setAllEntityFilterChips;
+
 function syncControlFilterWidgets(filterKey, value, sourceElement) {
     const normalizedKey = typeof filterKey === 'string' ? filterKey.trim() : '';
     if (!normalizedKey) return;

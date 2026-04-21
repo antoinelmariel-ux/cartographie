@@ -422,6 +422,12 @@ body.feedback-mode-paused .feedback-panel * {
     gap: 8px;
 }
 
+.filter-chip-actions {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+}
+
 .filter-label {
     font-size: 0.85em;
     color: var(--muted-text-color);
