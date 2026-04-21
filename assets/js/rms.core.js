@@ -3540,33 +3540,34 @@ class RiskManagementSystem {
     }
 
     renderMatrixEntityFilterChips() {
-        const container = document.getElementById('matrixEntityFilterChips');
-        if (!container) {
-            return;
-        }
-
         const options = Array.isArray(this.config?.countries) ? this.config.countries : [];
         const selected = new Set(Array.isArray(this.filters?.entity) ? this.filters.entity : []);
-        container.innerHTML = '';
-
-        options.forEach(entry => {
-            if (!entry || entry.value == null) {
+        ['matrixEntityFilterChips', 'risksEntityFilterChips'].forEach((containerId) => {
+            const container = document.getElementById(containerId);
+            if (!container) {
                 return;
             }
-            const value = String(entry.value);
-            const label = entry.label || value;
-            const chip = document.createElement('button');
-            chip.type = 'button';
-            chip.className = 'btn btn-outline btn-small';
-            chip.textContent = label;
-            chip.classList.toggle('btn-primary', selected.has(value));
-            chip.classList.toggle('btn-outline', !selected.has(value));
-            chip.addEventListener('click', () => {
-                if (typeof window.toggleEntityFilterChip === 'function') {
-                    window.toggleEntityFilterChip(value);
+            container.innerHTML = '';
+
+            options.forEach(entry => {
+                if (!entry || entry.value == null) {
+                    return;
                 }
+                const value = String(entry.value);
+                const label = entry.label || value;
+                const chip = document.createElement('button');
+                chip.type = 'button';
+                chip.className = 'btn btn-outline btn-small';
+                chip.textContent = label;
+                chip.classList.toggle('btn-primary', selected.has(value));
+                chip.classList.toggle('btn-outline', !selected.has(value));
+                chip.addEventListener('click', () => {
+                    if (typeof window.toggleEntityFilterChip === 'function') {
+                        window.toggleEntityFilterChip(value);
+                    }
+                });
+                container.appendChild(chip);
             });
-            container.appendChild(chip);
         });
     }
 
@@ -9260,8 +9261,12 @@ class RiskManagementSystem {
                 ? getRiskNetInfo(risk)
                 : { score: (Number(risk?.probNet) || 0) * (Number(risk?.impactNet) || 0), coefficient: 0, reduction: 0, label: '' };
             const netScore = netInfo.score;
+            const aggravatedBrutScore = Number.isFinite(netInfo.brutScore) ? netInfo.brutScore : brutScore;
             const brutLabel = Number.isFinite(brutScore)
                 ? brutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
+                : '0';
+            const aggravatedBrutLabel = Number.isFinite(aggravatedBrutScore)
+                ? aggravatedBrutScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                 : '0';
             const netLabel = Number.isFinite(netScore)
                 ? netScore.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
@@ -9275,6 +9280,22 @@ class RiskManagementSystem {
             const typeLabel = resolveLabel(typeMap, risk.typeCorruption);
             const tierLabels = Array.isArray(risk.tiers)
                 ? risk.tiers.map(tier => resolveLabel(tierMap, tier))
+                : [];
+            const entityLabels = Array.isArray(risk.paysExposes)
+                ? risk.paysExposes.map(entity => this.getCountryLabel(entity) || entity).filter(Boolean)
+                : [];
+            const actionPlanTitles = Array.isArray(this.actionPlans)
+                ? this.actionPlans
+                    .filter(plan => {
+                        if (!plan) return false;
+                        const directRefs = Array.isArray(risk.actionPlans) ? risk.actionPlans : [];
+                        const isDirect = directRefs.some(ref => idsEqual(typeof ref === 'object' ? ref?.id : ref, plan.id));
+                        const linkedRisks = Array.isArray(plan.risks) ? plan.risks : [];
+                        const isLinked = linkedRisks.some(linkedRiskId => idsEqual(linkedRiskId, risk.id));
+                        return isDirect || isLinked;
+                    })
+                    .map(plan => plan.title || plan.name || `#${plan.id}`)
+                    .filter(Boolean)
                 : [];
             const riskStatusValue = this.normalizeStatusValue(
                 'risk',
@@ -9292,20 +9313,14 @@ class RiskManagementSystem {
                 <tr>
                     <td>#${risk.id}</td>
                     <td>${risk.description}</td>
-                    <td>${this.getProcessLabel(risk.processus)}</td>
-                    <td>${this.getSubProcessLabel(risk.processus, risk.sousProcessus) || ''}</td>
                     <td>${typeLabel}</td>
                     <td>${tierLabels.join(', ')}</td>
+                    <td>${entityLabels.join(', ')}</td>
                     <td>${brutLabel}</td>
+                    <td>${aggravatedBrutLabel}</td>
                     <td title="Reduction ${reductionLabel}${effectivenessLabel}">${netLabel}</td>
                     <td><span class="table-badge badge-${riskBadgeClass}">${riskStatusLabel || 'Not defined'}</span></td>
-                    <td class="table-actions-cell">
-                        <div class="table-actions">
-                            <button class="action-btn" title="Dupliquer" onclick="rms.duplicateRisk(${JSON.stringify(risk.id)})">📄</button>
-                            <button class="action-btn" onclick="rms.editRisk(${JSON.stringify(risk.id)})">✏️</button>
-                            <button class="action-btn" onclick="rms.deleteRisk(${JSON.stringify(risk.id)})">🗑️</button>
-                        </div>
-                    </td>
+                    <td>${actionPlanTitles.join(' | ')}</td>
                 </tr>
             `;
         }).join('');
