@@ -1166,6 +1166,7 @@ window.closeModal = closeModal;
 window.getSelectedActionPlansForRisk = () => selectedActionPlansForRisk;
 function saveRisk() {
     if (!rms) return;
+    let riskSaved = false;
 
     const aggravatingSelection = typeof getFormAggravatingSelection === 'function'
         ? getFormAggravatingSelection()
@@ -1271,7 +1272,7 @@ function saveRisk() {
 
             rms.saveData();
             rms.init();
-            closeModal('riskModal');
+            riskSaved = true;
             if (isIncompleteRisk) {
                 showNotification('info', 'Incomplete risk saved as draft');
             } else {
@@ -1304,7 +1305,7 @@ function saveRisk() {
 
         rms.saveData();
         rms.renderAll();
-        closeModal('riskModal');
+        riskSaved = true;
         if (isIncompleteRisk) {
             showNotification('info', 'Incomplete risk saved as draft');
         } else {
@@ -1331,6 +1332,10 @@ function saveRisk() {
 
     if (rms && typeof rms.clearUnsavedChanges === 'function') {
         rms.clearUnsavedChanges('riskForm');
+    }
+
+    if (riskSaved) {
+        closeModal('riskModal');
     }
 }
 window.saveRisk = saveRisk;
