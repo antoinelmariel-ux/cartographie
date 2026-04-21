@@ -7698,39 +7698,17 @@ class RiskManagementSystem {
     getFilteredRisks(risks = this.risks) {
         const sourceRisks = Array.isArray(risks) ? risks : [];
         const {
-            process = '',
-            type = '',
             status = '',
             search = '',
             entity = []
         } = this.filters || {};
 
-        const processFilter = String(process || '').toLowerCase();
         const searchFilter = String(search || '').toLowerCase();
         const entityFilters = Array.isArray(entity)
             ? entity.map(value => String(value || '').toLowerCase()).filter(Boolean)
             : [];
 
         return sourceRisks.filter(risk => {
-            if (processFilter) {
-                const processValues = Array.isArray(risk?.processusAssocies) && risk.processusAssocies.length
-                    ? risk.processusAssocies
-                    : [risk?.processus];
-                const hasProcess = processValues.some(value => String(value || '').toLowerCase().includes(processFilter));
-                if (!hasProcess) {
-                    return false;
-                }
-            }
-
-            if (type) {
-                const typeValues = Array.isArray(risk?.typesCorruption) && risk.typesCorruption.length
-                    ? risk.typesCorruption
-                    : [risk?.typeCorruption];
-                if (!typeValues.some(value => value === type)) {
-                    return false;
-                }
-            }
-
             if (status) {
                 const riskStatus = this.normalizeStatusValue(
                     'risk',
