@@ -1327,6 +1327,10 @@ function saveRisk() {
         }
     }
 
+    if (riskSaved) {
+        closeModal('riskModal');
+    }
+
     if (rms) {
         rms.renderRiskPoints();
         rms.updateRiskDetailsList();
@@ -1347,10 +1351,6 @@ function saveRisk() {
 
     if (rms && typeof rms.clearUnsavedChanges === 'function') {
         rms.clearUnsavedChanges('riskForm');
-    }
-
-    if (riskSaved) {
-        closeModal('riskModal');
     }
 }
 window.saveRisk = saveRisk;
