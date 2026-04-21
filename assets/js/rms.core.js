@@ -1,6 +1,6 @@
 // Enhanced Risk Management System - Core Logic
 
-const RMS_LOCAL_STORAGE_ENABLED = false;
+const RMS_LOCAL_STORAGE_ENABLED = true;
 
 let emptyChartPluginRegistered = false;
 
