@@ -676,14 +676,14 @@ class RiskManagementSystem {
             'UK',
             'Mexico',
             'EuroPlasma',
-            'Plasma USA',
+            'American Plasma',
             'LFB USA',
             'HemaBiologics',
             'Distributors'
         ];
 
         const targetColumns = [
-            { key: 'hq', label: 'Transversal entities', countries: ['HQ', 'Plasma USA', 'LFB USA', 'EuroPlasma'] },
+            { key: 'hq', label: 'Transversal entities', countries: ['HQ', 'American Plasma', 'LFB USA', 'EuroPlasma'] },
             {
                 key: 'pharma-affiliates-jv-plus-50',
                 label: 'Pharma Affiliates / JV > 50%',
@@ -7504,7 +7504,7 @@ class RiskManagementSystem {
             }
         };
 
-        const viewSymbols = { brut: 'B', net: 'N' };
+        const viewSymbols = { brut: 'G', net: 'N' };
         const mitigationOrder = Array.isArray(MITIGATION_EFFECTIVENESS_ORDER)
             ? [...MITIGATION_EFFECTIVENESS_ORDER]
             : ['inefficace', 'insuffisant', 'ameliorable', 'efficace'];
