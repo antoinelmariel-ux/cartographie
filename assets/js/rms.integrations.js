@@ -1535,18 +1535,60 @@ function csvSplitLine(line, delimiter = ';') {
 }
 
 function parseCsvText(content) {
-    const lines = String(content || '')
+    const normalized = String(content || '')
         .replace(/\r\n/g, '\n')
-        .replace(/\r/g, '\n')
-        .split('\n')
-        .map(line => line.trim())
-        .filter(Boolean);
-    if (!lines.length) {
+        .replace(/\r/g, '\n');
+
+    const rows = [];
+    let currentRow = [];
+    let currentCell = '';
+    let inQuotes = false;
+
+    for (let index = 0; index < normalized.length; index += 1) {
+        const char = normalized[index];
+
+        if (inQuotes) {
+            if (char === '"') {
+                if (normalized[index + 1] === '"') {
+                    currentCell += '"';
+                    index += 1;
+                } else {
+                    inQuotes = false;
+                }
+            } else {
+                currentCell += char;
+            }
+            continue;
+        }
+
+        if (char === '"') {
+            inQuotes = true;
+        } else if (char === ';') {
+            currentRow.push(currentCell);
+            currentCell = '';
+        } else if (char === '\n') {
+            currentRow.push(currentCell);
+            if (currentRow.some(cell => String(cell || '').trim() !== '')) {
+                rows.push(currentRow);
+            }
+            currentRow = [];
+            currentCell = '';
+        } else {
+            currentCell += char;
+        }
+    }
+
+    currentRow.push(currentCell);
+    if (currentRow.some(cell => String(cell || '').trim() !== '')) {
+        rows.push(currentRow);
+    }
+
+    if (!rows.length) {
         return [];
     }
-    const headers = csvSplitLine(lines[0]).map(header => String(header || '').trim());
-    return lines.slice(1).map((line) => {
-        const values = csvSplitLine(line);
+
+    const headers = rows[0].map(header => String(header || '').trim());
+    return rows.slice(1).map((values) => {
         return headers.reduce((row, header, index) => {
             row[header] = (values[index] ?? '').trim();
             return row;
