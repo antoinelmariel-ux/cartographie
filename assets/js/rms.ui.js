@@ -532,7 +532,7 @@ function getAssignedControlsForBenefit(label) {
         if (!(assignment.avantagesIndus || []).includes(label)) {
             return null;
         }
-        const control = rms.controls.find(ctrl => ctrl.id === controlId);
+        const control = rms.controls.find(ctrl => idsEqual(ctrl.id, controlId));
         return {
             id: controlId,
             name: control?.name || `#${controlId}`
@@ -559,7 +559,7 @@ function renderBenefitFirstAssignment() {
                     : 'No linked control';
                 const linkedHtml = linkedControls.length
                     ? `<div class="benefit-first-linked-controls">
-                        ${linkedControls.map(item => `<span class="benefit-first-linked-chip">#${item.id} - ${item.name}</span>`).join('')}
+                        ${linkedControls.map(item => `<span class="benefit-first-linked-chip">${item.name}</span>`).join('')}
                     </div>`
                     : '';
                 return `
@@ -598,7 +598,7 @@ function selectRecommendedControlsForFocusedBenefit() {
     if (!label) return;
     const recommendedIds = getRecommendedControlIdsForBenefit(label);
     recommendedIds.forEach(controlId => {
-        if (!selectedControlsForRisk.includes(controlId)) {
+        if (!selectedControlsForRisk.some(id => idsEqual(id, controlId))) {
             selectedControlsForRisk.push(controlId);
         }
         const key = String(controlId);
@@ -1537,7 +1537,7 @@ function updateSelectedControlsDisplay() {
     const transverseControls = selectedControlsForRisk.map(id => {
         const assignment = controlAssignmentsForRisk[String(id)];
         if (!assignment?.transverse) return null;
-        const ctrl = rms.controls.find(c => c.id === id);
+        const ctrl = rms.controls.find(c => idsEqual(c.id, id));
         if (!ctrl) return null;
         return `<span class="transverse-control-chip">#${id} - ${ctrl.name || 'Unnamed'} <button type="button" class="transverse-control-remove-btn" onclick="removeControlFromSelection(${id})" aria-label="Remove cross-functional control #${id}">×</button></span>`;
     }).filter(Boolean);
