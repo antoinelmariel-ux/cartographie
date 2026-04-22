@@ -1401,8 +1401,10 @@ function createControlFromRisk() {
         transverse: !benefitLabel
     };
     closeControlSelector();
-    if (typeof addNewControl === 'function') {
-        addNewControl();
+    if (typeof window.addNewControl === 'function') {
+        window.addNewControl();
+    } else if (typeof showNotification === 'function') {
+        showNotification('error', 'Unable to open the control creation form.');
     }
 }
 window.createControlFromRisk = createControlFromRisk;
