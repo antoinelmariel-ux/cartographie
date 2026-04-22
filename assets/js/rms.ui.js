@@ -46,12 +46,16 @@ function switchTab(tabNameOrEvent, maybeTabName) {
 }
 window.switchTab = switchTab;
 
-window.matrixEditMode = false;
 window.matrixDraggedRiskId = null;
 
 function toggleMatrixEditMode(forceState = null) {
-    const nextState = typeof forceState === 'boolean' ? forceState : !window.matrixEditMode;
-    window.matrixEditMode = nextState;
+    const rmsInstance = window.rms || null;
+    const currentState = Boolean(rmsInstance && rmsInstance.matrixEditMode);
+    const nextState = typeof forceState === 'boolean' ? forceState : !currentState;
+
+    if (rmsInstance) {
+        rmsInstance.matrixEditMode = nextState;
+    }
     const button = document.getElementById('matrixEditToggleBtn');
     if (button) {
         button.classList.toggle('btn-primary', nextState);
@@ -59,8 +63,8 @@ function toggleMatrixEditMode(forceState = null) {
         button.textContent = nextState ? 'Edit mode active' : 'Edit mode';
     }
     document.body.classList.toggle('matrix-edit-mode', nextState);
-    if (window.rms) {
-        rms.renderRiskPoints();
+    if (rmsInstance) {
+        rmsInstance.renderRiskPoints();
     }
     if (typeof showNotification === 'function') {
         showNotification('info', nextState
@@ -1379,12 +1383,31 @@ function saveRisk() {
 window.saveRisk = saveRisk;
 
 function applyMatrixRiskMove(riskId, probability, impact) {
-    if (!rms || !window.matrixEditMode) return;
-    const risk = Array.isArray(rms.risks) ? rms.risks.find(item => idsEqual(item.id, riskId)) : null;
-    if (!risk) return;
+    if (!rms || !rms.matrixEditMode) {
+        console.debug('[MatrixDnD] Drop ignored: matrix edit mode is disabled.', { riskId, probability, impact });
+        return;
+    }
 
-    const nextProb = Math.min(4, Math.max(1, parseInt(probability, 10) || 1));
-    const nextImpact = Math.min(4, Math.max(1, parseInt(impact, 10) || 1));
+    if (riskId == null || riskId === '') {
+        console.debug('[MatrixDnD] Drop ignored: missing risk id.', { riskId, probability, impact });
+        return;
+    }
+
+    const parsedProb = parseInt(probability, 10);
+    const parsedImpact = parseInt(impact, 10);
+    if (!Number.isFinite(parsedProb) || !Number.isFinite(parsedImpact)) {
+        console.debug('[MatrixDnD] Drop ignored: invalid matrix cell coordinates.', { riskId, probability, impact });
+        return;
+    }
+
+    const risk = Array.isArray(rms.risks) ? rms.risks.find(item => idsEqual(item.id, riskId)) : null;
+    if (!risk) {
+        console.debug('[MatrixDnD] Drop ignored: risk not found.', { riskId, probability, impact });
+        return;
+    }
+
+    const nextProb = Math.min(4, Math.max(1, parsedProb || 1));
+    const nextImpact = Math.min(4, Math.max(1, parsedImpact || 1));
     risk.probBrut = nextProb;
     risk.impactBrut = nextImpact;
 

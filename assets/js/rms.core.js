@@ -132,6 +132,7 @@ class RiskManagementSystem {
         }
         this.needsConfigStructureRerender = configStructureUpdated;
         this.currentView = 'brut';
+        this.matrixEditMode = false;
         this.processScoreMode = 'net';
         this.currentTab = 'dashboard';
         this.currentConfigSection = 'processManager';
@@ -7578,7 +7579,7 @@ class RiskManagementSystem {
                 grid.querySelectorAll('.matrix-cell').forEach(cell => {
                     cell.ondragover = null;
                     cell.ondrop = null;
-                    if (!window.matrixEditMode) {
+                    if (!this.matrixEditMode) {
                         return;
                     }
                     cell.ondragover = (event) => {
@@ -7589,9 +7590,23 @@ class RiskManagementSystem {
                         const riskId = event.dataTransfer?.getData('text/risk-id')
                             || event.dataTransfer?.getData('text/plain')
                             || window.matrixDraggedRiskId;
-                        if (!riskId) return;
+                        if (!riskId) {
+                            console.debug('[MatrixDnD] Drop ignored: missing risk id.', { cell: { ...cell.dataset } });
+                            return;
+                        }
+
+                        if (!this.matrixEditMode) {
+                            console.debug('[MatrixDnD] Drop ignored: matrix edit mode is disabled.', { riskId });
+                            return;
+                        }
+
                         const probability = parseInt(cell.dataset.probability, 10);
                         const impact = parseInt(cell.dataset.impact, 10);
+                        if (!Number.isFinite(probability) || !Number.isFinite(impact)) {
+                            console.debug('[MatrixDnD] Drop ignored: invalid matrix cell.', { riskId, probability: cell.dataset.probability, impact: cell.dataset.impact });
+                            return;
+                        }
+
                         if (typeof window.applyMatrixRiskMove === 'function') {
                             window.applyMatrixRiskMove(riskId, probability, impact);
                         }
@@ -7730,8 +7745,8 @@ class RiskManagementSystem {
                 point.textContent = rankMapByView[viewKey]?.[String(risk.id)] || '';
                 point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
                 point.onclick = () => this.selectRisk(risk.id);
-                if (viewKey === 'brut' && window.matrixEditMode) {
-                    point.draggable = true;
+                point.draggable = viewKey === 'brut' && this.matrixEditMode;
+                if (point.draggable) {
                     point.addEventListener('dragstart', (event) => {
                         const riskId = String(risk.id);
                         window.matrixDraggedRiskId = riskId;
