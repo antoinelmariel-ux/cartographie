@@ -1182,6 +1182,7 @@ window.getSelectedActionPlansForRisk = () => selectedActionPlansForRisk;
 function saveRisk() {
     if (!rms) return;
     let riskSaved = false;
+    const relationUpdateErrors = [];
 
     const aggravatingSelection = typeof getFormAggravatingSelection === 'function'
         ? getFormAggravatingSelection()
@@ -1266,7 +1267,7 @@ function saveRisk() {
             // Update control links
             rms.controls.forEach(control => {
                 control.risks = control.risks || [];
-                if (selectedControlsForRisk.includes(control.id)) {
+                if (selectedControlsForRisk.some(id => idsEqual(id, control.id))) {
                     if (!control.risks.some(id => idsEqual(id, targetId))) {
                         control.risks.push(rms.risks[riskIndex].id);
                     }
@@ -1277,12 +1278,24 @@ function saveRisk() {
 
             rms.actionPlans.forEach(plan => {
                 plan.risks = plan.risks || [];
-                if (selectedActionPlansForRisk.includes(plan.id)) {
+                if (selectedActionPlansForRisk.some(id => idsEqual(id, plan.id))) {
                     if (!plan.risks.some(id => idsEqual(id, targetId))) {
                         plan.risks.push(rms.risks[riskIndex].id);
                     }
                 } else {
                     plan.risks = plan.risks.filter(id => !idsEqual(id, targetId));
+                }
+            });
+
+            selectedControlsForRisk.forEach(controlId => {
+                if (!rms.controls.some(control => idsEqual(control.id, controlId))) {
+                    relationUpdateErrors.push(`Contrôle introuvable (id=${controlId})`);
+                }
+            });
+
+            selectedActionPlansForRisk.forEach(planId => {
+                if (!rms.actionPlans.some(plan => idsEqual(plan.id, planId))) {
+                    relationUpdateErrors.push(`Plan d'action introuvable (id=${planId})`);
                 }
             });
 
@@ -1300,22 +1313,26 @@ function saveRisk() {
         const newRisk = rms.addRisk(formData);
 
         selectedControlsForRisk.forEach(controlId => {
-            const ctrl = rms.controls.find(c => c.id === controlId);
+            const ctrl = rms.controls.find(c => idsEqual(c.id, controlId));
             if (ctrl) {
                 ctrl.risks = ctrl.risks || [];
-                if (!ctrl.risks.includes(newRisk.id)) {
+                if (!ctrl.risks.some(id => idsEqual(id, newRisk.id))) {
                     ctrl.risks.push(newRisk.id);
                 }
+            } else {
+                relationUpdateErrors.push(`Contrôle introuvable (id=${controlId})`);
             }
         });
 
         selectedActionPlansForRisk.forEach(planId => {
-            const plan = rms.actionPlans.find(p => p.id === planId);
+            const plan = rms.actionPlans.find(p => idsEqual(p.id, planId));
             if (plan) {
                 plan.risks = plan.risks || [];
-                if (!plan.risks.includes(newRisk.id)) {
+                if (!plan.risks.some(id => idsEqual(id, newRisk.id))) {
                     plan.risks.push(newRisk.id);
                 }
+            } else {
+                relationUpdateErrors.push(`Plan d'action introuvable (id=${planId})`);
             }
         });
 
@@ -1331,6 +1348,10 @@ function saveRisk() {
 
     if (riskSaved) {
         closeModal('riskModal');
+    }
+
+    if (relationUpdateErrors.length) {
+        showNotification('warning', `Certaines relations n'ont pas pu être mises à jour : ${relationUpdateErrors.join(', ')}`);
     }
 
     if (rms) {
