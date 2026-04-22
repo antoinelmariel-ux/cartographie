@@ -5063,6 +5063,25 @@ tbody tr:hover {
     gap: 16px;
 }
 
+
+.config-render-error {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    background: rgba(231, 76, 60, 0.1);
+    border: 1px solid rgba(231, 76, 60, 0.35);
+    border-radius: 10px;
+    color: #8b1e12;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+}
+
+.config-render-error p {
+    margin: 0;
+    flex: 1 1 100%;
+}
+
 .config-section-description {
     background: var(--surface-alt-color);
     border: 1px solid var(--border-color);
