@@ -7504,7 +7504,6 @@ class RiskManagementSystem {
             }
         };
 
-        const viewSymbols = { brut: 'G', net: 'N' };
         const mitigationOrder = Array.isArray(MITIGATION_EFFECTIVENESS_ORDER)
             ? [...MITIGATION_EFFECTIVENESS_ORDER]
             : ['inefficace', 'insuffisant', 'ameliorable', 'efficace'];
@@ -7514,6 +7513,18 @@ class RiskManagementSystem {
             fort: 'Fort',
             modere: 'Modéré',
             faible: 'Faible'
+        };
+        const rankedBrutEntries = this.getRankedMatrixRiskEntries(filteredRisks, 'brut');
+        const rankedNetEntries = this.getRankedMatrixRiskEntries(filteredRisks, 'net');
+        const rankMapByView = {
+            brut: rankedBrutEntries.reduce((acc, entry) => {
+                acc[String(entry.risk?.id)] = entry.rank;
+                return acc;
+            }, {}),
+            net: rankedNetEntries.reduce((acc, entry) => {
+                acc[String(entry.risk?.id)] = entry.rank;
+                return acc;
+            }, {})
         };
 
         Object.entries(viewConfigs).forEach(([viewKey, config]) => {
@@ -7594,7 +7605,7 @@ class RiskManagementSystem {
                     tooltipSegments.push(`Gross level: ${severityLabelMap[brutLevel] || brutLevel}`);
 
                     point.title = tooltipSegments.join(' • ');
-                    point.textContent = viewSymbols[viewKey] || '';
+                    point.textContent = rankMapByView[viewKey]?.[String(risk.id)] || '';
                     point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
                     point.onclick = () => this.selectRisk(risk.id);
                     grid.appendChild(point);
@@ -7672,7 +7683,7 @@ class RiskManagementSystem {
                 }
 
                 point.title = tooltipSegments.join(' • ');
-                point.textContent = viewSymbols[viewKey] || '';
+                point.textContent = rankMapByView[viewKey]?.[String(risk.id)] || '';
                 point.setAttribute('aria-label', `${config.label} : ${risk.description}`);
                 point.onclick = () => this.selectRisk(risk.id);
                 if (viewKey === 'brut' && window.matrixEditMode) {
@@ -7694,6 +7705,45 @@ class RiskManagementSystem {
                 point.style.transform = 'translate(-50%, 50%)';
             });
         });
+    }
+
+    getRankedMatrixRiskEntries(risks = this.risks, mode = 'brut', config = null) {
+        const sourceRisks = Array.isArray(risks) ? risks : [];
+        const modeKey = mode === 'net' ? 'net' : 'brut';
+        const localConfig = config || {};
+
+        const scoredEntries = sourceRisks.map(risk => {
+            if (modeKey === 'net') {
+                const netInfo = typeof getRiskNetInfo === 'function'
+                    ? getRiskNetInfo(risk)
+                    : { score: 0, brutScore: 0, coefficient: 0, label: 'Inefficace', effectiveness: 'inefficace' };
+                return { risk, score: netInfo.score, brutScore: netInfo.brutScore, coefficient: netInfo.coefficient, label: netInfo.label, effectiveness: netInfo.effectiveness };
+            }
+
+            const baseProb = Number(risk?.[localConfig.probKey || 'probBrut']) || 0;
+            const impact = Number(risk?.[localConfig.impactKey || 'impactBrut']) || 0;
+            const coefficient = typeof getRiskAggravatingCoefficient === 'function'
+                ? getRiskAggravatingCoefficient(risk)
+                : 1;
+            const prob = baseProb * coefficient;
+            const baseScore = baseProb * impact;
+            return { risk, prob, impact, coefficient, baseScore, score: prob * impact };
+        }).sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            if (modeKey === 'net') {
+                if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
+            } else {
+                if ((b.prob || 0) !== (a.prob || 0)) return (b.prob || 0) - (a.prob || 0);
+                if ((b.impact || 0) !== (a.impact || 0)) return (b.impact || 0) - (a.impact || 0);
+            }
+
+            const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
+            if (descComparison !== 0) return descComparison;
+
+            return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
+        });
+
+        return scoredEntries.map((entry, index) => ({ ...entry, rank: index + 1 }));
     }
 
     getFilteredRisks(risks = this.risks) {
@@ -7849,36 +7899,7 @@ class RiskManagementSystem {
                 titleElement.textContent = title;
             }
 
-            const scoredRisks = filteredRisks.map(risk => {
-                if (mode === 'net') {
-                    const netInfo = typeof getRiskNetInfo === 'function'
-                        ? getRiskNetInfo(risk)
-                        : { score: 0, brutScore: 0, coefficient: 0, label: 'Inefficace', effectiveness: 'inefficace' };
-                    return { risk, score: netInfo.score, brutScore: netInfo.brutScore, coefficient: netInfo.coefficient, label: netInfo.label, effectiveness: netInfo.effectiveness };
-                }
-
-                const baseProb = Number(risk?.[config.probKey]) || 0;
-                const impact = Number(risk?.[config.impactKey]) || 0;
-                const coefficient = typeof getRiskAggravatingCoefficient === 'function'
-                    ? getRiskAggravatingCoefficient(risk)
-                    : 1;
-                const prob = baseProb * coefficient;
-                const baseScore = baseProb * impact;
-                return { risk, prob, impact, coefficient, baseScore, score: prob * impact };
-            }).sort((a, b) => {
-                if (b.score !== a.score) return b.score - a.score;
-                if (mode === 'net') {
-                    if (b.coefficient !== a.coefficient) return b.coefficient - a.coefficient;
-                } else {
-                    if ((b.prob || 0) !== (a.prob || 0)) return (b.prob || 0) - (a.prob || 0);
-                    if ((b.impact || 0) !== (a.impact || 0)) return (b.impact || 0) - (a.impact || 0);
-                }
-
-                const descComparison = (a.risk.description || '').localeCompare(b.risk.description || '', undefined, { sensitivity: 'base' });
-                if (descComparison !== 0) return descComparison;
-
-                return String(a.risk.id).localeCompare(String(b.risk.id), undefined, { numeric: true, sensitivity: 'base' });
-            });
+            const scoredRisks = this.getRankedMatrixRiskEntries(filteredRisks, mode, config);
 
             if (!scoredRisks.length) {
                 const message = baseRisks.length
@@ -7903,6 +7924,16 @@ class RiskManagementSystem {
                 acc[rawValue.toLowerCase()] = label;
                 return acc;
             }, {});
+            const tierMap = (Array.isArray(this.config?.tiers) ? this.config.tiers : []).reduce((acc, item) => {
+                if (!item || item.value === undefined || item.value === null) {
+                    return acc;
+                }
+                const rawValue = String(item.value);
+                const label = item.label || rawValue;
+                acc[rawValue] = label;
+                acc[rawValue.toLowerCase()] = label;
+                return acc;
+            }, {});
 
             const resolveTypeLabel = (value) => {
                 if (value == null) {
@@ -7911,9 +7942,16 @@ class RiskManagementSystem {
                 const rawValue = String(value);
                 return typeMap[rawValue] || typeMap[rawValue.toLowerCase()] || rawValue;
             };
+            const resolveTierLabel = (value) => {
+                if (value == null) {
+                    return '';
+                }
+                const rawValue = String(value);
+                return tierMap[rawValue] || tierMap[rawValue.toLowerCase()] || rawValue;
+            };
 
             container.innerHTML = scoredRisks.map(entry => {
-                const { risk, score } = entry;
+                const { risk, score, rank } = entry;
                 let scoreClass = 'low';
                 if (score > 12) scoreClass = 'critical';
                 else if (score > 8) scoreClass = 'high';
@@ -7922,15 +7960,20 @@ class RiskManagementSystem {
                 const processLabel = risk?.processus && String(risk.processus).trim()
                     ? this.getProcessLabel(String(risk.processus).trim())
                     : 'Not defined';
-                const sp = risk?.sousProcessus && String(risk.sousProcessus).trim()
-                    ? ` > ${this.getSubProcessLabel(risk?.processus, String(risk.sousProcessus).trim())}`
+                const subProcessLabel = risk?.sousProcessus && String(risk.sousProcessus).trim()
+                    ? this.getSubProcessLabel(risk?.processus, String(risk.sousProcessus).trim())
                     : '';
+                const processMetaLabel = subProcessLabel || processLabel;
                 const typeLabel = resolveTypeLabel(risk?.typeCorruption);
+                const tierLabels = Array.isArray(risk?.tiers)
+                    ? risk.tiers.map(tier => resolveTierLabel(tier)).filter(Boolean)
+                    : [];
+                const tierLabel = tierLabels.length ? tierLabels.join(', ') : 'Not defined';
                 const formattedScore = Number.isFinite(score)
                     ? score.toLocaleString('fr-FR', { maximumFractionDigits: 2 })
                     : '0';
 
-                const metaDetails = `Processus: ${processLabel}${sp} • Type: ${typeLabel}`;
+                const metaDetails = `N°${rank} • ${subProcessLabel ? 'Sous-processus' : 'Processus'}: ${processMetaLabel} • Tiers: ${tierLabel} • Type: ${typeLabel}`;
 
                 return `
                     <div class="risk-item" data-risk-id="${risk.id}" onclick="rms.selectRisk(${JSON.stringify(risk.id)})">
