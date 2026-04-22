@@ -11906,6 +11906,8 @@ var rms;
 function setRms(instance) {
     rms = instance;
     window.rms = instance;
+    window.RMS = instance;
+    window.RiskSystem = instance;
 }
 
 window.RiskManagementSystem = RiskManagementSystem;
