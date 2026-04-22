@@ -3108,7 +3108,10 @@ class RiskManagementSystem {
 
     renderConfiguration() {
         const container = document.getElementById('configurationContainer');
-        if (!container) return;
+        if (!container) {
+            console.error('[renderConfiguration] Missing #configurationContainer element.');
+            return;
+        }
 
         const availableSections = [
             { id: 'processManager', label: 'Processes & referents' },
@@ -3118,6 +3121,37 @@ class RiskManagementSystem {
 
         if (!this.currentConfigSection || !availableSections.some(section => section.id === this.currentConfigSection)) {
             this.currentConfigSection = 'processManager';
+        }
+
+        const activeSection = availableSections.find(section => section.id === this.currentConfigSection) || availableSections[0];
+
+        const showSectionError = (sectionLabel, error) => {
+            console.error(`[renderConfiguration] Error while rendering section "${sectionLabel}".`, error);
+
+            const previousError = container.querySelector('[data-config-render-error="true"]');
+            if (previousError) {
+                previousError.remove();
+            }
+
+            const errorBlock = document.createElement('div');
+            errorBlock.className = 'config-render-error';
+            errorBlock.setAttribute('data-config-render-error', 'true');
+            errorBlock.setAttribute('role', 'alert');
+            errorBlock.innerHTML = `<strong>⚠️ Impossible d'afficher la section “${sectionLabel}”.</strong><p>Une erreur est survenue pendant le rendu.</p>`;
+
+            const retryButton = document.createElement('button');
+            retryButton.type = 'button';
+            retryButton.className = 'btn-secondary';
+            retryButton.textContent = 'Recharger la section';
+            retryButton.addEventListener('click', () => this.renderConfiguration());
+            errorBlock.appendChild(retryButton);
+
+            container.prepend(errorBlock);
+        };
+
+        if (!this.config || !Array.isArray(this.config.processes)) {
+            showSectionError(activeSection.label, new Error('Configuration prerequisites are missing (this.config / this.config.processes).'));
+            return;
         }
 
         const exportButton = document.getElementById('configExportButton');
@@ -3136,22 +3170,20 @@ class RiskManagementSystem {
             }
         }
 
-        this.closeActiveInsertionForm();
-        this.dragState = null;
-        container.innerHTML = '';
+        const nextView = document.createElement('div');
 
         if (this.currentConfigSection !== 'history') {
             const heading = document.createElement('h2');
             heading.className = 'admin-section-title';
             heading.textContent = 'Paramètres de configuration';
-            container.appendChild(heading);
+            nextView.appendChild(heading);
 
             const helper = document.createElement('div');
             helper.className = 'config-helper';
             const helperText = document.createElement('p');
             helperText.textContent = "💡 Use the save button in the header to store risks, controls, and action plans. From this section, export your processes or other settings to share or archive them.";
             helper.appendChild(helperText);
-            container.appendChild(helper);
+            nextView.appendChild(helper);
         }
 
         const tabs = document.createElement('div');
@@ -3167,22 +3199,32 @@ class RiskManagementSystem {
             });
             tabs.appendChild(button);
         });
-        container.appendChild(tabs);
+        nextView.appendChild(tabs);
 
         const content = document.createElement('div');
         content.className = 'config-section-panel';
-        container.appendChild(content);
+        nextView.appendChild(content);
 
-        if (this.currentConfigSection === 'processManager') {
-            this.processManagerContainer = content;
-            this.renderProcessManager(content);
-        } else if (this.currentConfigSection === 'general') {
-            this.processManagerContainer = null;
-            this.renderGeneralConfiguration(content);
-        } else {
-            this.processManagerContainer = null;
-            this.renderHistoryConfiguration(content);
+        try {
+            this.closeActiveInsertionForm();
+            this.dragState = null;
+
+            if (this.currentConfigSection === 'processManager') {
+                this.processManagerContainer = content;
+                this.renderProcessManager(content);
+            } else if (this.currentConfigSection === 'general') {
+                this.processManagerContainer = null;
+                this.renderGeneralConfiguration(content);
+            } else {
+                this.processManagerContainer = null;
+                this.renderHistoryConfiguration(content);
+            }
+        } catch (error) {
+            showSectionError(activeSection.label, error);
+            return;
         }
+
+        container.replaceChildren(...nextView.childNodes);
     }
 
     renderGeneralConfiguration(container) {
