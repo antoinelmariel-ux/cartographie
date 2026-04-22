@@ -2332,7 +2332,8 @@ function notifyControlBootFailure(message) {
 }
 
 function initializeControlEntryPoints(dependencies = {}) {
-    window.__controlEntryPointsContext = dependencies;
+    const previousContext = window.__controlEntryPointsContext || {};
+    window.__controlEntryPointsContext = { ...previousContext, ...dependencies };
     if (window.__controlEntryPointsInitialized) {
         return;
     }
@@ -2356,6 +2357,10 @@ function initializeControlEntryPoints(dependencies = {}) {
     };
 
     window.__controlEntryPointsInitialized = true;
+}
+
+function registerControlEntryPointHandlers(dependencies = {}) {
+    initializeControlEntryPoints(dependencies);
 }
 
 function applyPatch() {
@@ -3384,7 +3389,7 @@ function applyPatch() {
         }
       }
 
-      initializeControlEntryPoints({
+      registerControlEntryPointHandlers({
         openNewControlModal,
         persistControlForm
       });

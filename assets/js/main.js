@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (typeof registerBeforeUnloadWarning === 'function') {
         registerBeforeUnloadWarning();
     }
+    if (typeof initializeControlEntryPoints === 'function') {
+        initializeControlEntryPoints();
+    }
     try {
         applyPatch();
     } catch (error) {
