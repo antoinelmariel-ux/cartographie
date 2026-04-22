@@ -2092,7 +2092,8 @@ function importControlsCsv() {
 window.importControlsCsv = importControlsCsv;
 
 function exportOperationalData() {
-    if (!window.rms) {
+    const instance = window.rms || window.RMS || window.RiskSystem || (typeof rms !== 'undefined' ? rms : null);
+    if (!instance) {
         console.warn('RiskManagementSystem indisponible pour la sauvegarde.');
         if (typeof showNotification === 'function') {
             showNotification('error', "Save failed: instance not initialized");
@@ -2101,14 +2102,14 @@ function exportOperationalData() {
     }
 
     try {
-        if (typeof rms.saveData === 'function') {
-            rms.saveData();
+        if (typeof instance.saveData === 'function') {
+            instance.saveData();
         }
-        if (typeof rms.saveConfig === 'function') {
-            rms.saveConfig();
+        if (typeof instance.saveConfig === 'function') {
+            instance.saveConfig();
         }
 
-        const snapshot = rms.getSnapshot();
+        const snapshot = instance.getSnapshot();
         const payload = {
             risks: Array.isArray(snapshot.risks) ? snapshot.risks : [],
             controls: Array.isArray(snapshot.controls) ? snapshot.controls : [],
