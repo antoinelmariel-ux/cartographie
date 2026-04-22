@@ -7544,7 +7544,9 @@ class RiskManagementSystem {
                     };
                     cell.ondrop = (event) => {
                         event.preventDefault();
-                        const riskId = event.dataTransfer?.getData('text/risk-id');
+                        const riskId = event.dataTransfer?.getData('text/risk-id')
+                            || event.dataTransfer?.getData('text/plain')
+                            || window.matrixDraggedRiskId;
                         if (!riskId) return;
                         const probability = parseInt(cell.dataset.probability, 10);
                         const impact = parseInt(cell.dataset.impact, 10);
@@ -7689,7 +7691,13 @@ class RiskManagementSystem {
                 if (viewKey === 'brut' && window.matrixEditMode) {
                     point.draggable = true;
                     point.addEventListener('dragstart', (event) => {
-                        event.dataTransfer?.setData('text/risk-id', String(risk.id));
+                        const riskId = String(risk.id);
+                        window.matrixDraggedRiskId = riskId;
+                        event.dataTransfer?.setData('text/risk-id', riskId);
+                        event.dataTransfer?.setData('text/plain', riskId);
+                    });
+                    point.addEventListener('dragend', () => {
+                        window.matrixDraggedRiskId = null;
                     });
                 }
                 grid.appendChild(point);

@@ -47,6 +47,7 @@ function switchTab(tabNameOrEvent, maybeTabName) {
 window.switchTab = switchTab;
 
 window.matrixEditMode = false;
+window.matrixDraggedRiskId = null;
 
 function toggleMatrixEditMode(forceState = null) {
     const nextState = typeof forceState === 'boolean' ? forceState : !window.matrixEditMode;
