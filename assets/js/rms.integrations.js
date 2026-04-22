@@ -2315,6 +2315,49 @@ function loadRmsDataFromFile() {
     input.click();
 }
 window.loadRmsDataFromFile = loadRmsDataFromFile;
+function notifyControlBootFailure(message) {
+    const normalizedMessage = (typeof message === 'string' && message.trim())
+        ? message.trim()
+        : 'Le module de gestion des contrôles n’est pas disponible.';
+    console.error(`[ControlBoot] ${normalizedMessage}`);
+    if (typeof window.showNotification === 'function') {
+        window.showNotification(normalizedMessage, 'error');
+        return;
+    }
+    if (typeof window.toast === 'function') {
+        window.toast(normalizedMessage);
+        return;
+    }
+    alert(normalizedMessage);
+}
+
+function initializeControlEntryPoints(dependencies = {}) {
+    window.__controlEntryPointsContext = dependencies;
+    if (window.__controlEntryPointsInitialized) {
+        return;
+    }
+
+    const invoke = (handlerName) => {
+        const context = window.__controlEntryPointsContext || {};
+        const handler = context[handlerName];
+        if (typeof handler === 'function') {
+            return handler();
+        }
+        notifyControlBootFailure(`Impossible d’exécuter "${handlerName}" : initialisation incomplète.`);
+        return null;
+    };
+
+    window.addNewControl = function addNewControlEntryPoint() {
+        return invoke('openNewControlModal');
+    };
+
+    window.saveControl = function saveControlEntryPoint() {
+        return invoke('persistControlForm');
+    };
+
+    window.__controlEntryPointsInitialized = true;
+}
+
 function applyPatch() {
     (function(){
       const RMS = window.rms || window.RMS || window.RiskSystem || {};
@@ -2999,7 +3042,7 @@ function applyPatch() {
         }
       }
 
-      window.addNewControl = function() {
+      function openNewControlModal() {
         ensureAllControlReferences();
         currentEditingControlId = null;
         const form = document.getElementById('controlForm');
@@ -3036,7 +3079,7 @@ function applyPatch() {
             modal.classList.add('show');
           }
         }
-      };
+      }
 
       window.editControl = function(controlId) {
         ensureAllControlReferences();
@@ -3217,7 +3260,7 @@ function applyPatch() {
         }
       };
 
-      window.saveControl = function() {
+      function persistControlForm() {
         ensureAllControlReferences();
         const form = document.getElementById('controlForm');
         if (!form) return;
@@ -3339,7 +3382,12 @@ function applyPatch() {
         if (RMS && typeof RMS.clearUnsavedChanges === 'function') {
           RMS.clearUnsavedChanges('controlForm');
         }
-      };
+      }
+
+      initializeControlEntryPoints({
+        openNewControlModal,
+        persistControlForm
+      });
 
       function toast(msg){
         const t = document.createElement('div');

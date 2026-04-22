@@ -693,7 +693,7 @@
                 <div class="toolbar">
                     <div class="toolbar-title">Controls and Mitigation Measures</div>
                     <div class="toolbar-actions">
-                        <button class="btn btn-primary" onclick="addNewControl()">
+                        <button id="newControlButton" class="btn btn-primary" onclick="if (typeof window.addNewControl === 'function') { window.addNewControl(); } else { console.error('[UI] addNewControl indisponible depuis le bouton New Control.'); alert('Action impossible : module New Control non initialisé.'); }">
                             + New Control
                         </button>
                     </div>
@@ -884,7 +884,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.96</span>
+            <span class="app-version">Version 2.14.97</span>
         </footer>
     </div>
 
