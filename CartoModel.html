@@ -884,7 +884,7 @@
             </div>
         </div>
         <footer class="app-footer">
-            <span class="app-version">Version 2.14.92</span>
+            <span class="app-version">Version 2.14.93</span>
         </footer>
     </div>
 
@@ -1297,7 +1297,7 @@
                 <button class="modal-close" onclick="closeModal('riskModal')">&times;</button>
             </div>
             <div class="modal-body">
-                <form id="riskForm">
+                <form id="riskForm" onsubmit="saveRisk(); return false;" novalidate>
                     <div class="form-section">
                         <div class="form-section-title">General Information</div>
                         <div class="form-grid">
@@ -1536,7 +1536,7 @@
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('riskModal')">Cancel</button>
-                <button class="btn btn-success" onclick="saveRisk()">Save</button>
+                <button class="btn btn-success" type="submit" form="riskForm">Save</button>
             </div>
         </div>
     </div>
